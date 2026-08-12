@@ -793,8 +793,6 @@ function recalculateLoadPlanning() {
         bulkRestWghtCell.classList.toggle('rest-balanced', bulkRestWeight === 0 && targetWeight > 0);
         bulkRestWghtCell.classList.toggle('rest-overload', bulkRestWeight < 0);
     }
-
-    saveCompartmentsToPrediction();
 }
 
 // Инициализация таблицы коммерческой загружеб (12 отсеков BULK)
@@ -839,7 +837,10 @@ function initLoadPlanningData() {
         if (el && !el.dataset.hasRecalcListener) {
             el.dataset.hasRecalcListener = 'true';
             ['input', 'change', 'keyup', 'blur'].forEach(evt => {
-                el.addEventListener(evt, () => recalculateLoadPlanning());
+                el.addEventListener(evt, () => {
+                    recalculateLoadPlanning();
+                    saveCompartmentsToPrediction();
+                });
             });
         }
     });
