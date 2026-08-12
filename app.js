@@ -4020,5 +4020,3 @@ function setupNumericInputValidation() {
 
     recalculateLoadPlanning();
 }
-
-}
