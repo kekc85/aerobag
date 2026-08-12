@@ -1,5 +1,5 @@
 // Версия сборки приложения
-const APP_VERSION = 'v11.3.2';
+const APP_VERSION = 'v11.3.3';
 
 // Глобальное состояние
 let baggageDb = null;
