@@ -1,34 +1,30 @@
-# AeroBag Predictor v10.0 - State & Architecture Log
+# AeroBag Predictor v10.0 - Журнал состояния и архитектуры
 
-## Project Info
-- Name: AeroBag Predictor v10.0 (MySQL Edition)
-- Domain: Aviation Load Control & Baggage Weight Forecasting
-- Stack: HTML5, CSS3 (HUD Dark/Light Theme), Vanilla JavaScript, PHP Backend (api.php), MySQL DB / JSON Backup (baggage_db.json)
+## Информация о проекте
+- Название: AeroBag Predictor v10.0 (MySQL Edition)
+- Область: Расчёт коммерческой загрузки и прогнозирование веса багажа в авиации
+- Стек технологий: HTML5, CSS3 (тёмная и светлая HUD-тема), Vanilla JavaScript, PHP Backend (api.php), MySQL БД / JSON резервный файл (baggage_db.json)
 
-## Key Components & Files
-- `index.html`: Main HUD UI layout (Prediction, Preliminary Load Plan, ULD/BULK container tables, History, Admin Auth Modal).
-- `app.js`: Client-side state, autocompletion, 30-day calculation algorithms, ULD/BULK distribution, gold-border locks, REST calculation, history persistence.
-- `style.css`: Visual styling, aviation HUD theme, golden neon borders, light/dark mode variables.
-- `api.php`: Server-side API endpoints for database sync & flight history retrieval.
-- `db_config.php`: MySQL database credentials & configuration.
-- `baggage_db.json`: Offline fallback dataset.
-- `USER_MANUAL.md`: User instruction manual for flight dispatchers.
+## Ключевые компоненты и файлы
+- `index.html`: Главный интерфейс программы (прогнозирование, предварительный план загрузки, таблицы багажников ULD/BULK, история, окно авторизации администратора).
+- `app.js`: Логика приложения на стороне клиента, автозаполнение, алгоритмы расчёта за 30 дней, распределение по ULD/BULK контейнерам, фиксация золотой рамкой, остаточный вес (REST), сохранение истории.
+- `style.css`: Оформление интерфейса, авиационная тема HUD, золотое неоновое свечение, переменные тёмной/светлой темы.
+- `api.php`: Серверные эндпоинты API для синхронизации с базой данных и получения истории рейсов.
+- `db_config.php`: Реквизиты и настройки подключения к базе данных MySQL.
+- `baggage_db.json`: Офлайн-набор данных для резервного использования.
+- `USER_MANUAL.md`: Подробная инструкция и руководство пользователя для диспетчеров.
 
-## Current System State
-- Core forecasting engine: ACTIVE (PCS/PAX, Weight/PC, HB/PAX ratios).
-- Container loading grid: ACTIVE (ULD 1..12, BULK 1..4, auto REST distribution, manual weight lock with gold glow).
-- Admin auth password: `NW2026`.
-- Data sources: Excel files (`AVERAGO BAGGEGE WEIGHT TABLE 07_2026.xlsx`, `stats_july.xls`).
+## Текущее состояние системы
+- Ядро прогнозирования: АКТИВНО (коэффициенты PCS/PAX, Weight/PC, HB/PAX).
+- Сетка загрузки контейнеров: АКТИВНА (ULD 1..12, BULK 1..4, автораспределение остатка REST, ручная фиксация веса с золотым свечением).
+- Пароль администратора: `NW2026`.
+- Источники данных: Файлы Excel (`AVERAGO BAGGEGE WEIGHT TABLE 07_2026.xlsx`, `stats_july.xls`).
 
-## Action Log
-- Initialized `State.md` context tracking.
-- Rewrote `USER_MANUAL.md` into plain-language dispatcher user guide with detailed analysis settings breakdown (Scope & Data Period).
-- Expanded Section 3 of `USER_MANUAL.md` with in-depth breakdown and aviation scenarios for all Scope and Seasonality Period parameters.
-- Converted and formatted updated `USER_MANUAL.md` into production `USER_MANUAL.docx` with styles and embedded screenshots.
-- Optimized mobile responsiveness in `style.css` (iOS auto-zoom fix for inputs, touch-friendly 40-44px tap targets, table horizontal touch-scroll, header buttons flex-wrap, centered modals).
-- Git repository initialized locally in project directory, `.gitignore` created, initial commit `71bcc09` created, remote `https://github.com/kekc85/aerobag.git` linked and force pushed to `main` branch. All files are live on GitHub.
-- Workflow set: Automatic git commit & push to GitHub enabled for all future changes. Communication strictly in Russian.
-
-
-
-
+## Журнал изменений и действий
+- Инициализирован журнал состояния проекта `State.md`.
+- Переработано руководство пользователя `USER_MANUAL.md` простым и понятным языком с подробным разбором настроек анализа.
+- Расширен Раздел 3 в `USER_MANUAL.md` с глубоким разбором авиационных сценариев, глубины анализа и параметров сезонности.
+- Сформирован и отформатирован финальный документ `USER_MANUAL.docx` со стилями и встроенными скриншотами.
+- Оптимизирована адаптивность для мобильных устройств в `style.css` (устранён автозум на iOS, крупные области нажатия 40-44px, горизонтальный скролл таблиц, гибкие кнопки шапки).
+- Инициализирован Git-репозиторий в папке проекта, создан `.gitignore`, привязан репозиторий `https://github.com/kekc85/aerobag.git` и отправлена первоначальная версия в ветку `main`.
+- Установлен регламент работы: Ведение `State.md` на русском языке, автоматическая выгрузка всех изменений (commit & push) на GitHub.
