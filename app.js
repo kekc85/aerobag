@@ -1361,7 +1361,7 @@ function populateAirportDropdowns() {
         if (isAllowedDep) {
             if (selectFrom) {
                 const opt = document.createElement('option');
-                opt.value = ap.ru;
+                opt.value = ap.iata;
                 opt.textContent = optText;
                 selectFrom.appendChild(opt);
             }
