@@ -1040,12 +1040,15 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     text-transform: uppercase;
     font-family: var(--font-mono);
     letter-spacing: 0.5px;
+    padding: 10px 12px;
+    text-align: left;
     border-bottom: 1px solid var(--card-border);
 }
 
 .flights-table td {
     padding: 10px 12px;
     border-bottom: 1px solid rgba(0, 242, 255, 0.05);
+    text-align: left;
 }
 
 .flights-table tr:hover {
@@ -1056,6 +1059,15 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     font-family: var(--font-mono);
     letter-spacing: 0.5px;
 }
+
+.flights-table th:nth-child(1), .flights-table td:nth-child(1) { width: 16%; }
+.flights-table th:nth-child(2), .flights-table td:nth-child(2) { width: 15%; }
+.flights-table th:nth-child(3), .flights-table td:nth-child(3) { width: 15%; text-align: left; }
+.flights-table th:nth-child(4), .flights-table td:nth-child(4) { width: 12%; text-align: left; }
+.flights-table th:nth-child(5), .flights-table td:nth-child(5) { width: 13%; text-align: left; }
+.flights-table th:nth-child(6), .flights-table td:nth-child(6) { width: 11%; text-align: left; }
+.flights-table th:nth-child(7), .flights-table td:nth-child(7) { width: 12%; text-align: left; }
+.flights-table th:nth-child(8), .flights-table td:nth-child(8) { width: 6%; text-align: center; }
 
 .status-badge {
     padding: 3px 6px;
