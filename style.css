@@ -726,27 +726,28 @@ body.light-theme .btn-danger:hover {
 }
 
 .coef-source-info {
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 4px 8px;
+    display: block;
     border-top: 1px solid var(--card-border);
     padding-top: 8px;
     margin-top: 10px;
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 .coef-source-info span {
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
+    white-space: nowrap;
+    display: inline-block;
+    margin-right: 6px;
 }
 
 .coef-source-info strong {
     color: var(--accent-cyan, #00f0ff);
     font-weight: 700;
     word-break: break-word;
+    display: inline;
 }
 
 /* Детализация отобранных рейсов */

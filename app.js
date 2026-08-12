@@ -66,7 +66,7 @@ const translations = {
         'coef-pcs-pax': 'Мест на 1 пасс. (PCS/PAX)',
         'coef-weight-pc': 'Вес 1 места (Weight/PC)',
         'coef-hb-pax': 'Ручная кладь на 1 пасс. (HB/PAX)',
-        'coef-source-label': 'Источник данных для расчета:',
+        'coef-source-label': 'Источник данных:',
         'upload-title': 'Загрузка файлов системы регистрации',
         'drop-text': 'Перетащите файлы .xls / .xlsx сюда или нажмите для выбора',
         'drop-sub': 'Поддержка SpreadsheetML 2003 (.xls) и Excel (.xlsx)',
