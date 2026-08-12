@@ -552,6 +552,14 @@ function saveCompartmentsToPrediction() {
     const p = predictionsHistory.find(item => item.id === currentActivePredictionId);
     if (!p) return;
 
+    const lirPaxInput = document.getElementById('lir-pax');
+    const lirPcsInput = document.getElementById('lir-pcs');
+    const lirWeightInput = document.getElementById('lir-weight');
+
+    if (lirPaxInput && lirPaxInput.value !== '') p.lir_pax = parseInt(lirPaxInput.value, 10) || 0;
+    if (lirPcsInput && lirPcsInput.value !== '') p.lir_pcs = parseInt(lirPcsInput.value, 10) || 0;
+    if (lirWeightInput && lirWeightInput.value !== '') p.lir_weight = parseFloat(lirWeightInput.value) || 0;
+
     const compartments = [];
     for (let i = 1; i <= 12; i++) {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
@@ -652,9 +660,13 @@ function transferPredictionToPreliminary(predId) {
     if (prelimPcs) prelimPcs.textContent = pcsVal;
     if (prelimWeight) prelimWeight.textContent = weightVal;
 
-    if (lirPax) lirPax.value = paxVal;
-    if (lirPcs) lirPcs.value = pcsVal;
-    if (lirWeight) lirWeight.value = weightVal;
+    const curLirPax = (p.lir_pax !== undefined && p.lir_pax !== null) ? p.lir_pax : paxVal;
+    const curLirPcs = (p.lir_pcs !== undefined && p.lir_pcs !== null) ? p.lir_pcs : pcsVal;
+    const curLirWeight = (p.lir_weight !== undefined && p.lir_weight !== null) ? p.lir_weight : weightVal;
+
+    if (lirPax) lirPax.value = curLirPax;
+    if (lirPcs) lirPcs.value = curLirPcs;
+    if (lirWeight) lirWeight.value = curLirWeight;
 
     const resPcs = document.getElementById('res-pcs');
     const resWeight = document.getElementById('res-weight');
@@ -781,6 +793,8 @@ function recalculateLoadPlanning() {
         bulkRestWghtCell.classList.toggle('rest-balanced', bulkRestWeight === 0 && targetWeight > 0);
         bulkRestWghtCell.classList.toggle('rest-overload', bulkRestWeight < 0);
     }
+
+    saveCompartmentsToPrediction();
 }
 
 // Инициализация таблицы коммерческой загружеб (12 отсеков BULK)
@@ -4006,73 +4020,4 @@ function setupNumericInputValidation() {
     recalculateLoadPlanning();
 }
 
-// Перенос выбранного расчета из Истории расчетов прогнозов в табличный блок PRELIMINARY и LIR / ФИНАЛЬНЫЙ
-function transferPredictionToPreliminary(predId) {
-    const p = predictionsHistory.find(item => item.id === predId);
-    if (!p) return;
-
-    // Сохраняем раскладку BULK текущего активного рейса из Истории перед переключением
-    saveCompartmentsToPrediction();
-
-    // Устанавливаем новый активный рейс из Истории
-    currentActivePredictionId = predId;
-
-    const paxVal = parseInt(p.pax, 10) || 0;
-    const pcsVal = parseInt(p.bag_pcs, 10) || 0;
-    const weightVal = parseFloat(p.bag_weight) || 0;
-
-    const prelimPax = document.getElementById('prelim-pax');
-    const prelimPcs = document.getElementById('prelim-pcs');
-    const prelimWeight = document.getElementById('prelim-weight');
-
-    if (prelimPax) prelimPax.textContent = paxVal;
-    if (prelimPcs) prelimPcs.textContent = pcsVal;
-    if (prelimWeight) prelimWeight.textContent = weightVal;
-
-    // Дублируем спрогнозированные параметры в инпуты LIR OR FINAL
-    const lirPax = document.getElementById('lir-pax');
-    const lirPcs = document.getElementById('lir-pcs');
-    const lirWeight = document.getElementById('lir-weight');
-
-    if (lirPax) lirPax.value = paxVal;
-    if (lirPcs) lirPcs.value = pcsVal;
-    if (lirWeight) lirWeight.value = weightVal;
-
-    // Восстанавливаем раскладку BULK из сохранённых данных рейса (или обнуляем если пустые)
-    restoreCompartmentsFromPrediction(p);
-
-    // Синхронизируем верхнюю форму прогнозирования
-    const selectFlight = document.getElementById('select-flight');
-    const selectFrom = document.getElementById('select-from');
-    const selectTo = document.getElementById('select-to');
-    const inputPax = document.getElementById('input-pax');
-
-    if (selectFlight && p.flight_no) selectFlight.value = p.flight_no;
-    if (selectFrom && p.from) selectFrom.value = p.from;
-    if (selectTo && p.to) {
-        selectTo.disabled = false;
-        selectTo.value = p.to;
-    }
-    if (inputPax && p.pax) inputPax.value = p.pax;
-
-    // Результаты в главной панели результатов
-    const resPcs = document.getElementById('res-pcs');
-    const resWeight = document.getElementById('res-weight');
-    const resHb = document.getElementById('res-hb');
-
-    if (resPcs) resPcs.textContent = p.bag_pcs;
-    if (resWeight) resWeight.textContent = p.bag_weight;
-    if (resHb) resHb.textContent = p.hb_weight || 0;
-
-    recalculateLoadPlanning();
-
-    // Обновляем верхнюю инфо-плашку акцента выбранного рейса
-    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date);
-    highlightPredictionRow(predId);
-
-    // Плавный скролл к блоку "Средний вес багажа и данные загрузки"
-    const targetEl = document.querySelector('.load-planning-panel') || document.getElementById('prelim-pax');
-    if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
 }
