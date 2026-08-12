@@ -2468,10 +2468,16 @@ body.light-theme .footer-table tr.ttl-row td {
 
 /* --- Самые маленькие экраны (телефоны до 480px) --- */
 @media (max-width: 480px) {
+    html, body {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
     .app-container {
         padding: 2px 0 !important;
         width: 100% !important;
-        overflow-x: hidden;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
     }
 
     .tab-navigation {
@@ -2530,6 +2536,22 @@ body.light-theme .footer-table tr.ttl-row td {
         min-height: 38px;
     }
 
+    /* Все кнопки на смартфонах — без вылезания за экран и с переносом длинного текста */
+    .btn,
+    .btn-primary,
+    .btn-secondary,
+    .btn-warning,
+    .btn-danger,
+    #btn-transfer-preliminary,
+    #form-prediction button[type="submit"] {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        white-space: normal !important;
+        word-break: break-word !important;
+        letter-spacing: 0.5px !important;
+        padding: 10px 8px !important;
+    }
+
     /* Предотвращение автозума на iOS Safari (поля ввода от 16px) */
     .form-control,
     select.form-control,
@@ -2537,6 +2559,8 @@ body.light-theme .footer-table tr.ttl-row td {
         font-size: 16px !important;
         padding: 9px 12px;
         touch-action: manipulation;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
     .form-group label {
@@ -2544,12 +2568,16 @@ body.light-theme .footer-table tr.ttl-row td {
     }
 
     /* Панели — от края до края без вылезания */
-    .aviation-panel {
-        padding: 12px 8px;
+    .aviation-panel,
+    .panel,
+    .glass {
+        padding: 12px 8px !important;
         border-radius: 0 !important;
         margin-left: 0 !important;
         margin-right: 0 !important;
-        box-sizing: border-box;
+        max-width: 100vw !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
     }
 
     .table-section {
@@ -2581,22 +2609,24 @@ body.light-theme .footer-table tr.ttl-row td {
         font-size: 1.3rem;
     }
 
-    /* Таблица с расчетом загрузки — тач-скролл без обрезки */
-    .unified-load-wrapper {
+    /* Все контейнеры таблиц — изолированный тач-скролл внутри карточки */
+    .unified-load-wrapper,
+    .table-responsive {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-x pan-y !important;
         width: 100% !important;
         max-width: 100% !important;
         display: block !important;
+        box-sizing: border-box !important;
     }
 
     .fixed-load-table {
-        min-width: 480px;
+        min-width: 540px;
     }
 
     .load-rows-scroll-container {
-        min-width: 480px;
+        min-width: 540px;
         max-height: 45vh !important;
     }
 
