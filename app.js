@@ -2439,6 +2439,26 @@ function renderSampledFlightsDetails(coefs) {
         return;
     }
 
+// Вспомогательная функция для получения количества пассажиров без учета младенцев (ВЗ + РБ, без РМ)
+function getEffectivePaxCount(f) {
+    if (!f) return 0;
+    const men = parseInt(f.men) || 0;
+    const women = parseInt(f.women) || 0;
+    const rb = parseInt(f.rb) || 0;
+    const rm = parseInt(f.rm) || 0;
+
+    if (men > 0 || women > 0 || rb > 0) {
+        return men + women + rb;
+    }
+
+    const rawPax = parseInt(f.pax) || 0;
+    if (rawPax > 0) {
+        return Math.max(0, rawPax - rm);
+    }
+
+    return 0;
+}
+
     // Если есть реальные отобранные рейсы
     if (coefs.usedFlights && coefs.usedFlights.length > 0) {
         const flights = coefs.usedFlights;
@@ -2454,9 +2474,7 @@ function renderSampledFlightsDetails(coefs) {
 
         let htmlBody = '';
         flights.forEach((f, idx) => {
-            const pax = (f.pax !== undefined && !isNaN(parseInt(f.pax))) 
-                ? parseInt(f.pax) 
-                : ((parseInt(f.men) || 0) + (parseInt(f.women) || 0) + (parseInt(f.rb) || 0) + (parseInt(f.rm) || 0));
+            const pax = getEffectivePaxCount(f);
             const pcs = parseInt(f.bag_pcs) || 0;
             const weight = parseFloat(f.bag_weight) || 0;
             const hb = parseFloat(f.hb_weight) || 0;
@@ -2762,9 +2780,7 @@ function calculateMeansFromFlights(flights, isWeighted = false) {
     let totalHbWeight = 0;
 
     sortedFlights.forEach(f => {
-        const pax = (f.pax !== undefined && !isNaN(parseInt(f.pax))) 
-            ? parseInt(f.pax) 
-            : ((parseInt(f.men) || 0) + (parseInt(f.women) || 0) + (parseInt(f.rb) || 0) + (parseInt(f.rm) || 0));
+        const pax = getEffectivePaxCount(f);
         const pcs = parseInt(f.bag_pcs) || 0;
         const bagWeight = parseFloat(f.bag_weight) || 0;
         const hbWeight = parseFloat(f.hb_weight) || 0;
@@ -2789,9 +2805,7 @@ function calculateMeansFromFlights(flights, isWeighted = false) {
         weights = baseWeights.map(w => w / sumW);
 
         sortedFlights.forEach((f, idx) => {
-            const pax = (f.pax !== undefined && !isNaN(parseInt(f.pax))) 
-                ? parseInt(f.pax) 
-                : ((parseInt(f.men) || 0) + (parseInt(f.women) || 0) + (parseInt(f.rb) || 0) + (parseInt(f.rm) || 0));
+            const pax = getEffectivePaxCount(f);
             const pcs = parseInt(f.bag_pcs) || 0;
             const bagWeight = parseFloat(f.bag_weight) || 0;
             const hbWeight = parseFloat(f.hb_weight) || 0;
@@ -2985,7 +2999,7 @@ function handleManualFlightSubmit(e) {
     const rb = parseInt(document.getElementById('manual-rb').value, 10) || 0;
     const rm = parseInt(document.getElementById('manual-rm').value, 10) || 0;
 
-    const pax = men + women + rb + rm;
+    const pax = men + women + rb;
     if (pax <= 0) {
         showAviationAlert(currentLang === 'ru' ? 'Укажите количество пассажиров!' : 'Please enter passenger count!', true);
         return;
@@ -3694,10 +3708,11 @@ function processRegistrationData(filename, rows, options = {}) {
         let rb = parseInt(getVal(colMap.rb), 10) || 0;
         let rm = parseInt(getVal(colMap.rm), 10) || 0;
 
-        let totalPax = parseInt(getVal(colMap.pax), 10) || 0;
+        let totalPax = vz + rb;
         if (totalPax === 0) {
-            if (vz + rb + rm > 0) {
-                totalPax = vz + rb + rm;
+            const rawPaxCol = parseInt(getVal(colMap.pax), 10) || 0;
+            if (rawPaxCol > 0) {
+                totalPax = Math.max(0, rawPaxCol - rm);
             }
         }
         if (totalPax <= 0) totalPax = 1;
