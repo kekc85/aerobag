@@ -1,0 +1,3136 @@
+/* AVERAGO Baggage Assistant CSS - AVIATION DISPATCH THEME */
+
+/* Нативная поддержка темной/светлой схемы для календарей и системных скроллбаров */
+:root {
+    color-scheme: dark;
+    
+    /* Переменные для ТЕМНОЙ темы (Авиационная радарная кабина - по умолчанию) */
+    --bg-primary: #040814;
+    --bg-secondary: #081026;
+    --card-bg: rgba(8, 18, 41, 0.65);
+    --card-border: rgba(0, 242, 255, 0.15);
+    --text-primary: #e0f2fe;
+    --text-secondary: #38bdf8;
+    --text-muted: #0369a1;
+    
+    --primary: #00f2ff; /* Авиационный Cyan */
+    --primary-hover: #00b8d4;
+    --primary-glow: rgba(0, 242, 255, 0.25);
+    
+    --secondary: #ffb700; /* Янтарный Warning/Caution */
+    --secondary-hover: #e59e00;
+    --secondary-glow: rgba(255, 183, 0, 0.2);
+    
+    --success: #00ff66; /* Радарный зеленый */
+    --success-glow: rgba(0, 255, 102, 0.2);
+    
+    --danger: #ff3366;
+    --danger-hover: #e02454;
+    --warning: #ffb700;
+    --warning-bg: rgba(255, 183, 0, 0.08);
+    
+    --font-main: 'Montserrat', sans-serif;
+    --font-accent: 'Outfit', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace; /* Высокотехнологичный авиационный шрифт для цифр и таблиц */
+    
+    --purple-glow: 0 0 20px rgba(0, 242, 255, 0.15);
+    --blue-glow: 0 0 20px rgba(56, 189, 248, 0.15);
+    --green-glow: 0 0 20px rgba(0, 255, 102, 0.15);
+    
+    --transition-speed: 0.25s;
+}
+
+body.light-theme {
+    color-scheme: light;
+    
+    /* Переменные для СВЕТЛОЙ темы (Авиационная карта / Дневной диспетчер) */
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --card-bg: #ffffff;
+    --card-border: #cbd5e1;
+    --text-primary: #0f172a;
+    --text-secondary: #0284c7;
+    --text-muted: #64748b;
+    
+    --primary: #0284c7;
+    --primary-hover: #0369a1;
+    --primary-glow: rgba(2, 132, 199, 0.15);
+    
+    --secondary: #d97706;
+    --secondary-hover: #b45309;
+    --secondary-glow: rgba(217, 119, 6, 0.15);
+    
+    --success: #10b981;
+    --success-glow: rgba(16, 185, 129, 0.15);
+    
+    --purple-glow: 0 4px 15px rgba(2, 132, 199, 0.08);
+    --blue-glow: 0 4px 15px rgba(2, 132, 199, 0.08);
+    --green-glow: 0 4px 15px rgba(16, 185, 129, 0.08);
+}
+
+/* Сброс стилей */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-main);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition: background-color var(--transition-speed), color var(--transition-speed);
+    position: relative;
+}
+
+/* Фоновая радарная сетка координат */
+.aviation-grid-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        linear-gradient(rgba(0, 242, 255, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 242, 255, 0.015) 1px, transparent 1px);
+    background-size: 30px 30px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+body.light-theme .aviation-grid-overlay {
+    background-image: 
+        linear-gradient(rgba(8, 145, 178, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(8, 145, 178, 0.02) 1px, transparent 1px);
+}
+
+.app-container {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 20px;
+    position: relative;
+    z-index: 1;
+}
+
+/* Glassmorphism утилита с авиационными границами */
+.glass {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    transition: background var(--transition-speed), border var(--transition-speed);
+}
+
+/* Шапка Airline Dispatch */
+.app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 20px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header-logo {
+    font-family: var(--font-accent);
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-plane {
+    font-size: 1.6rem;
+    filter: drop-shadow(0 0 8px var(--primary));
+}
+
+.logo-accent {
+    background: linear-gradient(135deg, var(--primary), #3b82f6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.logo-sub {
+    font-size: 0.7rem;
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+    border-left: 2px solid var(--primary-glow);
+    padding-left: 10px;
+    letter-spacing: 2px;
+    font-weight: bold;
+}
+
+/* Пульсирующий индикатор статуса диспетчера */
+.header-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: rgba(0, 255, 102, 0.05);
+    border: 1px solid rgba(0, 255, 102, 0.2);
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.status-pulse {
+    width: 8px;
+    height: 8px;
+    background-color: var(--success);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--success);
+    animation: status-glow 1.5s infinite alternate;
+}
+
+@keyframes status-glow {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 14px var(--success); }
+}
+
+.status-text {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--success);
+    letter-spacing: 1px;
+}
+
+/* Локальный режим работы (Offline) */
+.header-status-indicator.offline {
+    background-color: var(--warning-bg);
+    border-color: rgba(255, 183, 0, 0.2);
+}
+.header-status-indicator.offline .status-pulse {
+    background-color: var(--warning);
+    box-shadow: 0 0 10px var(--warning);
+    animation: status-glow-offline 1.5s infinite alternate;
+}
+.header-status-indicator.offline .status-text {
+    color: var(--warning);
+}
+@keyframes status-glow-offline {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 14px var(--warning); }
+}
+
+body.light-theme .header-status-indicator.offline {
+    background-color: rgba(217, 119, 6, 0.05);
+    border-color: rgba(217, 119, 6, 0.2);
+}
+body.light-theme .header-status-indicator.offline .status-pulse {
+    background-color: var(--secondary);
+    box-shadow: 0 0 10px var(--secondary);
+    animation: status-glow-offline-light 1.5s infinite alternate;
+}
+body.light-theme .header-status-indicator.offline .status-text {
+    color: var(--secondary);
+}
+@keyframes status-glow-offline-light {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 1; box-shadow: 0 0 14px var(--secondary); }
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Язык */
+.lang-selector {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid var(--card-border);
+}
+
+.btn-lang {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: var(--font-mono);
+}
+
+.btn-lang.active {
+    background: var(--primary);
+    color: #040814;
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+body.light-theme .btn-lang.active {
+    color: #fff;
+}
+
+.btn-theme {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+}
+
+.theme-text {
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Вкладки (Tabs) в авиационном HUD стиле */
+.tab-navigation {
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    font-family: var(--font-mono);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border: 1px solid transparent;
+}
+
+.tab-btn:hover {
+    color: var(--primary);
+    background-color: rgba(0, 242, 255, 0.03);
+}
+
+.tab-btn.active {
+    background-color: var(--primary-glow);
+    color: var(--primary);
+    border: 1px solid var(--card-border);
+    box-shadow: inset 0 0 8px rgba(0, 242, 255, 0.1);
+}
+
+.tab-content {
+    display: block;
+}
+
+.tab-content.hidden {
+    display: none !important;
+}
+
+/* Макет воркспейса */
+.workspace-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+#tab-content-predict .workspace-grid {
+    grid-template-columns: 580px 1fr;
+    align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+    .workspace-grid,
+    #tab-content-predict .workspace-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.left-column, .right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.right-column {
+    height: 100%;
+}
+
+/* Панель HUD */
+.aviation-panel {
+    position: relative;
+    padding: 12px 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+/* Угловые рамки HUD (Heads-Up Display) */
+.hud-corner {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border: 2px solid var(--primary);
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.hud-corner.top-left { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+.hud-corner.top-right { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+.hud-corner.bottom-left { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+.hud-corner.bottom-right { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+.panel-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: var(--primary);
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 4px;
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+}
+
+.subsection-title {
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin: 16px 0 10px 0;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+}
+
+/* Формы */
+.form-group {
+    margin-bottom: 8px;
+}
+
+.form-group.compact {
+    margin-bottom: 6px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+}
+
+/* Выпадающие списки и инпуты */
+.form-control {
+    width: 100%;
+    padding: 10px 14px;
+    background-color: rgba(4, 8, 20, 0.9);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+select.form-control {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.form-control option {
+    background-color: #040814;
+    color: #e0f2fe;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.form-control:disabled {
+    background-color: rgba(4, 8, 20, 0.5);
+    color: rgba(56, 189, 248, 0.4);
+    border-color: rgba(0, 242, 255, 0.05);
+    cursor: not-allowed;
+}
+
+select.form-control:disabled {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230369a1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+/* Форсирование темного календаря на самом инпуте */
+input[type="date"].form-control {
+    color-scheme: dark;
+    font-family: var(--font-mono);
+    font-weight: bold;
+}
+
+body.light-theme input[type="date"].form-control {
+    color-scheme: light;
+}
+
+/* Светлая тема */
+body.light-theme .form-control {
+    background-color: #ffffff;
+    border: 1px solid var(--card-border);
+    color: var(--text-primary);
+}
+
+body.light-theme select.form-control {
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230e7490' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
+body.light-theme .form-control option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+
+.col-6 { flex: 0 0 calc(50% - 6px); }
+.col-4 { flex: 0 0 calc(33.333% - 8px); }
+
+/* Кнопки */
+.btn {
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), #2563eb);
+    color: #040814;
+    box-shadow: 0 0 12px var(--primary-glow);
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+body.light-theme .btn-primary {
+    color: #fff;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 0 18px var(--primary);
+    transform: translateY(-0.5px);
+}
+
+.btn-secondary {
+    background-color: var(--secondary); /* Янтарный #ffb700 */
+    border: 1px solid var(--secondary);
+    color: #040814; /* Темный фон для контраста текста */
+    box-shadow: 0 0 10px var(--secondary-glow);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-hover); /* #e59e00 */
+    border-color: var(--secondary-hover);
+    color: #040814;
+    box-shadow: 0 0 16px var(--secondary);
+}
+
+.btn-danger {
+    background-color: rgba(255, 51, 102, 0.08);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    color: var(--danger);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+.btn-danger:hover {
+    background-color: var(--danger);
+    color: #040814;
+    box-shadow: 0 0 12px rgba(255, 51, 102, 0.3);
+}
+
+body.light-theme .btn-danger:hover {
+    color: #fff;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* Грид распределения паксов */
+.pax-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* Результаты */
+.results-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.results-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.result-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-radius: 8px;
+}
+
+.aviation-result {
+    border-left: 4px solid var(--primary);
+}
+
+.green-glow { border-left-color: var(--success); box-shadow: var(--green-glow); }
+.blue-glow { border-left-color: var(--primary); box-shadow: var(--blue-glow); }
+.purple-glow { border-left-color: var(--secondary); box-shadow: var(--purple-glow); }
+
+.card-icon {
+    font-size: 1.8rem;
+}
+
+.card-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.card-label {
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.card-value {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.monospace-val {
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+}
+
+.value-container {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.unit {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: bold;
+    font-family: var(--font-mono);
+}
+
+/* Предупреждение о датах */
+.warning-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background-color: var(--warning-bg);
+    border: 1px solid rgba(255, 183, 0, 0.25);
+    padding: 10px 14px;
+    border-radius: 6px;
+}
+
+.warning-box.hidden { display: none; }
+
+.warning-icon {
+    font-size: 1.1rem;
+    color: var(--warning);
+}
+
+.warning-text {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--warning);
+    line-height: 1.3;
+}
+
+/* Коэффициенты */
+.coefficients-panel {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border: 1px solid var(--card-border);
+    padding: 14px;
+}
+
+.coef-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.coef-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: rgba(0, 242, 255, 0.04);
+    border: 1px solid rgba(0, 242, 255, 0.15);
+    padding: 10px 14px;
+    border-radius: 8px;
+    box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.03);
+    transition: all 0.2s ease;
+}
+
+.coef-item:hover {
+    border-color: rgba(0, 242, 255, 0.35);
+    background: rgba(0, 242, 255, 0.07);
+}
+
+.coef-label {
+    font-size: 0.78rem;
+    color: var(--accent-cyan, #00f2ff);
+    font-weight: 700;
+    line-height: 1.2;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+}
+
+.coef-value {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--text-primary, #ffffff);
+    margin-top: 4px;
+}
+
+.coef-source-info {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--card-border);
+    padding-top: 8px;
+    margin-top: 10px;
+}
+
+/* Детализация отобранных рейсов */
+.sampled-flights-container {
+    background-color: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(0, 242, 255, 0.15);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.sampled-flights-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 0px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sampled-flights-header.clickable {
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.sampled-flights-header.clickable:hover {
+    background-color: rgba(0, 242, 255, 0.08);
+}
+
+.sampled-flights-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sampled-flights-arrow {
+    font-size: 0.75rem;
+    transition: transform 0.25s ease;
+    color: var(--accent-cyan);
+    display: inline-block;
+}
+
+/* Сворачиваемое состояние */
+.sampled-flights-container.collapsed .sampled-flights-table-wrapper {
+    display: none;
+}
+
+.sampled-flights-container:not(.collapsed) .sampled-flights-header {
+    margin-bottom: 8px;
+}
+
+.sampled-flights-container:not(.collapsed) .sampled-flights-arrow {
+    transform: rotate(90deg);
+}
+
+.sampled-flights-table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.sampled-flights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.72rem;
+    text-align: left;
+    table-layout: fixed;
+}
+
+.sampled-flights-table tbody {
+    display: block;
+    max-height: 125px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-cyan) rgba(0, 0, 0, 0.2);
+}
+
+.sampled-flights-table tbody::-webkit-scrollbar {
+    width: 5px;
+}
+
+.sampled-flights-table tbody::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.sampled-flights-table tbody::-webkit-scrollbar-thumb {
+    background: var(--accent-cyan);
+    border-radius: 4px;
+}
+
+.sampled-flights-table thead,
+.sampled-flights-table tbody tr,
+.sampled-flights-table tfoot tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+}
+
+.sampled-flights-table th:nth-child(1),
+.sampled-flights-table td:nth-child(1) { width: 28%; }
+
+.sampled-flights-table th:nth-child(2),
+.sampled-flights-table td:nth-child(2) { width: 12%; }
+
+.sampled-flights-table th:nth-child(3),
+.sampled-flights-table td:nth-child(3) { width: 14%; }
+
+.sampled-flights-table th:nth-child(4),
+.sampled-flights-table td:nth-child(4) { width: 14%; }
+
+.sampled-flights-table th:nth-child(5),
+.sampled-flights-table td:nth-child(5) { width: 16%; }
+
+.sampled-flights-table th:nth-child(6),
+.sampled-flights-table td:nth-child(6) { width: 16%; }
+
+.sampled-flights-table th {
+    padding: 5px 6px;
+    background-color: rgba(0, 242, 255, 0.08);
+    color: var(--accent-cyan);
+    font-weight: 700;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+    white-space: nowrap;
+}
+
+.sampled-flights-table td {
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.sampled-flights-table tfoot tr.sample-totals-row td {
+    background-color: rgba(0, 242, 255, 0.12);
+    border-top: 1px solid var(--accent-cyan);
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.sampled-flights-table tfoot tr.sample-formulas-row td {
+    background-color: rgba(245, 158, 11, 0.08);
+    border-top: 1px dashed rgba(245, 158, 11, 0.3);
+    color: #fbbf24;
+    font-size: 0.68rem;
+    padding: 6px;
+    line-height: 1.4;
+    white-space: normal;
+}
+
+.cyan-val { color: var(--accent-cyan); font-weight: 700; }
+.gold-val { color: #f59e0b; font-weight: 700; }
+.purple-val { color: #a855f7; font-weight: 700; }
+
+/* Light Theme для детализации */
+body.light-theme .sampled-flights-container {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+}
+
+body.light-theme .sampled-flights-header {
+    color: #0284c7;
+}
+
+body.light-theme .sampled-flights-table th {
+    background-color: #e2e8f0;
+    color: #0369a1;
+    border-bottom: 1px solid #cbd5e1;
+}
+
+body.light-theme .sampled-flights-table td {
+    border-bottom: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+body.light-theme .sampled-flights-table tfoot tr.sample-totals-row td {
+    background-color: #e2e8f0;
+    border-top: 1px solid #0284c7;
+    color: #0f172a;
+}
+
+body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
+    background-color: #fef3c7;
+    border-top: 1px dashed #f59e0b;
+    color: #92400e;
+}
+
+/* Драг и дроп */
+.drop-zone {
+    border: 2px dashed rgba(0, 242, 255, 0.2);
+    border-radius: 8px;
+    padding: 22px;
+    text-align: center;
+    cursor: pointer;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--primary);
+    background-color: rgba(0, 242, 255, 0.03);
+}
+
+.drop-icon {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+}
+
+.drop-text {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+}
+
+.drop-sub {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.db-status-bar {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--card-border);
+    font-size: 0.75rem;
+    margin-top: 12px;
+}
+
+.date-range-badge {
+    background-color: rgba(0, 242, 255, 0.1);
+    color: var(--primary);
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-weight: bold;
+}
+
+.uploaded-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.file-item {
+    background-color: rgba(0, 242, 255, 0.02);
+    border: 1px solid rgba(0, 242, 255, 0.05);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+
+.file-flights-count {
+    color: var(--primary);
+    font-weight: bold;
+    font-family: var(--font-mono);
+}
+
+/* Таблицы */
+.table-section {
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.table-header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.table-responsive {
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.flights-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+}
+
+.flights-table th {
+    background-color: rgba(0, 0, 0, 0.4);
+    color: var(--text-secondary);
+    font-weight: bold;
+    text-transform: uppercase;
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.flights-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.05);
+}
+
+.flights-table tr:hover {
+    background-color: rgba(0, 242, 255, 0.01);
+}
+
+.flights-table strong {
+    font-family: var(--font-mono);
+    letter-spacing: 0.5px;
+}
+
+.status-badge {
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-weight: bold;
+    font-size: 0.65rem;
+}
+
+.status-badge.active {
+    background-color: rgba(0, 255, 102, 0.1);
+    color: var(--success);
+    border: 1px solid rgba(0, 255, 102, 0.2);
+}
+
+.status-badge.inactive {
+    background-color: rgba(255, 183, 0, 0.08);
+    color: var(--warning);
+    border: 1px solid rgba(255, 183, 0, 0.2);
+}
+
+.btn-delete-row {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    color: #ef4444;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.btn-delete-row:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-delete-row svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+/* Для светлой темы */
+body.light-theme .btn-delete-row {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+}
+
+body.light-theme .btn-delete-row:hover {
+    background: #dc2626;
+    border-color: #dc2626;
+    color: #ffffff !important;
+    box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
+}
+
+.empty-table-text {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+/* Скроллбары */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--card-border);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* ==========================================================================
+   СПЕЦИФИЧЕСКИЕ ПЕРЕОПРЕДЕЛЕНИЯ ДЛЯ СВЕТЛОЙ ТЕМЫ (Flight Map Day Mode)
+   ========================================================================== */
+
+/* Панели HUD в светлой теме */
+body.light-theme .aviation-panel {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme .hud-corner {
+    border-color: #0284c7;
+    opacity: 0.5;
+}
+
+/* Заголовки панелей */
+body.light-theme .panel-title {
+    color: #0284c7;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Формы и поля ввода */
+body.light-theme .form-group label {
+    color: #475569;
+}
+
+body.light-theme .form-control {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    color: #0f172a;
+}
+
+body.light-theme .form-control:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+
+body.light-theme .form-control option {
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+body.light-theme .form-control:disabled {
+    background-color: #f1f5f9;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+}
+
+/* Вкладки навигации */
+body.light-theme .tab-navigation {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+}
+
+body.light-theme .tab-btn {
+    color: #475569;
+}
+
+body.light-theme .tab-btn:hover {
+    color: #0284c7;
+    background-color: rgba(2, 132, 199, 0.05);
+}
+
+body.light-theme .tab-btn.active {
+    background-color: #ffffff;
+    color: #0284c7;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Карточки результатов */
+body.light-theme .result-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03) !important;
+}
+
+body.light-theme .result-card.blue-glow { border-left-color: #0284c7; }
+body.light-theme .result-card.purple-glow { border-left-color: #8b5cf6; }
+body.light-theme .result-card.green-glow { border-left-color: #10b981; }
+
+body.light-theme .card-value {
+    color: #0f172a;
+}
+
+/* Панель коэффициентов */
+body.light-theme .coefficients-panel {
+    background-color: #f8fafc;
+    border: 1px solid #cbd5e1;
+}
+
+body.light-theme .coef-item {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+}
+
+body.light-theme .coef-label {
+    color: #64748b;
+}
+
+body.light-theme .coef-value {
+    color: #0f172a;
+}
+
+body.light-theme .coef-source-info {
+    border-top: 1px solid #e2e8f0;
+    color: #475569;
+}
+
+/* Таблицы */
+body.light-theme .flights-table th {
+    background-color: #f1f5f9;
+    color: #334155;
+    border-bottom: 2px solid #cbd5e1;
+}
+
+body.light-theme .flights-table td {
+    border-bottom: 1px solid #e2e8f0;
+}
+
+body.light-theme .flights-table tr:hover {
+    background-color: #f8fafc;
+}
+
+body.light-theme .flights-table strong {
+    color: #0f172a;
+}
+
+/* Кнопки */
+body.light-theme .btn-secondary {
+    background-color: #ff9f00; /* Яркий янтарный авиационный цвет */
+    border: 1px solid #e08b00;
+    color: #0c1220; /* Темно-синий текст для максимального контраста */
+    box-shadow: 0 2px 8px rgba(255, 159, 0, 0.2);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+body.light-theme .btn-secondary:hover {
+    background-color: #e08b00;
+    border-color: #c47900;
+    color: #0c1220;
+    box-shadow: 0 4px 14px rgba(255, 159, 0, 0.35);
+}
+
+/* Элегантная кнопка Danger в светлой теме */
+body.light-theme .btn-danger {
+    background-color: #ffffff;
+    border: 1px solid #ef4444;
+    color: #dc2626;
+    box-shadow: none;
+}
+
+body.light-theme .btn-danger:hover {
+    background-color: #ef4444;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);
+}
+
+/* Селектор языка */
+body.light-theme .lang-selector {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+}
+
+body.light-theme .btn-lang {
+    color: #475569;
+}
+
+body.light-theme .btn-lang.active {
+    background-color: #0284c7;
+    color: #ffffff;
+    box-shadow: 0 2px 5px rgba(2, 132, 199, 0.2);
+}
+
+/* Драг-энд-дроп */
+body.light-theme .drop-zone {
+    border-color: rgba(2, 132, 199, 0.3);
+    background-color: #f8fafc;
+}
+
+body.light-theme .drop-zone:hover, body.light-theme .drop-zone.dragover {
+    border-color: #0284c7;
+    background-color: rgba(2, 132, 199, 0.03);
+}
+
+body.light-theme .db-status-bar {
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+}
+
+body.light-theme .date-range-badge {
+    background-color: rgba(2, 132, 199, 0.08);
+    color: #0284c7;
+}
+
+body.light-theme .empty-table-text {
+    color: #94a3b8;
+}
+
+/* Статус Dispatch Online */
+body.light-theme .header-status-indicator {
+    background-color: rgba(22, 163, 74, 0.05);
+    border: 1px solid rgba(22, 163, 74, 0.15);
+}
+
+body.light-theme .status-text {
+    color: #16a34a;
+}
+
+body.light-theme .status-pulse {
+    background-color: #16a34a;
+    box-shadow: 0 0 10px rgba(22, 163, 74, 0.3);
+}
+
+/* ==========================================================================
+   СТИЛИ ДЛЯ АВИАЦИОННОГО МОДАЛЬНОГО ОКНА ПОДТВЕРЖДЕНИЯ
+   ========================================================================== */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(4, 8, 20, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.2s ease;
+}
+
+.modal-overlay.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    max-width: 550px;
+    width: 95%;
+    padding: 24px;
+    border: 1px solid var(--danger);
+    box-shadow: 0 0 30px rgba(255, 51, 102, 0.2);
+    animation: modal-slide-in 0.25s ease;
+}
+
+@keyframes modal-slide-in {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 12px;
+    margin-bottom: 16px;
+    color: var(--danger);
+    font-family: var(--font-mono);
+    font-weight: bold;
+    font-size: clamp(0.8rem, 3vw, 1.05rem);
+    white-space: nowrap;
+    word-break: keep-all;
+}
+
+.modal-title-text {
+    white-space: nowrap;
+    word-break: keep-all;
+    display: inline-block;
+    letter-spacing: 0.5px;
+}
+
+.warning-blink {
+    font-size: 1.4rem;
+    animation: warning-blink-anim 1s infinite;
+}
+
+@keyframes warning-blink-anim {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+.modal-body {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    font-family: var(--font-main);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Переопределения для светлой темы */
+body.light-theme .modal-overlay {
+    background-color: rgba(248, 250, 252, 0.85);
+}
+
+body.light-theme .modal-content {
+    background-color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15);
+}
+
+/* Контейнер для HUD-уведомлений */
+.aviation-toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    pointer-events: none;
+}
+
+.aviation-toast {
+    position: relative;
+    padding: 16px 24px;
+    min-width: 300px;
+    max-width: 450px;
+    background: rgba(4, 8, 20, 0.95);
+    border: 1px solid var(--primary-glow);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: var(--font-accent);
+    font-size: 0.85rem;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 30px rgba(0, 242, 255, 0.25);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+    pointer-events: auto;
+}
+
+.aviation-toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.aviation-toast.success-toast {
+    border-color: rgba(0, 255, 102, 0.4);
+    box-shadow: 0 4px 20px rgba(0, 255, 102, 0.15);
+}
+
+.aviation-toast.error-toast {
+    border-color: rgba(239, 68, 68, 0.4);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.toast-icon {
+    font-size: 1.2rem;
+}
+
+.toast-message {
+    line-height: 1.4;
+}
+
+/* Переопределение уголков для тостов */
+.aviation-toast .hud-corner {
+    width: 6px;
+    height: 6px;
+    border-color: var(--primary);
+}
+
+.aviation-toast.success-toast .hud-corner {
+    border-color: var(--success);
+}
+
+.aviation-toast.error-toast .hud-corner {
+    border-color: #ef4444;
+}
+
+/* Специфические переопределения для светлой темы в тостах */
+body.light-theme .aviation-toast {
+    background: rgba(255, 255, 255, 0.98);
+    color: #0f172a;
+    border-color: rgba(2, 132, 199, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+body.light-theme .aviation-toast.success-toast {
+    border-color: rgba(22, 163, 74, 0.4);
+    box-shadow: 0 4px 20px rgba(22, 163, 74, 0.15);
+}
+
+body.light-theme .aviation-toast.error-toast {
+    border-color: rgba(220, 38, 38, 0.4);
+    box-shadow: 0 4px 20px rgba(220, 38, 38, 0.15);
+    color: #dc2626;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.text-uppercase {
+    text-transform: uppercase;
+}
+
+/* --- СТИЛИ ТАБЛИЦЫ С ФИКСИРОВАННЫМИ ШАПКАМИ И ПОДВАЛОМ И ГИГАНТСКИМИ ШРИФТАМИ --- */
+.load-planning-section {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.unified-load-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    justify-content: flex-start;
+}
+
+.fixed-load-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.fixed-load-table th, .fixed-load-table td {
+    padding: 3px 6px;
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-align: center;
+    font-family: var(--font-mono);
+    border: 1px solid rgba(0, 242, 255, 0.18);
+}
+
+body.light-theme .fixed-load-table th, body.light-theme .fixed-load-table td {
+    border-color: rgba(2, 132, 199, 0.2);
+}
+
+.fixed-load-table th {
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: #040814;
+    font-family: var(--font-mono);
+}
+
+.header-table .header-main-title th {
+    background: linear-gradient(90deg, rgba(0, 242, 255, 0.18), rgba(37, 99, 235, 0.08));
+    color: var(--primary);
+    padding: 6px 10px;
+}
+
+body.light-theme .header-table .header-main-title th {
+    background: linear-gradient(90deg, rgba(2, 132, 199, 0.12), rgba(2, 132, 199, 0.04));
+    color: #0284c7;
+}
+
+.load-rows-scroll-container {
+    display: block;
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+    border-top: 1px solid rgba(0, 242, 255, 0.2);
+    border-bottom: 1px solid rgba(0, 242, 255, 0.2);
+}
+
+.load-rows-scroll-container .rows-table {
+    height: auto;
+}
+
+/* ЭЛЕГАНТНЫЕ ШРИФТЫ ДЛЯ МЕСТ И ВЕСОВ */
+html body table.fixed-load-table td.super-val-cyan,
+html body table.fixed-load-table td span.super-val-cyan,
+html body .super-val-cyan {
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    color: var(--primary) !important;
+    font-family: var(--font-mono) !important;
+    text-shadow: 0 0 8px rgba(0, 242, 255, 0.35) !important;
+}
+
+html body table.fixed-load-table td.super-val-gold,
+html body table.fixed-load-table td span.super-val-gold,
+html body .super-val-gold {
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    color: var(--secondary) !important;
+    font-family: var(--font-mono) !important;
+    text-shadow: 0 0 8px rgba(255, 183, 0, 0.35) !important;
+}
+
+html body table.fixed-load-table td input.super-input-cyan,
+html body table.fixed-load-table td input.super-input-gold,
+html body .super-input-cyan,
+html body .super-input-gold {
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    font-family: var(--font-mono) !important;
+    height: 28px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    background-color: #040814 !important;
+    border: 1.5px solid rgba(0, 242, 255, 0.4) !important;
+    text-align: center !important;
+    border-radius: 4px !important;
+    margin: 0 auto !important;
+    display: block !important;
+    padding: 1px 4px !important;
+    box-sizing: border-box !important;
+}
+
+html body table.fixed-load-table td input.super-input-gold.weight-locked {
+    border: 1.5px solid rgba(255, 183, 0, 0.95) !important;
+    box-shadow: 0 0 10px rgba(255, 183, 0, 0.5) !important;
+}
+
+body.light-theme .super-input-cyan,
+body.light-theme .super-input-gold {
+    background-color: #ffffff !important;
+}
+
+body.light-theme table.fixed-load-table td input.super-input-gold.weight-locked {
+    border: 1.5px solid #d97706 !important;
+    box-shadow: 0 0 12px rgba(217, 119, 6, 0.45) !important;
+}
+
+.footer-table tr.rest-row td {
+    background: rgba(255, 183, 0, 0.1) !important;
+    border-top: 2px solid rgba(255, 183, 0, 0.4) !important;
+}
+
+.footer-table tr.ttl-row td {
+    background: rgba(0, 242, 255, 0.12) !important;
+    border-top: 2px solid rgba(0, 242, 255, 0.4) !important;
+}
+
+body.light-theme .footer-table tr.rest-row td {
+    background: rgba(217, 119, 6, 0.12) !important;
+}
+
+body.light-theme .footer-table tr.ttl-row td {
+    background: rgba(2, 132, 199, 0.12) !important;
+}
+
+body.light-theme .rest-row td {
+    background: rgba(217, 119, 6, 0.12) !important;
+    color: #d97706 !important;
+}
+
+body.light-theme .ttl-row td {
+    background: rgba(2, 132, 199, 0.12) !important;
+    color: #0284c7 !important;
+}
+
+.cat-label {
+    letter-spacing: 0.5px;
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+}
+
+.empty-cell-dash {
+    color: rgba(255, 255, 255, 0.15);
+}
+
+body.light-theme .empty-cell-dash {
+    color: rgba(0, 0, 0, 0.15);
+}
+
+/* Карточки средних весов в левой колонке */
+.avg-metrics-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.metric-card {
+    background: rgba(4, 8, 20, 0.6);
+    border: 1px solid rgba(0, 242, 255, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+}
+
+body.light-theme .metric-card {
+    background: #f8fafc;
+    border-color: rgba(2, 132, 199, 0.2);
+}
+
+.metric-card.gold-glow {
+    border-color: rgba(255, 183, 0, 0.3);
+    box-shadow: 0 0 12px rgba(255, 183, 0, 0.08);
+}
+
+.metric-card.cyan-glow {
+    border-color: rgba(0, 242, 255, 0.3);
+    box-shadow: 0 0 12px rgba(0, 242, 255, 0.08);
+}
+
+.metric-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    font-family: var(--font-mono);
+}
+
+.metric-value {
+    font-size: 2.1rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.gold-glow .metric-value {
+    color: var(--secondary);
+}
+
+.cyan-glow .metric-value {
+    color: var(--primary);
+}
+
+.metric-unit {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--text-secondary);
+    margin-left: 4px;
+}
+
+.justify-center {
+    justify-content: center;
+}
+
+/* --- СТИЛИ ДЛЯ СВЕТЛОЙ ТЕМЫ (LIGHT THEME) --- */
+body.light-theme {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .aviation-panel,
+body.light-theme .panel {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+    color: #0f172a !important;
+}
+
+body.light-theme .panel-title {
+    color: #0284c7 !important;
+    border-bottom-color: #e2e8f0 !important;
+}
+
+body.light-theme .modal-content {
+    background: #ffffff !important;
+    border: 1px solid #94a3b8 !important;
+    color: #0f172a !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.light-theme .modal-header {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0284c7 !important;
+}
+
+body.light-theme .modal-body {
+    color: #1e293b !important;
+}
+
+body.light-theme .modal-body p {
+    color: #475569 !important;
+}
+
+body.light-theme .fixed-load-table th {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme .fixed-load-table td {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme .fixed-load-table .header-main-title th {
+    background: linear-gradient(90deg, rgba(2, 132, 199, 0.15), rgba(2, 132, 199, 0.05)) !important;
+    color: #0284c7 !important;
+}
+
+body.light-theme .header-sub-title th {
+    background: rgba(2, 132, 199, 0.1) !important;
+    color: #0284c7 !important;
+    border-color: #93c5fd !important;
+}
+
+body.light-theme .header-blocks th {
+    background: rgba(241, 245, 249, 0.9) !important;
+    color: #334155 !important;
+}
+
+/* Белоснежные стильные поля ввода и яркие числа для Светлой темы */
+body.light-theme .super-input-cyan,
+body.light-theme table.fixed-load-table td input.super-input-cyan,
+body.light-theme .table-input {
+    background-color: #ffffff !important;
+    color: #0284c7 !important;
+    border: 1.5px solid #0284c7 !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.12) !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .super-input-gold,
+body.light-theme table.fixed-load-table td input.super-input-gold {
+    background-color: #ffffff !important;
+    color: #d97706 !important;
+    border: 1.5px solid #d97706 !important;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.12) !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .super-val-cyan,
+body.light-theme table.fixed-load-table td.super-val-cyan,
+body.light-theme table.fixed-load-table td span.super-val-cyan {
+    color: #0284c7 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .super-val-gold,
+body.light-theme table.fixed-load-table td.super-val-gold,
+body.light-theme table.fixed-load-table td span.super-val-gold {
+    color: #d97706 !important;
+    text-shadow: none !important;
+}
+
+body.light-theme .form-control {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+}
+
+body.light-theme .form-control:focus {
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2) !important;
+}
+
+body.light-theme .footer-table tr.rest-row td {
+    background: rgba(254, 243, 199, 0.75) !important;
+    border-top: 2px solid #f59e0b !important;
+}
+
+body.light-theme .footer-table tr.ttl-row td {
+    background: rgba(224, 242, 254, 0.75) !important;
+    border-top: 2px solid #0284c7 !important;
+}
+/* Контейнер и таблицы коммерческой загрузки (ULD / BULK) */
+.unified-load-wrapper {
+    width: 100%;
+}
+
+.load-rows-scroll-container {
+    max-height: none;
+    overflow-y: visible;
+    overflow-x: hidden;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.15);
+}
+
+.fixed-load-table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+/* ==========================================================================
+   ПОЛНАЯ АДАПТАЦИЯ ДЛЯ МОБИЛЬНЫХ УСТРОЙСТВ И ПЛАНШЕТОВ (RESPONSIVE MOBILE VIEW)
+   ========================================================================== */
+
+/* --- Промежуточный брейкпоинт: планшеты и небольшие ноутбуки --- */
+@media (max-width: 1024px) {
+    /* Шапка: перестраиваем в вертикальный стек */
+    .app-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 16px;
+    }
+
+    .header-logo {
+        flex: 1 1 100%;
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+    }
+
+    .logo-sub {
+        border-left: none;
+        padding-left: 0;
+        display: block;
+        width: 100%;
+        margin-top: 2px;
+    }
+
+    .header-status-indicator {
+        order: 1;
+    }
+
+    .header-actions {
+        order: 2;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    /* Тосты: сужаем для планшетов */
+    .aviation-toast {
+        min-width: 260px;
+        max-width: 380px;
+    }
+
+    /* Коэффициенты: 2 колонки вместо 3 */
+    .coef-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* --- Основной мобильный брейкпоинт --- */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 4px 0 !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        width: 100% !important;
+        overflow-x: hidden;
+    }
+
+    /* Грид: без зазоров на мобильных */
+    .workspace-grid,
+    #tab-content-predict .workspace-grid {
+        gap: 8px !important;
+    }
+
+    .left-column, .right-column {
+        gap: 8px;
+    }
+
+    /* Все стеклянные панели — без скруглений, на всю ширину */
+    .glass {
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Шапка приложения */
+    .app-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding: 12px 14px;
+        text-align: center;
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .header-logo {
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .logo-plane {
+        font-size: 1.4rem;
+    }
+
+    .logo-sub {
+        border-left: none;
+        padding-left: 0;
+        display: block;
+        width: 100%;
+        margin-top: 2px;
+        font-size: 0.62rem;
+    }
+
+    .header-status-indicator {
+        justify-content: center;
+        width: 100%;
+        padding: 5px 10px;
+    }
+
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+        gap: 8px;
+    }
+
+    /* Кнопки темы и руководства — уменьшаем на мобильных */
+    .btn-theme {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+
+    .theme-text {
+        font-size: 0.72rem;
+    }
+
+    /* Вкладки навигации */
+    .tab-navigation {
+        padding: 3px;
+        gap: 4px;
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .tab-btn {
+        padding: 9px 8px;
+        font-size: 0.78rem;
+        letter-spacing: 0.3px;
+    }
+
+    /* Панели и карточки */
+    .aviation-panel {
+        padding: 14px 10px;
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .panel-title {
+        font-size: 0.92rem;
+        word-break: break-word;
+        letter-spacing: 0.5px;
+    }
+
+    /* Формы */
+    .form-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .col-6, .col-4 {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .form-group label {
+        font-size: 0.7rem;
+    }
+
+    .form-control {
+        padding: 9px 12px;
+        font-size: 0.82rem;
+    }
+
+    /* Грид паксов: 2 колонки */
+    .pax-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    /* Коэффициенты: 1 колонка */
+    .coef-grid {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .coef-item {
+        padding: 8px 12px;
+    }
+
+    .coef-label {
+        font-size: 0.72rem;
+        min-height: auto;
+    }
+
+    .coef-value {
+        font-size: 1.1rem;
+    }
+
+    /* Карточки результатов */
+    .result-card {
+        padding: 12px 14px;
+        gap: 12px;
+    }
+
+    .card-value {
+        font-size: 1.3rem;
+    }
+
+    .card-icon {
+        font-size: 1.5rem;
+    }
+
+    .card-label {
+        font-size: 0.65rem;
+    }
+
+    /* Метрики средних весов */
+    .metric-value {
+        font-size: 1.6rem;
+    }
+
+    .metric-unit {
+        font-size: 0.9rem;
+    }
+
+    /* Адаптивный скролл таблицы коммерческой загрузки (ULD / BULK) */
+    .unified-load-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        display: block;
+        padding-bottom: 6px;
+    }
+
+    .fixed-load-table {
+        min-width: 520px;
+    }
+
+    .load-rows-scroll-container {
+        min-width: 520px;
+    }
+
+    .fixed-load-table th, .fixed-load-table td {
+        padding: 4px 5px !important;
+    }
+
+    .cat-label {
+        font-size: 0.72rem !important;
+        letter-spacing: 0px !important;
+    }
+
+    .fixed-load-table th {
+        font-size: 0.68rem !important;
+        letter-spacing: 0.3px !important;
+        padding: 5px 4px !important;
+    }
+
+    .fixed-load-table th.title-cell {
+        font-size: 0.82rem !important;
+        letter-spacing: 0.5px !important;
+        padding: 7px 5px !important;
+    }
+
+    .fixed-load-table th.subtitle-cell {
+        font-size: 0.75rem !important;
+        letter-spacing: 0.5px !important;
+        padding: 6px 5px !important;
+    }
+
+    html body table.fixed-load-table td.highlight-cell-gold,
+    html body table.fixed-load-table td.highlight-cell-cyan {
+        font-size: 1.2rem !important;
+    }
+
+    html body table.fixed-load-table td.super-val-cyan,
+    html body table.fixed-load-table td span.super-val-cyan,
+    html body table.fixed-load-table td input.super-input-cyan,
+    html body .super-val-cyan,
+    html body .super-input-cyan {
+        font-size: 1.1rem !important;
+    }
+
+    html body table.fixed-load-table td.super-val-gold,
+    html body table.fixed-load-table td span.super-val-gold,
+    html body table.fixed-load-table td input.super-input-gold,
+    html body .super-val-gold,
+    html body .super-input-gold {
+        font-size: 1.1rem !important;
+    }
+
+    html body table.fixed-load-table td input.super-input-cyan,
+    html body table.fixed-load-table td input.super-input-gold {
+        height: 36px !important;
+        max-width: 90px !important;
+    }
+
+    /* Модальные окна */
+    .modal-content {
+        width: 94%;
+        max-width: 100%;
+        padding: 16px 12px;
+        margin: 10px;
+    }
+
+    .modal-header {
+        font-size: 0.85rem;
+        gap: 8px;
+        flex-wrap: wrap;
+        white-space: normal;
+    }
+
+    .modal-title-text {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .modal-body {
+        font-size: 0.85rem;
+    }
+
+    .modal-footer {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+
+    .modal-footer .btn {
+        width: 100% !important;
+    }
+
+    /* Таблицы с историями рейсов — горизонтальный скролл */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
+        display: block;
+    }
+
+    .table-responsive .flights-table {
+        min-width: 650px;
+    }
+
+    .table-section {
+        padding: 10px 6px;
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .table-header-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .table-actions {
+        width: 100%;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+
+    .table-actions .btn {
+        width: 100% !important;
+    }
+
+    .table-actions .aviation-checkbox-container {
+        display: flex !important;
+        justify-content: flex-start !important;
+        margin-right: 0 !important;
+        margin-bottom: 4px !important;
+    }
+
+    /* Кнопки: адаптивный размер */
+    .btn {
+        padding: 9px 14px;
+        font-size: 0.8rem;
+    }
+
+    .btn-block {
+        padding: 12px 14px;
+    }
+
+    /* Тосты: адаптация */
+    .aviation-toast-container {
+        right: 8px;
+        left: 8px;
+        top: 12px;
+    }
+
+    .aviation-toast {
+        min-width: auto;
+        max-width: 100%;
+        width: 100%;
+        padding: 12px 16px;
+        font-size: 0.8rem;
+    }
+
+    /* Настройки анализа */
+    .btn-toggle-settings {
+        padding: 8px 12px;
+        font-size: 0.7rem;
+    }
+
+    .analysis-settings-panel {
+        padding: 10px;
+    }
+
+    /* Предупреждения */
+    .warning-box {
+        padding: 8px 10px;
+    }
+
+    .warning-text {
+        font-size: 0.7rem;
+    }
+
+    /* Дроп-зона */
+    .drop-zone {
+        padding: 16px;
+    }
+
+    .drop-icon {
+        font-size: 1.5rem;
+    }
+
+    .drop-text {
+        font-size: 0.75rem;
+    }
+
+    .drop-sub {
+        font-size: 0.65rem;
+    }
+
+    /* Статус базы данных */
+    .db-status-bar {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    /* Рейтинг рейса (бейдж) */
+    .active-flight-badge {
+        font-size: 0.78rem !important;
+        padding: 2px 8px !important;
+        gap: 5px !important;
+    }
+
+    .load-title-text {
+        font-size: 0.82rem !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    /* Детализация отобранных рейсов */
+    .sampled-flights-container {
+        padding: 8px;
+    }
+
+    .sampled-flights-header {
+        font-size: 0.68rem;
+    }
+
+    .sampled-flights-table {
+        font-size: 0.65rem;
+    }
+
+    .sampled-flights-table th {
+        padding: 4px 5px;
+    }
+
+    .sampled-flights-table td {
+        padding: 3px 5px;
+    }
+
+    /* Автоподсказки рейсов */
+    .suggestion-item {
+        padding: 8px 10px;
+        font-size: 0.82rem;
+    }
+
+    .suggestion-route-tag {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+    }
+
+    /* Кастомный выпадающий список подсказок */
+    .custom-dropdown-panel {
+        max-height: 200px;
+    }
+
+    /* Скролл-контейнер на мобильных */
+    .load-rows-scroll-container {
+        max-height: 50vh !important;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Подсказки автокомплита */
+    .custom-dropdown-panel {
+        max-height: 220px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        z-index: 10000;
+    }
+
+    /* Футер */
+    .app-footer {
+        font-size: 0.7rem !important;
+        padding: 12px !important;
+        margin-top: 20px !important;
+    }
+}
+
+/* --- Самые маленькие экраны (телефоны до 480px) --- */
+@media (max-width: 480px) {
+    .app-container {
+        padding: 2px 0 !important;
+        width: 100% !important;
+        overflow-x: hidden;
+    }
+
+    .tab-navigation {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .tab-btn {
+        width: 100%;
+        font-size: 0.82rem;
+        padding: 11px 10px;
+        text-align: center;
+        min-height: 42px;
+    }
+
+    .app-header {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .header-logo {
+        font-size: 1.15rem;
+        gap: 6px;
+    }
+
+    .logo-plane {
+        font-size: 1.25rem;
+    }
+
+    .logo-sub {
+        font-size: 0.6rem;
+    }
+
+    /* Кнопки действий в шапке — адаптивный гибкий контейнер */
+    .header-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        gap: 6px;
+    }
+
+    .header-actions .btn-lang {
+        padding: 6px 10px;
+        font-size: 0.78rem;
+    }
+
+    .header-actions .btn-theme,
+    .header-actions #btn-download-manual {
+        padding: 7px 10px !important;
+        font-size: 0.75rem !important;
+        flex: 1 1 auto;
+        justify-content: center;
+        text-align: center;
+        min-height: 38px;
+    }
+
+    /* Предотвращение автозума на iOS Safari (поля ввода от 16px) */
+    .form-control,
+    select.form-control,
+    input.form-control {
+        font-size: 16px !important;
+        padding: 9px 12px;
+        touch-action: manipulation;
+    }
+
+    .form-group label {
+        font-size: 0.68rem;
+    }
+
+    /* Панели — от края до края без вылезания */
+    .aviation-panel {
+        padding: 12px 8px;
+        border-radius: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        box-sizing: border-box;
+    }
+
+    .table-section {
+        padding: 10px 4px !important;
+    }
+
+    .panel-title {
+        font-size: 0.85rem;
+        letter-spacing: 0px;
+    }
+
+    /* Грид паксов */
+    .pax-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    /* Карточки результатов */
+    .result-card {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .card-value {
+        font-size: 1.15rem;
+    }
+
+    .card-icon {
+        font-size: 1.3rem;
+    }
+
+    /* Таблица с расчетом загрузки — тач-скролл без обрезки */
+    .unified-load-wrapper {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+    }
+
+    .fixed-load-table {
+        min-width: 480px;
+    }
+
+    .load-rows-scroll-container {
+        min-width: 480px;
+        max-height: 45vh !important;
+    }
+
+    /* Ячейки ввода в таблице расчетов */
+    html body table.fixed-load-table td input.super-input-cyan,
+    html body table.fixed-load-table td input.super-input-gold {
+        height: 38px !important;
+        max-width: 100% !important;
+        min-width: 55px !important;
+        font-size: 16px !important;
+    }
+
+    /* Модальные окна */
+    .modal-overlay {
+        padding: 10px !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    .modal-content {
+        width: 95% !important;
+        max-width: 440px !important;
+        padding: 16px 12px !important;
+        margin: 0 auto !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        box-sizing: border-box !important;
+    }
+
+    .modal-header {
+        font-size: 0.8rem;
+        gap: 6px;
+    }
+
+    .warning-blink {
+        font-size: 1.1rem;
+    }
+
+    .modal-body {
+        font-size: 0.82rem;
+        margin-bottom: 14px;
+    }
+
+    /* Поле ввода пароля в модалке авторизации */
+    #admin-password-input {
+        font-size: 16px !important;
+        letter-spacing: 2px !important;
+        height: 44px !important;
+    }
+
+    /* Тосты */
+    .aviation-toast {
+        padding: 10px 12px;
+        font-size: 0.78rem;
+    }
+
+    .toast-icon {
+        font-size: 1rem;
+    }
+
+    /* Кнопки */
+    .btn {
+        padding: 9px 12px;
+        font-size: 0.78rem;
+        min-height: 40px;
+    }
+
+    .btn-block {
+        padding: 11px 12px;
+    }
+
+    /* Настройки анализа */
+    .btn-toggle-settings {
+        padding: 9px 10px;
+        font-size: 0.68rem;
+        min-height: 40px;
+    }
+
+    /* Дроп-зона */
+    .drop-zone {
+        padding: 14px;
+    }
+
+    .drop-icon {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+
+    .drop-text {
+        font-size: 0.72rem;
+    }
+
+    .drop-sub {
+        font-size: 0.62rem;
+    }
+}
+
+
+/* --- ПАНЕЛЬ НАСТРОЕК АНАЛИЗА И СЕЗОННОСТИ --- */
+.analysis-settings-container {
+    margin-top: 14px;
+    margin-bottom: 14px;
+}
+
+.btn-toggle-settings {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: rgba(8, 18, 41, 0.4);
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 10px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+}
+
+.btn-toggle-settings:hover {
+    background-color: rgba(0, 242, 255, 0.08);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 12px rgba(0, 242, 255, 0.15);
+}
+
+.btn-toggle-settings.active {
+    background-color: rgba(0, 242, 255, 0.1);
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+    border-radius: 6px 6px 0 0;
+}
+
+.btn-toggle-settings .arrow-icon {
+    font-size: 0.7rem;
+    transition: transform var(--transition-speed);
+}
+
+.btn-toggle-settings.active .arrow-icon {
+    transform: rotate(180deg);
+}
+
+.analysis-settings-panel {
+    background-color: rgba(4, 8, 20, 0.5);
+    border-left: 2px solid var(--primary);
+    border-right: 1px solid rgba(0, 242, 255, 0.1);
+    border-bottom: 1px solid rgba(0, 242, 255, 0.1);
+    border-top: none;
+    padding: 12px;
+    border-radius: 0 0 6px 6px;
+    margin-top: -1px;
+    transition: all var(--transition-speed) ease-in-out;
+}
+
+.analysis-settings-panel .form-group {
+    margin-bottom: 10px;
+}
+
+.analysis-settings-panel .form-group label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+.analysis-settings-panel .form-control {
+    font-size: 0.8rem;
+    height: 34px;
+    padding: 4px 8px;
+}
+
+#btn-calculate {
+    margin-top: 12px;
+}
+
+/* Светлая тема */
+body.light-theme .btn-toggle-settings {
+    background-color: #ffffff;
+    border: 1px solid rgba(2, 132, 199, 0.25);
+    color: var(--primary);
+}
+
+body.light-theme .btn-toggle-settings:hover {
+    background-color: rgba(2, 132, 199, 0.05);
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.1);
+}
+
+body.light-theme .btn-toggle-settings.active {
+    background-color: rgba(2, 132, 199, 0.08);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+body.light-theme .analysis-settings-panel {
+    background-color: #ffffff;
+    border-left: 2px solid var(--primary);
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+body.light-theme .analysis-settings-panel .form-group label {
+    color: #64748b;
+}
+
+/* Кастомный список автоподсказок рейсов (HUD Dropdown) */
+.custom-autocomplete-wrapper {
+    position: relative;
+}
+
+.input-with-dropdown {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-dropdown .form-control {
+    padding-right: 36px;
+}
+
+.dropdown-chevron {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-cyan);
+    font-size: 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease, color 0.2s ease;
+    pointer-events: auto;
+}
+
+.dropdown-chevron.open {
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.custom-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    background: rgba(10, 16, 32, 0.96);
+    border: 1px solid var(--accent-cyan);
+    box-shadow: 0 8px 28px rgba(0, 240, 255, 0.3), inset 0 0 15px rgba(0, 240, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border-radius: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-cyan) rgba(0, 0, 0, 0.3);
+}
+
+.suggestion-item {
+    padding: 10px 14px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: #e2e8f0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.suggestion-item:hover, .suggestion-item.active {
+    background: rgba(0, 240, 255, 0.18);
+    color: #ffffff;
+}
+
+.suggestion-flight-no {
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--accent-cyan);
+}
+
+.suggestion-item:hover .suggestion-flight-no,
+.suggestion-item.active .suggestion-flight-no {
+    color: #ffffff;
+}
+
+.suggestion-route-tag {
+    font-size: 0.78rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.suggestion-empty {
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    text-align: center;
+    font-family: var(--font-mono);
+}
+
+/* Светлая тема для кастомного списка подсказок */
+body.light-theme .custom-dropdown-panel {
+    background: #ffffff;
+    border: 1px solid var(--primary);
+    box-shadow: 0 8px 24px rgba(2, 132, 199, 0.2);
+}
+
+body.light-theme .suggestion-item {
+    color: #1e293b;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+body.light-theme .suggestion-item:hover,
+body.light-theme .suggestion-item.active {
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--primary);
+}
+
+body.light-theme .suggestion-flight-no {
+    color: var(--primary);
+}
+
+body.light-theme .suggestion-route-tag {
+    background: rgba(2, 132, 199, 0.08);
+    border: 1px solid rgba(2, 132, 199, 0.2);
+    color: #475569;
+}
+
+/* Интерактивные строки в таблице истории прогнозов */
+.history-row-clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+}
+
+.history-row-clickable:hover {
+    background-color: rgba(0, 242, 255, 0.08) !important;
+}
+
+body.light-theme .history-row-clickable:hover {
+    background-color: rgba(2, 132, 199, 0.08) !important;
+}
+
+
+
+/* --- ПЛАШКА АКТИВНОГО ВЫБРАННОГО РЕЙСА В ШАПКЕ ТАБЛИЦЫ --- */
+.title-cell-relative {
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    padding: 10px 12px !important;
+}
+
+#active-flight-badge,
+.active-flight-badge {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgba(0, 242, 255, 0.12);
+    border: 1px solid var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 242, 255, 0.25);
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    z-index: 5;
+    margin: 0 auto 6px auto !important;
+    transition: all 0.3s ease;
+}
+
+.load-title-text {
+    display: block;
+    width: 100%;
+}
+
+.active-flight-badge .badge-route {
+    color: var(--accent-cyan);
+    font-weight: 800;
+}
+
+.active-flight-badge .badge-flight-no {
+    color: #ffffff;
+}
+
+.active-flight-badge .badge-flight-date {
+    color: var(--accent-gold);
+    font-weight: 800;
+}
+
+/* Суффикс даты рейса в колонке истории */
+.flight-day-tag {
+    color: var(--accent-gold);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    margin-left: 4px;
+}
+
+/* Подсветка выбранной строки в Истории расчетов */
+.history-row-clickable {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.history-row-clickable:hover {
+    background: rgba(0, 242, 255, 0.08) !important;
+}
+
+.history-row-clickable.selected-history-row {
+    background: rgba(0, 242, 255, 0.15) !important;
+    border-left: 4px solid var(--accent-cyan) !important;
+    box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2);
+}
+
+body.light-theme .active-flight-badge {
+    background: #e0f2fe;
+    border-color: #0284c7;
+    color: #0f172a;
+}
+
+body.light-theme .active-flight-badge .badge-route {
+    color: #0369a1;
+}
+
+body.light-theme .active-flight-badge .badge-flight-date {
+    color: #d97706;
+}
+
+body.light-theme .flight-day-tag {
+    color: #d97706;
+}
+
+body.light-theme .history-row-clickable.selected-history-row {
+    background: #e0f2fe !important;
+    border-left: 4px solid #0284c7 !important;
+}
+
+/* ==========================================================================
+   ФИКСИРОВАННАЯ ШАПКА И ПОДВАЛ + КРУПНЫЕ ЦИФРЫ И СКРОЛЛ ОТСЕКОВ (LOAD PLANNING)
+   ========================================================================== */
+.load-planning-section {
+    padding: 8px 12px !important;
+}
+
+/* Минимальные зазоры между ячейками */
+.load-planning-section .fixed-load-table th,
+.load-planning-section .fixed-load-table td {
+    padding: 2px 4px !important;
+    line-height: 1.2 !important;
+}
+
+/* Крупные и четкие цифры во всей таблице */
+.load-planning-section .fixed-load-table .monospace-val,
+.load-planning-section .fixed-load-table .super-val-cyan,
+.load-planning-section .fixed-load-table .super-val-gold {
+    font-size: 1.2rem !important;
+    font-weight: 800 !important;
+}
+
+/* Крупные и четкие поля ввода (инпуты) */
+.load-planning-section .fixed-load-table .table-input {
+    height: 30px !important;
+    padding: 2px 6px !important;
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    border-radius: 4px !important;
+}
+
+.load-planning-section .fixed-load-table .cat-label {
+    font-size: 0.85rem !important;
+    letter-spacing: 0.5px !important;
+}
+
+.load-planning-section .fixed-load-table .header-main-title th {
+    padding: 4px 8px !important;
+}
+
+.load-planning-section .load-title-text {
+    font-size: 0.95rem !important;
+    letter-spacing: 1px !important;
+}
+
+.load-planning-section .header-sub-title th {
+    padding: 3px 6px !important;
+    font-size: 0.9rem !important;
+}
+
+/* Фиксированный нижний подвал (ОСТАТОК и ИТОГО) с крупными цифрами */
+.load-planning-section .rest-row td,
+.load-planning-section .ttl-row td {
+    padding: 4px 6px !important;
+    font-size: 1.05rem !important;
+}
+
+.load-planning-section .rest-row td .monospace-val,
+.load-planning-section .ttl-row td .monospace-val {
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+}
+
+/* Динамическое заполнение отсеков на всю свободную высоту таблицы (вплотную к шапке и подвалу) */
+.load-rows-scroll-container {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    max-height: calc(100vh - 340px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    border-top: 1px solid rgba(0, 242, 255, 0.25) !important;
+    border-bottom: 1px solid rgba(0, 242, 255, 0.25) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.load-rows-scroll-container .rows-table {
+    height: 100% !important;
+    width: 100% !important;
+    margin: 0 !important;
+    border-collapse: collapse !important;
+}
+
+.load-rows-scroll-container .rows-table tbody {
+    height: 100% !important;
+}
+
+.load-rows-scroll-container .rows-table tbody tr {
+    height: calc(100% / 12) !important;
+}
+
+/* Бесшовное объединение верхнего блока, отсеков и подвала в единую таблицу */
+.load-planning-section .fixed-load-table {
+    border-collapse: collapse !important;
+    margin: 0 !important;
+}
+
+.load-planning-section .footer-table {
+    border-top: 1px solid rgba(0, 242, 255, 0.3) !important;
+}
+
+/* Стилизация скроллбара для центрального блока отсеков */
+.load-rows-scroll-container::-webkit-scrollbar {
+    width: 6px;
+}
+.load-rows-scroll-container::-webkit-scrollbar-track {
+    background: rgba(0, 10, 25, 0.4);
+}
+.load-rows-scroll-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 255, 0.35);
+    border-radius: 3px;
+}
+.load-rows-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 242, 255, 0.7);
+}

@@ -1,0 +1,11 @@
+# Temporary OS and Editor files
+.DS_Store
+Thumbs.db
+~$*.xlsx
+~$*.docx
+~$*.pptx
+*.tmp
+
+# IDE files
+.vscode/
+.idea/

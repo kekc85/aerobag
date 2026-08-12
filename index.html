@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <title data-translate="app-title">AeroBag Predictor: Расчет Веса Багажа</title>
+    <!-- Подключение шрифтов Montserrat, Outfit и высокотехнологичного JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=66.0">
+</head>
+<body>
+    <div class="aviation-grid-overlay"></div>
+    <div class="app-container">
+        <!-- Шапка в стиле Airline Ops Dispatcher -->
+        <header class="app-header glass aviation-header">
+            <div class="header-logo">
+                <span class="logo-plane">✈️</span>
+                <span class="logo-accent">AeroBag</span> Predictor
+                <span class="logo-sub" data-translate="logo-sub">FLIGHT OPS CONTROL</span>
+            </div>
+            
+            <div class="header-status-indicator">
+                <span class="status-pulse"></span>
+                <span class="status-text" data-translate="status-dispatch">ДИСПЕТЧЕР ОНЛАЙН</span>
+            </div>
+
+            <div class="header-actions">
+                <!-- Селектор языка -->
+                <div class="lang-selector">
+                    <button id="btn-lang-ru" class="btn btn-lang active">RU</button>
+                    <button id="btn-lang-en" class="btn btn-lang">EN</button>
+                </div>
+                
+                <!-- Переключатель темы -->
+                <button id="btn-theme-toggle" class="btn btn-secondary btn-theme">
+                    <span class="theme-emoji">🌙</span>
+                    <span class="theme-text" data-translate="theme-dark">Темная тема</span>
+                </button>
+
+                <!-- Скачивание руководства -->
+                <a href="USER_MANUAL.docx" download="USER_MANUAL.docx" id="btn-download-manual" class="btn btn-secondary btn-theme" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+                    <span class="theme-emoji">📄</span>
+                    <span class="theme-text" data-translate="btn-manual">Руководство</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Навигация по вкладкам (Авиационный стиль HUD) -->
+        <div class="tab-navigation glass aviation-tabs">
+            <button id="tab-btn-predict" class="tab-btn active" data-translate="tab-predict">Прогнозирование</button>
+            <button id="tab-btn-admin" class="tab-btn" data-translate="tab-admin">Администрирование</button>
+        </div>
+
+        <!-- Основная область -->
+        <main class="main-workspace">
+            
+            <!-- ВКЛАДКА 1: ПРОГНОЗИРОВАНИЕ -->
+            <div id="tab-content-predict" class="tab-content active">
+                <div class="workspace-grid">
+                    <!-- Левая панель: Форма прогноза -->
+                    <div class="left-column">
+                        <section class="panel glass aviation-panel">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <div class="hud-corner bottom-left"></div>
+                            <div class="hud-corner bottom-right"></div>
+                            
+                            <h2 class="panel-title" data-translate="predict-title">[ FORECAST DATA ENTRY ]</h2>
+                            <div class="form-group custom-autocomplete-wrapper">
+                                <label for="select-flight" data-translate="label-flight-no">Номер рейса (FLT NO)</label>
+                                <div class="input-with-dropdown">
+                                    <input type="text" id="select-flight" class="form-control" tabindex="1" placeholder="Введите номер рейса (напр. 505)" data-translate="placeholder-flight-no" autocomplete="off">
+                                    <span id="btn-toggle-flight-dropdown" class="dropdown-chevron">▼</span>
+                                    <div id="flight-suggestions-dropdown" class="custom-dropdown-panel hidden"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="select-from" data-translate="label-from">Аэропорт вылета (DEP / FROM)</label>
+                                    <select id="select-from" class="form-control" tabindex="2">
+                                        <!-- Заполняется динамически -->
+                                    </select>
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="select-to" data-translate="label-to">Аэропорт прилета (ARR / TO)</label>
+                                    <select id="select-to" class="form-control" tabindex="3" disabled>
+                                        <option value="" data-translate="select-from-first">Сначала выберите аэропорт вылета</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group col-6">
+                                    <label for="input-pax" data-translate="label-pax">Пассажиры (PAX)</label>
+                                    <input type="number" id="input-pax" class="form-control" tabindex="4" min="1" max="1000" value="150">
+                                </div>
+                                <div class="form-group col-6">
+                                    <label for="input-date" data-translate="label-flight-date">Дата рейса</label>
+                                    <input type="date" id="input-date" class="form-control" tabindex="5">
+                                </div>
+                            </div>
+
+                            <button id="btn-calculate" class="btn btn-primary btn-block aviation-btn" tabindex="6" data-translate="btn-calculate">Рассчитать</button>
+
+                            <!-- Настройки анализа данных -->
+                            <div class="analysis-settings-container">
+                                <button id="btn-toggle-settings" class="btn btn-block btn-toggle-settings">
+                                    <span class="settings-icon">⚙️</span>
+                                    <span data-translate="analysis-settings-title">ПАРАМЕТРЫ АНАЛИЗА И СЕЗОННОСТИ</span>
+                                    <span class="arrow-icon">▼</span>
+                                </button>
+                                
+                                <div id="analysis-settings-panel" class="analysis-settings-panel hidden">
+                                    <!-- Область сопоставления (Matching Scope) -->
+                                    <div class="form-group">
+                                        <label for="select-analysis-scope" data-translate="label-analysis-scope">Область сопоставления (Matching Scope)</label>
+                                        <select id="select-analysis-scope" class="form-control">
+                                            <option value="auto" data-translate="opt-scope-auto">Автомат (Рейс ➔ Направление)</option>
+                                            <option value="flight" data-translate="opt-scope-flight">Только выбранный рейс</option>
+                                            <option value="route" data-translate="opt-scope-route">Всё направление (Маршрут)</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Период анализа данных (Data Period) -->
+                                    <div class="form-group">
+                                        <label for="select-period-type" data-translate="label-period-type">Период анализа данных (Data Period)</label>
+                                        <select id="select-period-type" class="form-control">
+                                            <option value="weekday4" data-translate="opt-period-weekday4" selected>Последние 4 рейса (по дням недели) (По умолчанию)</option>
+                                            <option value="30days" data-translate="opt-period-30days">Последние 30 дней</option>
+                                            <option value="custom" data-translate="opt-period-custom">Произвольный диапазон</option>
+                                            <option value="seasonal" data-translate="opt-period-seasonal">Сезонный месяц</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Дополнительные поля для произвольного диапазона -->
+                                    <div id="custom-range-inputs" class="form-row hidden">
+                                        <div class="form-group col-6">
+                                            <label for="input-analysis-start-date" data-translate="label-start-date">Дата начала (From)</label>
+                                            <input type="date" id="input-analysis-start-date" class="form-control">
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="input-analysis-end-date" data-translate="label-end-date">Дата окончания (To)</label>
+                                            <input type="date" id="input-analysis-end-date" class="form-control">
+                                        </div>
+                                    </div>
+
+                                    <!-- Дополнительные поля для сезонного месяца -->
+                                    <div id="seasonal-inputs" class="form-row hidden">
+                                        <div class="form-group col-6">
+                                            <label for="select-seasonal-month" data-translate="label-month">Месяц (Month)</label>
+                                            <select id="select-seasonal-month" class="form-control">
+                                                <option value="0" data-translate="month-jan">Январь</option>
+                                                <option value="1" data-translate="month-feb">Февраль</option>
+                                                <option value="2" data-translate="month-mar">Март</option>
+                                                <option value="3" data-translate="month-apr">Апрель</option>
+                                                <option value="4" data-translate="month-may">Май</option>
+                                                <option value="5" data-translate="month-jun">Июнь</option>
+                                                <option value="6" data-translate="month-jul">Июль</option>
+                                                <option value="7" data-translate="month-aug">Август</option>
+                                                <option value="8" data-translate="month-sep">Сентябрь</option>
+                                                <option value="9" data-translate="month-oct">Октябрь</option>
+                                                <option value="10" data-translate="month-nov">Ноябрь</option>
+                                                <option value="11" data-translate="month-dec">Декабрь</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group col-6">
+                                            <label for="select-seasonal-year" data-translate="label-year">Год (Year)</label>
+                                            <select id="select-seasonal-year" class="form-control">
+                                                <!-- Будет заполняться динамически -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- 2. Результаты прогноза (Карточки ожидаемых параметров багажа) -->
+                        <section class="panel glass results-wrapper aviation-panel margin-top-10" style="margin-top: 10px;">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <div class="hud-corner bottom-left"></div>
+                            <div class="hud-corner bottom-right"></div>
+
+                            <h2 class="panel-title" data-translate="results-title">[ EXPECTED BAGGAGE LOAD ]</h2>
+                            
+                            <button type="button" id="btn-transfer-preliminary" class="btn btn-secondary btn-block aviation-btn" style="margin-bottom: 12px;" tabindex="7" data-translate="btn-transfer-preliminary">[ ⬇️ ПЕРЕНЕСТИ В PRELIMINARY ]</button>
+
+                            <!-- Предупреждение о датах -->
+                            <div id="date-warning" class="warning-box hidden">
+                                <span class="warning-icon">⚠</span>
+                                <span id="warning-text" class="warning-text"></span>
+                            </div>
+
+                            <div class="results-grid">
+                                <!-- Карточка: Места багажа -->
+                                <div class="result-card glass-card purple-glow aviation-result">
+                                    <div class="card-icon">🧳</div>
+                                    <div class="card-info">
+                                        <span class="card-label" data-translate="res-bag-pcs">Мест багажа (PCS)</span>
+                                        <span id="res-pcs" class="card-value monospace-val">0</span>
+                                    </div>
+                                </div>
+
+                                <!-- Карточка: Вес багажа -->
+                                <div class="result-card glass-card blue-glow aviation-result">
+                                    <div class="card-icon">⚖️</div>
+                                    <div class="card-info">
+                                        <span class="card-label" data-translate="res-bag-weight">Вес багажа (BAG WEIGHT)</span>
+                                        <span class="value-container">
+                                            <span id="res-weight" class="card-value monospace-val">0</span>
+                                            <span class="unit" data-translate="unit-kg">кг</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Карточка: Вес ручной клади -->
+                                <div class="result-card glass-card green-glow aviation-result">
+                                    <div class="card-icon">🎒</div>
+                                    <div class="card-info">
+                                        <span class="card-label" data-translate="res-hb-weight">Ручная кладь (CABIN BAG)</span>
+                                        <span class="value-container">
+                                            <span id="res-hb" class="card-value monospace-val">0</span>
+                                            <span class="unit" data-translate="unit-kg">кг</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Информационная таблица коэффициентов -->
+                            <div class="coefficients-panel aviation-subpanel">
+                                <h3 class="subsection-title" data-translate="applied-coeffs">Примененные коэффициенты</h3>
+                                <div class="coef-grid">
+                                    <div class="coef-item">
+                                        <span class="coef-label" data-translate="coef-pcs-pax">Мест на 1 пасс. (PCS/PAX)</span>
+                                        <span id="coef-pcs-pax" class="coef-value monospace-val">-</span>
+                                    </div>
+                                    <div class="coef-item">
+                                        <span class="coef-label" data-translate="coef-weight-pc">Вес 1 места (Weight/PC)</span>
+                                        <span id="coef-weight-pc" class="coef-value monospace-val">-</span>
+                                    </div>
+                                    <div class="coef-item">
+                                        <span class="coef-label" data-translate="coef-hb-pax">Ручная кладь на 1 пасс. (HB/PAX)</span>
+                                        <span id="coef-hb-pax" class="coef-value monospace-val">-</span>
+                                    </div>
+                                </div>
+
+                                <!-- Детализация отобранных рейсов и расчётных показателей -->
+                                <div id="sampled-flights-container" class="sampled-flights-container hidden collapsed">
+                                    <div id="sampled-flights-toggle" class="sampled-flights-header clickable" title="Нажмите, чтобы развернуть или скрыть детализацию">
+                                        <div class="sampled-flights-header-left">
+                                            <span class="sampled-flights-icon">📊</span>
+                                            <span id="sampled-flights-title" class="sampled-flights-title" data-translate="sampled-flights-title">Отобранные рейсы для расчета:</span>
+                                        </div>
+                                        <span class="sampled-flights-arrow">►</span>
+                                    </div>
+                                    <div id="sampled-flights-body" class="sampled-flights-table-wrapper">
+                                        <table class="sampled-flights-table">
+                                            <thead>
+                                                <tr>
+                                                    <th data-translate="th-sample-date">Дата (день)</th>
+                                                    <th data-translate="th-sample-flight">Рейс</th>
+                                                    <th data-translate="th-sample-pax">Пасс.</th>
+                                                    <th data-translate="th-sample-pcs">Багаж</th>
+                                                    <th data-translate="th-sample-weight">Вес баг.</th>
+                                                    <th data-translate="th-sample-hb">Р/кладь</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="sampled-flights-tbody"></tbody>
+                                            <tfoot id="sampled-flights-tfoot"></tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="coef-source-info" style="margin-top: 6px;">
+                                    <span data-translate="coef-source-label">Источник данных:</span>
+                                    <strong id="calc-source-desc">-</strong>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    <!-- Правая панель: Таблица коммерческой загрузки багажа и распределения (AVERAGE BAGGAGE WEIGHT TABLE & BULK) -->
+                    <div class="right-column">
+                        <section class="panel glass table-section load-planning-section aviation-panel">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+
+                    <div class="unified-load-wrapper">
+                        <!-- 1. НЕПОДВИЖНАЯ ВЕРХНЯЯ ШАПКА -->
+                        <table class="flights-table aviation-table fixed-load-table header-table">
+                            <colgroup>
+                                <col style="width: 22%;">
+                                <col style="width: 14%;">
+                                <col style="width: 14%;">
+                                <col style="width: 16%;">
+                                <col style="width: 17%;">
+                                <col style="width: 17%;">
+                            </colgroup>
+                            <thead>
+                                <!-- Заголовок 1: AVERAGE BAGGAGE WEIGHT TABLE -->
+                                <tr class="header-main-title">
+                                    <th colspan="6" class="title-cell title-cell-relative">
+                                        <div id="active-flight-badge" class="active-flight-badge hidden">
+                                            <span id="badge-route" class="badge-route">SUI ➔ SVO</span>
+                                            <span id="badge-flight-no" class="badge-flight-no">1294</span>
+                                            <span id="badge-flight-date" class="badge-flight-date">/05.08</span>
+                                        </div>
+                                        <div class="load-title-text" data-translate="load-planning-title">[ СРЕДНИЙ ВЕС БАГАЖА И ДАННЫЕ ЗАГРУЗКИ ]</div>
+                                    </th>
+                                </tr>
+                                <!-- Заголовки показателей -->
+                                <tr class="header-cols">
+                                    <th></th>
+                                    <th style="text-align: center;" data-translate="th-pax-no">PAX NO</th>
+                                    <th style="text-align: center;" data-translate="th-pcs">PCS</th>
+                                    <th style="text-align: center;" data-translate="th-weight">WEIGHT (кг)</th>
+                                    <th style="text-align: center;" data-translate="th-avg-bag-weight">AVERAGE BAG WEIGHT</th>
+                                    <th style="text-align: center;" data-translate="th-avg-bag-pax">AVERAGE BAG NO/PAX</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Строка 1: PRELIMINARY -->
+                                <tr class="preliminary-row">
+                                    <td><strong data-translate="row-preliminary" class="cat-label">PRELIMINARY</strong></td>
+                                    <td id="prelim-pax" class="monospace-val text-center super-val-cyan">0</td>
+                                    <td id="prelim-pcs" class="monospace-val text-center super-val-cyan">0</td>
+                                    <td id="prelim-weight" class="monospace-val text-center super-val-gold">0</td>
+                                    <td id="prelim-avg-weight" class="monospace-val highlight-cell-gold" rowspan="2" style="vertical-align: middle; text-align: center; font-size: 1.35rem; font-weight: 800; color: var(--secondary); background: rgba(255, 183, 0, 0.06); padding: 4px; overflow: hidden;">0,00</td>
+                                    <td id="prelim-avg-pax" class="monospace-val highlight-cell-cyan" rowspan="2" style="vertical-align: middle; text-align: center; font-size: 1.35rem; font-weight: 800; color: var(--primary); background: rgba(0, 242, 255, 0.06); padding: 4px; overflow: hidden;">0,00</td>
+                                </tr>
+                                <!-- Строка 2: LIR OR FINAL -->
+                                <tr class="lir-row">
+                                    <td><strong data-translate="row-lir-final" class="cat-label">LIR OR FINAL</strong></td>
+                                    <td style="text-align: center;"><input type="number" id="lir-pax" class="form-control table-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="8"></td>
+                                    <td style="text-align: center;"><input type="number" id="lir-pcs" class="form-control table-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="9"></td>
+                                    <td style="text-align: center;"><input type="number" id="lir-weight" class="form-control table-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="10"></td>
+                                </tr>
+
+                                <!-- Разделитель: BULK (БАГАЖНИКИ) -->
+                                <tr class="header-sub-title">
+                                    <th colspan="6" class="subtitle-cell" data-translate="header-bulk" style="text-align: center; font-size: 1.1rem; font-weight: 800; letter-spacing: 2px; background: rgba(0, 242, 255, 0.08); color: var(--primary); border-top: 2px solid rgba(0, 242, 255, 0.3); border-bottom: 2px solid rgba(0, 242, 255, 0.3);">BULK (БАГАЖНИКИ)</th>
+                                </tr>
+                                <tr class="header-subcols">
+                                    <th colspan="2" style="text-align: center;" data-translate="th-cpt-sec">ОТСЕК</th>
+                                    <th colspan="2" style="text-align: center;" data-translate="th-pcs">МЕСТА</th>
+                                    <th colspan="2" style="text-align: center;" data-translate="th-weight">ВЕС (кг)</th>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- 2. СРОЛЛИРУЕМЫЙ КОНТЕЙНЕР (12 СТРОК BULK) -->
+                        <div class="load-rows-scroll-container">
+                            <table class="flights-table aviation-table fixed-load-table rows-table">
+                                <colgroup>
+                                    <col style="width: 22%;">
+                                    <col style="width: 14%;">
+                                    <col style="width: 14%;">
+                                    <col style="width: 16%;">
+                                    <col style="width: 17%;">
+                                    <col style="width: 17%;">
+                                </colgroup>
+                                <tbody id="unified-load-tbody">
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>1</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-1" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="11"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-1" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="12"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>2</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-2" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="13"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-2" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="14"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>3</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-3" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="15"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-3" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="16"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>4</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-4" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="17"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-4" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="18"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>5</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-5" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="19"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-5" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="20"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>6</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-6" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="21"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-6" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="22"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>7</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-7" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="23"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-7" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="24"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>8</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-8" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="25"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-8" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="26"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>9</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-9" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="27"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-9" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="28"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>10</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-10" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="29"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-10" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="30"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>11</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-11" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="31"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-11" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="32"></td>
+                                    </tr>
+                                    <tr>
+                                        <td colspan="2" style="text-align: center;"><strong>12</strong></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-12" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="212"></td>
+                                        <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-12" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="412"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 3. НЕПОДВИЖНЫЙ НИЖНИЙ ПОДВАЛ (REST И TTL) -->
+                        <table class="flights-table aviation-table fixed-load-table footer-table">
+                            <colgroup>
+                                <col style="width: 22%;">
+                                <col style="width: 14%;">
+                                <col style="width: 14%;">
+                                <col style="width: 16%;">
+                                <col style="width: 17%;">
+                                <col style="width: 17%;">
+                            </colgroup>
+                            <tfoot>
+                                <!-- Строка REST -->
+                                <tr class="rest-row">
+                                    <td colspan="2"><strong data-translate="row-rest">ОСТАТОК</strong></td>
+                                    <td colspan="2" id="bulk-rest-pcs" class="monospace-val rest-cell super-val-cyan" style="text-align: center;">0</td>
+                                    <td colspan="2" id="bulk-rest-weight" class="monospace-val rest-cell super-val-gold" style="text-align: center;">0</td>
+                                </tr>
+                                <!-- Строка TTL -->
+                                <tr class="ttl-row">
+                                    <td colspan="2"><strong data-translate="row-ttl">ИТОГО</strong></td>
+                                    <td colspan="2" id="bulk-ttl-pcs" class="monospace-val super-val-cyan" style="text-align: center;">0</td>
+                                    <td colspan="2" id="bulk-ttl-weight" class="monospace-val super-val-gold" style="text-align: center;">0</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Таблица: История спрогнозированных рейсов (во всю ширину) -->
+                <section class="panel glass table-section history-predictions-section aviation-panel margin-top-20" style="margin-top: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <h2 class="panel-title" data-translate="predictions-table-title">[ FORECAST CALCULATION HISTORY ]</h2>
+                        <div class="table-actions">
+                            <button type="button" id="btn-clear-predictions" class="btn btn-danger aviation-btn" data-translate="btn-clear-predictions" onclick="handleClearPredictions(event)">Очистить историю</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-route">Маршрут</th>
+                                    <th data-translate="th-flight">Рейс</th>
+                                    <th data-translate="th-pax-count">Пассажиры (PAX)</th>
+                                    <th data-translate="th-bag-pcs">Багаж мест</th>
+                                    <th data-translate="th-bag-weight">Вес багажа</th>
+                                    <th data-translate="th-hb-weight">Вес р/к</th>
+                                    <th data-translate="th-calc-date">Дата расчета</th>
+                                    <th data-translate="th-action">Действие</th>
+                                </tr>
+                            </thead>
+                            <tbody id="predictions-table-body">
+                                <tr>
+                                    <td colspan="8" class="empty-table-text" data-translate="empty-predictions-table">История прогнозов пуста. Сделайте расчет выше.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ВКЛАДКА 2: АДМИНИСТРИРОВАНИЕ -->
+            <div id="tab-content-admin" class="tab-content hidden">
+                <div class="workspace-grid">
+                    <!-- Левая панель: Ручной ввод рейса -->
+                    <div class="left-column">
+                        <section class="panel glass aviation-panel">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <div class="hud-corner bottom-left"></div>
+                            <div class="hud-corner bottom-right"></div>
+
+                            <h2 class="panel-title" data-translate="manual-title">[ MANUAL FLIGHT ENTRY ]</h2>
+                            <form id="form-manual-flight">
+                                <div class="form-row">
+                                    <div class="form-group col-4">
+                                        <label for="manual-airline" data-translate="label-airline">Авиакомпания</label>
+                                        <select id="manual-airline" class="form-control">
+                                            <option value="N4">N4</option>
+                                            <option value="EO">EO</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group col-4">
+                                        <label for="manual-flight-no" data-translate="label-flight-num">Рейс №</label>
+                                        <input type="text" id="manual-flight-no" class="form-control" placeholder="Напр. 432" required>
+                                    </div>
+                                    <div class="form-group col-4">
+                                        <label for="manual-date" data-translate="label-date">Дата</label>
+                                        <input type="date" id="manual-date" class="form-control" required>
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group col-6">
+                                        <label for="manual-from" data-translate="label-from-airport">Вылет (DEP / FROM)</label>
+                                        <select id="manual-from" class="form-control" required></select>
+                                        <input type="text" id="manual-from-custom" class="form-control text-uppercase hidden" placeholder="Код ИАТА (напр. DXB)" maxlength="3" style="margin-top: 6px;">
+                                    </div>
+                                    <div class="form-group col-6">
+                                        <label for="manual-to" data-translate="label-to-airport">Прилет (ARR / TO)</label>
+                                        <select id="manual-to" class="form-control" required></select>
+                                        <input type="text" id="manual-to-custom" class="form-control text-uppercase hidden" placeholder="Код ИАТА (напр. MOW)" maxlength="3" style="margin-top: 6px;">
+                                    </div>
+                                </div>
+
+                                <h3 class="subsection-title" data-translate="pax-distribution">Распределение пассажиров (PAX)</h3>
+                                <div class="pax-grid">
+                                    <div class="form-group compact">
+                                        <label for="manual-men" data-translate="pax-men">Мужчины</label>
+                                        <input type="number" id="manual-men" class="form-control" min="0" max="1000" value="0">
+                                    </div>
+                                    <div class="form-group compact">
+                                        <label for="manual-women" data-translate="pax-women">Женщины</label>
+                                        <input type="number" id="manual-women" class="form-control" min="0" max="1000" value="0">
+                                    </div>
+                                    <div class="form-group compact">
+                                        <label for="manual-rb" data-translate="pax-rb">РБ (Дети)</label>
+                                        <input type="number" id="manual-rb" class="form-control" min="0" max="1000" value="0">
+                                    </div>
+                                    <div class="form-group compact">
+                                        <label for="manual-rm" data-translate="pax-rm">РМ (Млад.)</label>
+                                        <input type="number" id="manual-rm" class="form-control" min="0" max="1000" value="0">
+                                    </div>
+                                </div>
+
+                                <h3 class="subsection-title" data-translate="actual-baggage-title">Фактические данные (для базы)</h3>
+                                <div class="form-row">
+                                    <div class="form-group col-4 compact">
+                                        <label for="manual-bag-pcs" data-translate="label-bag-pcs">Мест багажа</label>
+                                        <input type="number" id="manual-bag-pcs" class="form-control" min="0" value="0">
+                                    </div>
+                                    <div class="form-group col-4 compact">
+                                        <label for="manual-bag-weight" data-translate="label-bag-weight">Вес багажа (кг)</label>
+                                        <input type="number" id="manual-bag-weight" class="form-control" min="0" step="0.1" value="0">
+                                    </div>
+                                    <div class="form-group col-4 compact">
+                                        <label for="manual-hb-weight" data-translate="label-hb-weight">Р/кладь (кг)</label>
+                                        <input type="number" id="manual-hb-weight" class="form-control" min="0" step="0.1" value="0">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-secondary btn-block aviation-btn" data-translate="btn-add-flight">Добавить рейс в базу</button>
+                            </form>
+                        </section>
+                    </div>
+
+                    <!-- Правая панель: Загрузка файлов -->
+                    <div class="right-column">
+                        <section class="panel glass aviation-panel">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <div class="hud-corner bottom-left"></div>
+                            <div class="hud-corner bottom-right"></div>
+
+                            <h2 class="panel-title" data-translate="upload-title">[ STATISTICS FILE INGESTION ]</h2>
+                            
+                            <!-- Зона Drag & Drop -->
+                            <div id="drop-zone" class="drop-zone aviation-drop-zone">
+                                <div class="drop-zone-content">
+                                    <div class="drop-icon">📥</div>
+                                    <p class="drop-text" data-translate="drop-text">Перетащите файлы .xls / .xlsx сюда или нажмите для выбора</p>
+                                    <span class="drop-sub" data-translate="drop-sub">Поддержка SpreadsheetML 2003 (.xls) и Excel (.xlsx)</span>
+                                    <input type="file" id="file-input" accept=".xls,.xlsx" multiple style="display: none;">
+                                </div>
+                            </div>
+                            <button type="button" id="btn-load-sample" class="btn btn-secondary btn-block aviation-btn" style="margin-top: 12px;" data-translate="btn-load-sample">Загрузить системную статистику</button>
+
+                            <!-- Статус базы данных -->
+                            <div class="db-status-bar aviation-status-bar" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+                                <span data-translate="total-flights-label">Всего рейсов в базе:</span>
+                                <strong id="total-flights-count" class="monospace-val">0</strong>
+                                <span style="opacity: 0.3; margin: 0 4px;">|</span>
+                                <span data-translate="active-flights-label">Активных (30 дней):</span>
+                                <strong id="active-flights-count" class="monospace-val">0</strong>
+                                <span class="date-range-badge" id="active-date-range">-</span>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- Нижняя секция: Таблица рейсов в базе -->
+                <section class="panel glass table-section aviation-panel">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+
+                    <div class="table-header-container">
+                        <h2 class="panel-title" data-translate="flights-table-title">[ DATABASE FLIGHT LOG (LAST 10 DAYS) ]</h2>
+                        <div class="table-actions" style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                            <label class="aviation-checkbox-container" style="margin-right: 12px; display: inline-flex; align-items: center; cursor: pointer; color: var(--text-color, #fff); font-family: var(--font-mono); font-size: 0.9rem; user-select: none;">
+                                <input type="checkbox" id="chk-show-all-flights" style="margin-right: 8px; cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+                                <span data-translate="chk-show-all-flights">Показать все рейсы</span>
+                            </label>
+                            <input type="file" id="backup-file-input" accept=".json" style="display: none;">
+                            <button type="button" id="btn-export-db" class="btn btn-secondary aviation-btn" data-translate="btn-export-db">Экспорт базы (Backup)</button>
+                            <button type="button" id="btn-import-db" class="btn btn-secondary aviation-btn" data-translate="btn-import-db">Импорт базы (Restore)</button>
+                            <button type="button" id="btn-clear-db" class="btn btn-danger aviation-btn" data-translate="btn-clear-db" onclick="handleClearDb(event)">Очистить базу</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-airline">АК</th>
+                                    <th data-translate="th-flight">Рейс</th>
+                                    <th data-translate="th-date">Дата</th>
+                                    <th data-translate="th-route">Маршрут</th>
+                                    <th data-translate="th-pax">Пассажиры (ВЗ / РБ / РМ)</th>
+                                    <th data-translate="th-bag-pcs">Багаж мест</th>
+                                    <th data-translate="th-bag-weight">Вес багажа</th>
+                                    <th data-translate="th-hb-weight">Вес р/к</th>
+                                    <th data-translate="th-status">Статус</th>
+                                    <th data-translate="th-action">Действие</th>
+                                </tr>
+                            </thead>
+                            <tbody id="flights-table-body">
+                                <!-- Строки рейсов заполняются динамически -->
+                                <tr>
+                                    <td colspan="10" class="empty-table-text" data-translate="empty-table">База данных пуста. Загрузите отчеты или введите рейс вручную.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Авиационное модальное окно подтверждения удаления -->
+    <div id="aviation-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header">
+                <span class="warning-blink">⚠</span>
+                <span class="modal-title-text" data-translate="modal-confirm-title">[&nbsp;ACTION&nbsp;REQUIRED:&nbsp;SYSTEM&nbsp;PURGE&nbsp;]</span>
+            </div>
+            
+            <div class="modal-body">
+                <p id="aviation-confirm-message">Вы уверены, что хотите выполнить это действие?</p>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" id="modal-btn-cancel" class="btn btn-secondary" data-translate="modal-confirm-cancel">[&nbsp;CANCEL&nbsp;]</button>
+                <button type="button" id="modal-btn-confirm" class="btn btn-danger" data-translate="modal-confirm-submit">[&nbsp;CONFIRM&nbsp;PURGE&nbsp;]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Авиационное модальное окно авторизации Администратора -->
+    <div id="admin-auth-modal" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel" style="max-width: 440px;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header">
+                <span class="warning-blink">🔒</span>
+                <span class="modal-title-text" data-translate="admin-auth-title">[ RESTRICTED ACCESS: ADMIN AUTH ]</span>
+            </div>
+            
+            <form id="admin-auth-form">
+                <div class="modal-body">
+                    <p data-translate="admin-auth-desc" style="margin-bottom: 14px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">Внимание! Для доступа к разделу "Администрирование" требуется ввод пароля диспетчера:</p>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label for="admin-password-input" data-translate="admin-auth-label" style="font-family: var(--font-mono); font-size: 0.85rem;">ПАРОЛЬ ДОСТУПА</label>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="admin-password-input" class="form-control" placeholder="Пароль..." autocomplete="off" required style="font-family: var(--font-mono); font-size: 1.2rem; text-align: center; letter-spacing: 3px; padding-right: 44px; width: 100%;">
+                            <button type="button" id="btn-toggle-show-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
+                        </div>
+                    </div>
+                    <div id="admin-auth-error" class="hidden" data-translate="admin-auth-error" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.85rem; margin-top: 8px; text-align: center; font-weight: bold;">
+                        ❌ Неверный пароль доступа!
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
+                    <button type="button" id="admin-auth-cancel" class="btn btn-secondary" data-translate="admin-auth-cancel">[ CANCEL ]</button>
+                    <button type="submit" id="admin-auth-submit" class="btn btn-primary" data-translate="admin-auth-submit">[ ENTER ]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.6; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px;">
+        AeroBag Predictor v11.0 (MySQL Edition)
+    </footer>
+
+    <!-- Загрузка локальных библиотек -->
+    <script src="xlsx.full.min.js"></script>
+    <script src="app.js?v=96.0"></script>
+</body>
+</html>

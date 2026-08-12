@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .bg { fill: #040814; }
+    .neon-ring { fill: none; stroke: #00f2ff; stroke-width: 1.5; stroke-dasharray: 3 1.5; opacity: 0.8; }
+    .luggage { fill: none; stroke: #00f2ff; stroke-width: 2; stroke-linejoin: round; }
+    .luggage-handle { fill: none; stroke: #00f2ff; stroke-width: 1.5; }
+    .plane { fill: #00f2ff; }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #f8fafc; }
+      .neon-ring { stroke: #0284c7; }
+      .luggage { stroke: #0284c7; }
+      .luggage-handle { stroke: #0284c7; }
+      .plane { fill: #0284c7; }
+    }
+  </style>
+  <!-- Фон со скруглением под HUD-стиль -->
+  <rect width="32" height="32" rx="7" class="bg" />
+  
+  <!-- Пунктирный радарный круг -->
+  <circle cx="16" cy="16" r="12" class="neon-ring" />
+  
+  <!-- Силуэт чемодана -->
+  <rect x="10" y="13" width="12" height="9" rx="1.5" class="luggage" />
+  <path d="M13 13V10.5C13 9.7 13.7 9 14.5 9H17.5C18.3 9 19 9.7 19 10.5V13" class="luggage-handle" />
+  <line x1="10" y1="17.5" x2="22" y2="17.5" class="luggage" style="stroke-width: 1; opacity: 0.5;" />
+  
+  <!-- Летящий самолет поверх чемодана -->
+  <path d="M16 5 L17.5 8.5 L21.5 9 L18.5 11.5 L19.5 15.5 L16 13.5 L12.5 15.5 L13.5 11.5 L10.5 9 L14.5 8.5 Z" class="plane" style="transform: scale(0.5) translate(16px, 12px); transform-origin: center;" />
+</svg>
