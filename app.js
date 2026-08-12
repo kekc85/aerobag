@@ -159,9 +159,9 @@ const translations = {
         'th-sample-hb': 'Р/кладь',
         'sample-totals-label': 'ИТОГО (СУММЫ):',
         'source-desc-uploaded-weekday4': 'Последние 4 рейса ({weekday}) ({scope})',
-        'source-desc-uploaded-weekday4-fallback': 'Последние 4 рейса (за др. дни недели, ближайший от {date}) ({scope})',
-        'warning-no-flights-weekday4': 'Внимание! По рейсу {flight} {from}➔{to} нет данных на {weekday}. Использованы последние 4 рейса за другие дни недели (ближайший от {date}).',
-        'warning-no-route-weekday4': 'Внимание! По направлению {from}➔{to} нет данных на {weekday}. Использованы последние 4 рейса за другие дни недели (ближайший от {date}).',
+        'source-desc-uploaded-weekday4-fallback': 'Среднее за последние 30 дней ({scope}, последний рейс от {date})',
+        'warning-no-flights-weekday4': 'Внимание! По рейсу {flight} {from}➔{to} нет данных на {weekday} за последние 60 дней. Использовано среднее значение за 30 дней (последний рейс от {date}).',
+        'warning-no-route-weekday4': 'Внимание! По направлению {from}➔{to} нет данных на {weekday} за последние 60 дней. Использовано среднее значение за 30 дней (последний рейс от {date}).',
         'label-start-date': 'Дата начала (From)',
         'label-end-date': 'Дата окончания (To)',
         'label-month': 'Месяц (Month)',
@@ -327,9 +327,9 @@ const translations = {
         'th-sample-hb': 'Cabin Bag',
         'sample-totals-label': 'TOTALS:',
         'source-desc-uploaded-weekday4': 'Last 4 flights ({weekday}) ({scope})',
-        'source-desc-uploaded-weekday4-fallback': 'Last 4 flights (other weekdays, closest from {date}) ({scope})',
-        'warning-no-flights-weekday4': 'Warning! No data on {weekday} for flight {flight} {from}➔{to}. Used last 4 flights for other weekdays (closest from {date}).',
-        'warning-no-route-weekday4': 'Warning! No data on {weekday} for route {from}➔{to}. Used last 4 flights for other weekdays (closest from {date}).',
+        'source-desc-uploaded-weekday4-fallback': 'Last 30-day average ({scope}, latest flight from {date})',
+        'warning-no-flights-weekday4': 'Warning! No data on {weekday} for flight {flight} {from}➔{to} for the last 60 days. Used 30-day average (latest flight from {date}).',
+        'warning-no-route-weekday4': 'Warning! No data on {weekday} for route {from}➔{to} for the last 60 days. Used 30-day average (latest flight from {date}).',
         'label-start-date': 'Start Date (From)',
         'label-end-date': 'End Date (To)',
         'label-month': 'Month',
@@ -2726,7 +2726,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
 
     if (filtered.length === 0) return null;
 
-    const isWeighted = (periodType === 'weekday4' && !isFallback);
+    const isWeighted = false;
     const result = calculateMeansFromFlights(filtered, isWeighted);
     if (result) {
         result.isFallback = isFallback;
