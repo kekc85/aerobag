@@ -1,4 +1,5 @@
-// AeroBag Predictor Application Logic
+// Версия сборки приложения
+const APP_VERSION = 'v11.3.2';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -921,6 +922,9 @@ function initLoadPlanningData() {
 // --- ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ---
 document.addEventListener('DOMContentLoaded', async () => {
     loadSettings();
+    
+    const versionTag = document.getElementById('app-version-tag');
+    if (versionTag) versionTag.textContent = APP_VERSION;
     
     // Инициализация даты в форме прогноза (сегодняшняя дата)
     const dateInput = document.getElementById('input-date');
