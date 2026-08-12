@@ -430,6 +430,26 @@ function iataToRu(iataCode) {
     return ap ? ap.ru : iataCode;
 }
 
+// Вспомогательная функция для получения количества пассажиров без учета младенцев (ВЗ + РБ, без РМ)
+function getEffectivePaxCount(f) {
+    if (!f) return 0;
+    const men = parseInt(f.men) || 0;
+    const women = parseInt(f.women) || 0;
+    const rb = parseInt(f.rb) || 0;
+    const rm = parseInt(f.rm) || 0;
+
+    if (men > 0 || women > 0 || rb > 0) {
+        return men + women + rb;
+    }
+
+    const rawPax = parseInt(f.pax) || 0;
+    if (rawPax > 0) {
+        return Math.max(0, rawPax - rm);
+    }
+
+    return 0;
+}
+
 function formatAirline(code) {
     if (!code) return 'N4';
     const clean = String(code).trim().toUpperCase();
@@ -2438,26 +2458,6 @@ function renderSampledFlightsDetails(coefs) {
         tfootEl.innerHTML = '';
         return;
     }
-
-// Вспомогательная функция для получения количества пассажиров без учета младенцев (ВЗ + РБ, без РМ)
-function getEffectivePaxCount(f) {
-    if (!f) return 0;
-    const men = parseInt(f.men) || 0;
-    const women = parseInt(f.women) || 0;
-    const rb = parseInt(f.rb) || 0;
-    const rm = parseInt(f.rm) || 0;
-
-    if (men > 0 || women > 0 || rb > 0) {
-        return men + women + rb;
-    }
-
-    const rawPax = parseInt(f.pax) || 0;
-    if (rawPax > 0) {
-        return Math.max(0, rawPax - rm);
-    }
-
-    return 0;
-}
 
     // Если есть реальные отобранные рейсы
     if (coefs.usedFlights && coefs.usedFlights.length > 0) {
