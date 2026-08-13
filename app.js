@@ -36,7 +36,7 @@ const translations = {
         'tab-admin': 'Администрирование',
         'dashboard-title': 'Дашборд аналитики и масштабирования',
         'dashboard-kpi-total-flights': 'Проанализировано рейсов',
-        'dashboard-kpi-routes': 'Активных маршрутов',
+        'dashboard-kpi-routes': 'Номеров рейсов',
         'dashboard-kpi-avg-weight': 'Средний вес на 1 PAX',
         'dashboard-kpi-avg-pcs': 'Среднее мест на 1 PAX',
         'predict-title': 'Прогнозирование рейса',
@@ -208,7 +208,7 @@ const translations = {
         'tab-admin': 'Administration',
         'dashboard-title': 'Analytics & Scaling Dashboard',
         'dashboard-kpi-total-flights': 'Flights Analyzed',
-        'dashboard-kpi-routes': 'Active Routes',
+        'dashboard-kpi-routes': 'Flight Numbers',
         'dashboard-kpi-avg-weight': 'Avg Weight / PAX',
         'dashboard-kpi-avg-pcs': 'Avg Pieces / PAX',
         'predict-title': 'Flight Forecasting',
@@ -4241,15 +4241,6 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // Сохраняем общее число уникальных активных маршрутов во временном диапазоне (до сужения по выбранной маршрутной линии)
-    const systemRoutesSet = new Set();
-    filteredDataset.forEach(f => {
-        if (isValidIataCode(f.from) && isValidIataCode(f.to)) {
-            systemRoutesSet.add(`${f.from} ➔ ${f.to}`);
-        }
-    });
-    const totalActiveSystemRoutes = systemRoutesSet.size;
-
     if (selectedRoute && selectedRoute !== 'all') {
         const [fromCode, toCode] = selectedRoute.split(' ➔ ').map(s => s.trim());
         filteredDataset = filteredDataset.filter(f => f.from === fromCode && f.to === toCode);
@@ -4258,18 +4249,23 @@ function renderDashboardAnalytics() {
     // 4. Расчет KPI Метрик
     const totalFlights = filteredDataset.length;
 
+    const uniqueFlightNumbersSet = new Set();
     let totalPax = 0;
     let totalPcs = 0;
     let totalWeight = 0;
     let totalHb = 0;
 
     filteredDataset.forEach(f => {
+        if (f.flight_no && String(f.flight_no).trim() !== '') {
+            uniqueFlightNumbersSet.add(String(f.flight_no).trim());
+        }
         totalPax += f.pax;
         totalPcs += f.bag_pcs;
         totalWeight += f.bag_weight;
         totalHb += f.hb_weight;
     });
 
+    const totalFlightNumbers = uniqueFlightNumbersSet.size > 0 ? uniqueFlightNumbersSet.size : (filteredDataset.length > 0 ? 1 : 0);
     const avgWeightPerPax = totalPax > 0 ? (totalWeight / totalPax) : 0;
     const avgPcsPerPax = totalPax > 0 ? (totalPcs / totalPax) : 0;
 
@@ -4283,7 +4279,7 @@ function renderDashboardAnalytics() {
     const pcsUnitText = currentLang === 'ru' ? 'мест/пассажира' : 'pcs/pax';
 
     if (kpiFlights) kpiFlights.textContent = totalFlights;
-    if (kpiRoutes) kpiRoutes.textContent = totalActiveSystemRoutes;
+    if (kpiRoutes) kpiRoutes.textContent = totalFlightNumbers;
     if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">${kgUnitText}</span>`;
     if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">${pcsUnitText}</span>`;
 
