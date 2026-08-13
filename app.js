@@ -2163,11 +2163,25 @@ function setupTabs() {
     // Слушатели фильтров Дашборда
     const btnRefreshDash = document.getElementById('btn-refresh-dashboard');
     const filterRoute = document.getElementById('dash-filter-route');
-    const filterScope = document.getElementById('dash-filter-scope');
+    const filterPeriod = document.getElementById('dash-filter-period');
+    const customDateContainer = document.getElementById('dash-custom-date-container');
+    const dateFrom = document.getElementById('dash-date-from');
+    const dateTo = document.getElementById('dash-date-to');
 
     if (btnRefreshDash) btnRefreshDash.addEventListener('click', renderDashboardAnalytics);
     if (filterRoute) filterRoute.addEventListener('change', renderDashboardAnalytics);
-    if (filterScope) filterScope.addEventListener('change', renderDashboardAnalytics);
+    if (filterPeriod) {
+        filterPeriod.addEventListener('change', () => {
+            if (filterPeriod.value === 'custom') {
+                if (customDateContainer) customDateContainer.classList.remove('hidden');
+            } else {
+                if (customDateContainer) customDateContainer.classList.add('hidden');
+            }
+            renderDashboardAnalytics();
+        });
+    }
+    if (dateFrom) dateFrom.addEventListener('change', renderDashboardAnalytics);
+    if (dateTo) dateTo.addEventListener('change', renderDashboardAnalytics);
 
     if (authCancelBtn) {
         authCancelBtn.addEventListener('click', () => {
@@ -4114,11 +4128,59 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // 3. Фильтрация набора данных по выбранному маршруту
+    // 3. Фильтрация набора данных по периоду времени и маршруту
+    const periodSelect = document.getElementById('dash-filter-period');
+    const selectedPeriod = periodSelect ? periodSelect.value : 'all';
+    
     let filteredDataset = dataset;
+    let periodSubtext = 'За весь период базы данных';
+
+    if (selectedPeriod !== 'all') {
+        const now = new Date();
+        
+        if (selectedPeriod === '30' || selectedPeriod === '60' || selectedPeriod === '90') {
+            const days = parseInt(selectedPeriod, 10);
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - days);
+            
+            filteredDataset = filteredDataset.filter(f => {
+                if (!f.date) return false;
+                const d = new Date(f.date);
+                return d >= cutoffDate;
+            });
+            periodSubtext = `За последние ${days} дней`;
+        } else if (selectedPeriod === 'year') {
+            const currentYear = now.getFullYear();
+            filteredDataset = filteredDataset.filter(f => {
+                if (!f.date) return false;
+                const d = new Date(f.date);
+                return d.getFullYear() === currentYear;
+            });
+            periodSubtext = `За ${currentYear} год`;
+        } else if (selectedPeriod === 'custom') {
+            const dateFromInput = document.getElementById('dash-date-from');
+            const dateToInput = document.getElementById('dash-date-to');
+            const fromVal = dateFromInput ? dateFromInput.value : '';
+            const toVal = dateToInput ? dateToInput.value : '';
+
+            if (fromVal || toVal) {
+                const fromDate = fromVal ? new Date(fromVal) : new Date('1970-01-01');
+                const toDate = toVal ? new Date(toVal) : new Date('2099-12-31');
+                toDate.setHours(23, 59, 59, 999);
+
+                filteredDataset = filteredDataset.filter(f => {
+                    if (!f.date) return false;
+                    const d = new Date(f.date);
+                    return d >= fromDate && d <= toDate;
+                });
+                periodSubtext = `Интервал: ${fromVal || '...'} — ${toVal || '...'}`;
+            }
+        }
+    }
+
     if (selectedRoute && selectedRoute !== 'all') {
         const [fromCode, toCode] = selectedRoute.split(' ➔ ').map(s => s.trim());
-        filteredDataset = dataset.filter(f => f.from === fromCode && f.to === toCode);
+        filteredDataset = filteredDataset.filter(f => f.from === fromCode && f.to === toCode);
     }
 
     // 4. Расчет KPI Метрик
@@ -4149,6 +4211,12 @@ function renderDashboardAnalytics() {
 
     if (kpiFlights) kpiFlights.textContent = totalFlights;
     if (kpiRoutes) kpiRoutes.textContent = routesMap.size;
+    if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">кг</span>`;
+    if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">шт</span>`;
+
+    // Обновляем подписи периода под KPI карточками
+    const kpiSubs = document.querySelectorAll('.dashboard-kpi-grid .kpi-sub');
+    kpiSubs.forEach(el => el.textContent = periodSubtext);
     if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">кг</span>`;
     if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">шт</span>`;
 

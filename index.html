@@ -528,6 +528,27 @@
                                         <option value="all">Все направления</option>
                                     </select>
                                 </div>
+                                <div class="filter-item">
+                                    <label for="dash-filter-period">Период времени</label>
+                                    <select id="dash-filter-period" class="form-control compact-select">
+                                        <option value="all">За весь период</option>
+                                        <option value="30">За последние 30 дней</option>
+                                        <option value="60">За последние 60 дней</option>
+                                        <option value="90">За последние 90 дней</option>
+                                        <option value="year">За текущий год</option>
+                                        <option value="custom">Произвольный интервал...</option>
+                                    </select>
+                                </div>
+                                <div id="dash-custom-date-container" class="filter-item hidden" style="display: flex; gap: 6px; align-items: flex-end;">
+                                    <div>
+                                        <label for="dash-date-from">С даты</label>
+                                        <input type="date" id="dash-date-from" class="form-control compact-select">
+                                    </div>
+                                    <div>
+                                        <label for="dash-date-to">По дату</label>
+                                        <input type="date" id="dash-date-to" class="form-control compact-select">
+                                    </div>
+                                </div>
                                 <button type="button" id="btn-refresh-dashboard" class="btn btn-primary aviation-btn">
                                     <span>🔄</span> Обновить
                                 </button>
