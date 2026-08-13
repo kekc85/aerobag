@@ -3335,16 +3335,47 @@ body.light-theme .history-row-clickable.selected-history-row {
     background: #0284c7;
 }
 
+.pie-slice-circle {
+    cursor: pointer;
+    transition: stroke-width 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+}
+
+.pie-slice-circle:hover {
+    stroke-width: 17px !important;
+    opacity: 1 !important;
+}
+
 .pie-legend-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: 0.84rem;
-    padding: 3px 0;
+    padding: 4px 6px;
     gap: 10px;
     min-width: 0;
+    cursor: pointer;
+    border-radius: 4px;
     box-sizing: border-box !important;
     border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+    transition: all 0.15s ease-in-out;
+}
+
+.pie-legend-item:hover {
+    background: rgba(0, 242, 255, 0.08);
+}
+
+.pie-legend-item.active-pie-route {
+    background: rgba(0, 242, 255, 0.18) !important;
+    border-bottom-color: transparent !important;
+    font-weight: 700;
+}
+
+.light-theme .pie-legend-item:hover {
+    background: rgba(0, 102, 204, 0.08) !important;
+}
+
+.light-theme .pie-legend-item.active-pie-route {
+    background: rgba(0, 102, 204, 0.18) !important;
 }
 
 .pie-legend-item:last-child {

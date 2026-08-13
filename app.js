@@ -4474,7 +4474,11 @@ function renderDashboardAnalytics() {
                 const strokeColor = routeColorMap[s.route] || singleFlightColor;
 
                 svgCircles += `
-                    <circle cx="50" cy="50" r="40" 
+                    <circle class="pie-slice-circle" 
+                            data-route="${s.route}"
+                            data-flights="${s.flights}"
+                            data-pct="${((s.flights / periodTotalFlights) * 100).toFixed(1)}"
+                            cx="50" cy="50" r="40" 
                             fill="transparent" 
                             stroke="${strokeColor}" 
                             stroke-width="14" 
@@ -4491,7 +4495,7 @@ function renderDashboardAnalytics() {
                 const dotColor = routeColorMap[s.route] || singleFlightColor;
 
                 legendHtml += `
-                    <div class="pie-legend-item">
+                    <div class="pie-legend-item" data-route="${s.route}" data-flights="${s.flights}" data-pct="${sharePct}">
                         <div class="pie-legend-left">
                             <span class="pie-legend-dot" style="background: ${dotColor};"></span>
                             <span class="pie-legend-name">${s.route}</span>
@@ -4517,6 +4521,77 @@ function renderDashboardAnalytics() {
                     </div>
                 </div>
             `;
+
+            // Подключение интерактивных кликов по сегментам и строкам легенды
+            let selectedPieRoute = null;
+
+            const centerVal = sharesContainer.querySelector('.pie-chart-center-val');
+            const centerLbl = sharesContainer.querySelector('.pie-chart-center-lbl');
+            const circles = sharesContainer.querySelectorAll('.pie-slice-circle');
+            const legendItems = sharesContainer.querySelectorAll('.pie-legend-item');
+
+            const handleRouteHighlight = (targetRoute, targetFlights, targetPct) => {
+                if (selectedPieRoute === targetRoute) {
+                    // Сброс выделения при повторном клике
+                    selectedPieRoute = null;
+                    if (centerVal) centerVal.textContent = periodTotalFlights;
+                    if (centerLbl) centerLbl.textContent = currentLang === 'ru' ? 'рейсов' : 'flights';
+
+                    circles.forEach(c => {
+                        c.style.strokeWidth = '14px';
+                        c.style.opacity = '1';
+                        c.style.filter = 'none';
+                    });
+
+                    legendItems.forEach(item => {
+                        item.classList.remove('active-pie-route');
+                    });
+                } else {
+                    // Установка выделения на выбранное направление
+                    selectedPieRoute = targetRoute;
+                    if (centerVal) centerVal.textContent = targetFlights;
+                    if (centerLbl) centerLbl.textContent = `${targetRoute} (${targetPct}%)`;
+
+                    circles.forEach(c => {
+                        if (c.getAttribute('data-route') === targetRoute) {
+                            c.style.strokeWidth = '18px';
+                            c.style.opacity = '1';
+                            c.style.filter = 'drop-shadow(0 0 8px currentColor)';
+                        } else {
+                            c.style.strokeWidth = '12px';
+                            c.style.opacity = '0.25';
+                            c.style.filter = 'none';
+                        }
+                    });
+
+                    legendItems.forEach(item => {
+                        if (item.getAttribute('data-route') === targetRoute) {
+                            item.classList.add('active-pie-route');
+                            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        } else {
+                            item.classList.remove('active-pie-route');
+                        }
+                    });
+                }
+            };
+
+            circles.forEach(c => {
+                c.addEventListener('click', () => {
+                    const r = c.getAttribute('data-route');
+                    const f = c.getAttribute('data-flights');
+                    const p = c.getAttribute('data-pct');
+                    handleRouteHighlight(r, f, p);
+                });
+            });
+
+            legendItems.forEach(item => {
+                item.addEventListener('click', () => {
+                    const r = item.getAttribute('data-route');
+                    const f = item.getAttribute('data-flights');
+                    const p = item.getAttribute('data-pct');
+                    handleRouteHighlight(r, f, p);
+                });
+            });
         }
     }
 }
