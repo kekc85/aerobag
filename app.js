@@ -4440,9 +4440,9 @@ function renderDashboardAnalytics() {
 
             const sortedPeriodRoutes = Object.values(periodRouteMap).sort((a, b) => b.flights - a.flights);
             
-            // ТОП-4 маршрутов + Прочие
-            let slices = sortedPeriodRoutes.slice(0, 4);
-            const rest = sortedPeriodRoutes.slice(4);
+            // ТОП-6 маршрутов + Прочие направления
+            let slices = sortedPeriodRoutes.slice(0, 6);
+            const rest = sortedPeriodRoutes.slice(6);
             if (rest.length > 0) {
                 const restCount = rest.reduce((acc, r) => acc + r.flights, 0);
                 slices.push({
@@ -4451,7 +4451,7 @@ function renderDashboardAnalytics() {
                 });
             }
 
-            const colors = ['#00f2ff', '#ffb700', '#10b981', '#8b5cf6', '#ec4899'];
+            const colors = ['#00f2ff', '#ffb700', '#10b981', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#64748b'];
             
             // Расчет круговых сегментов SVG (окружность R=40 => C = 2*PI*40 ≈ 251.327)
             const C = 251.327;
