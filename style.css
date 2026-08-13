@@ -3491,3 +3491,49 @@ body.light-theme .history-row-clickable.selected-history-row {
 .load-rows-scroll-container::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 242, 255, 0.7);
 }
+
+/* --- СВЕТЛАЯ ТЕМА ДЛЯ ДАШБОРДА --- */
+.light-theme .kpi-card {
+    border: 1px solid rgba(0, 102, 204, 0.18) !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+}
+
+.light-theme .kpi-card.highlight-cyan {
+    border-left: 4px solid #0284c7 !important;
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(255, 255, 255, 0.95)) !important;
+}
+
+.light-theme .kpi-card.highlight-gold {
+    border-left: 4px solid #d97706 !important;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.08), rgba(255, 255, 255, 0.95)) !important;
+}
+
+.light-theme .kpi-title {
+    color: #475569 !important;
+}
+
+.light-theme .kpi-value {
+    color: #0f172a !important;
+}
+
+.light-theme .highlight-cyan .kpi-value {
+    color: #0284c7 !important;
+}
+
+.light-theme .highlight-gold .kpi-value {
+    color: #d97706 !important;
+}
+
+.light-theme .kpi-unit {
+    color: #64748b !important;
+}
+
+.light-theme .kpi-sub {
+    color: #64748b !important;
+    opacity: 0.9 !important;
+}
+
+.light-theme .bar-track {
+    background: rgba(0, 0, 0, 0.06) !important;
+}
+

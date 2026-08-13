@@ -4209,16 +4209,17 @@ function renderDashboardAnalytics() {
     const kpiWeight = document.getElementById('dash-kpi-weight');
     const kpiPcs = document.getElementById('dash-kpi-pcs');
 
+    const kgUnitText = currentLang === 'ru' ? 'кг/пассажира' : 'kg/pax';
+    const pcsUnitText = currentLang === 'ru' ? 'мест/пассажира' : 'pcs/pax';
+
     if (kpiFlights) kpiFlights.textContent = totalFlights;
     if (kpiRoutes) kpiRoutes.textContent = routesMap.size;
-    if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">кг</span>`;
-    if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">шт</span>`;
+    if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">${kgUnitText}</span>`;
+    if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">${pcsUnitText}</span>`;
 
     // Обновляем подписи периода под KPI карточками
     const kpiSubs = document.querySelectorAll('.dashboard-kpi-grid .kpi-sub');
     kpiSubs.forEach(el => el.textContent = periodSubtext);
-    if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">кг</span>`;
-    if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">шт</span>`;
 
     // 5. Группировка по маршрутам для графиков
     const routeStats = {};
