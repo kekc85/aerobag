@@ -4088,23 +4088,57 @@ function renderDashboardAnalytics() {
     const routeSelect = document.getElementById('dash-filter-route');
     const selectedRoute = routeSelect ? routeSelect.value : 'all';
 
-    // 1. Используем исключительно данные, занесённые в базу данных
+    // 1. Используем данные из загруженной базы рейсов и системных нормативов (baggageDb.rules)
     let dataset = [];
+
     if (userFlights && Array.isArray(userFlights)) {
-        dataset = userFlights.map(f => ({
-            from: ruToIata(f.from) || f.from,
-            to: ruToIata(f.to) || f.to,
-            flight_no: f.flight_no,
-            pax: getEffectivePaxCount(f),
-            bag_pcs: parseInt(f.bag_pcs, 10) || 0,
-            bag_weight: parseFloat(f.bag_weight) || 0,
-            hb_weight: parseFloat(f.hb_weight) || 0,
-            date: f.date,
-            source: 'db'
-        }));
+        userFlights.forEach(f => {
+            const fromIata = ruToIata(f.from) || f.from;
+            const toIata = ruToIata(f.to) || f.to;
+            if (fromIata && toIata) {
+                dataset.push({
+                    from: fromIata,
+                    to: toIata,
+                    flight_no: f.flight_no,
+                    pax: getEffectivePaxCount(f),
+                    bag_pcs: parseInt(f.bag_pcs, 10) || 0,
+                    bag_weight: parseFloat(f.bag_weight) || 0,
+                    hb_weight: parseFloat(f.hb_weight) || 0,
+                    date: f.date,
+                    source: 'user_db'
+                });
+            }
+        });
     }
 
-    // 2. Обновляем списки выпадающего фильтра маршрутов
+    if (baggageDb && Array.isArray(baggageDb.rules)) {
+        baggageDb.rules.forEach(r => {
+            const fromIata = ruToIata(r.from) || r.from;
+            const toIata = ruToIata(r.to) || r.to;
+            if (fromIata && toIata) {
+                const paxCount = parseInt(r.pax_no, 10) || 150;
+                const pcsPax = parseFloat(r.pcs_pax) || 0;
+                const wghtPc = parseFloat(r.wght_pc) || 0;
+                const totalPcs = Math.round(paxCount * pcsPax);
+                const totalWeight = totalPcs * wghtPc;
+                const hbWeight = Math.round(paxCount * (parseFloat(r.hb_pax) || 0));
+
+                dataset.push({
+                    from: fromIata,
+                    to: toIata,
+                    flight_no: r.flt_no || '',
+                    pax: paxCount,
+                    bag_pcs: totalPcs,
+                    bag_weight: totalWeight,
+                    hb_weight: hbWeight,
+                    date: r.date || null,
+                    source: 'system_rules'
+                });
+            }
+        });
+    }
+
+    // 2. Обновляем списки выпадающего фильтра маршрутов (включая CXR, IST и все направления)
     if (routeSelect) {
         const savedRoute = routeSelect.value;
         const routesSet = new Set();
