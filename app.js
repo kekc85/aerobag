@@ -32,7 +32,13 @@ const translations = {
         'status-dispatch': 'ДИСПЕТЧЕР ОНЛАЙН',
         'status-local': 'ЛОКАЛЬНЫЙ РЕЖИМ (OFFLINE)',
         'tab-predict': 'Прогнозирование',
+        'tab-dashboard': 'Дашборд аналитики',
         'tab-admin': 'Администрирование',
+        'dashboard-title': 'Дашборд аналитики и масштабирования',
+        'dashboard-kpi-total-flights': 'Проанализировано рейсов',
+        'dashboard-kpi-routes': 'Активных маршрутов',
+        'dashboard-kpi-avg-weight': 'Средний вес на 1 PAX',
+        'dashboard-kpi-avg-pcs': 'Среднее мест на 1 PAX',
         'predict-title': 'Прогнозирование рейса',
         'label-from': 'Аэропорт вылета (FROM)',
         'label-to': 'Аэропорт прилета (TO)',
@@ -198,7 +204,13 @@ const translations = {
         'status-dispatch': 'DISPATCH ONLINE',
         'status-local': 'LOCAL MODE (OFFLINE)',
         'tab-predict': 'Forecasting',
+        'tab-dashboard': 'Analytics Dashboard',
         'tab-admin': 'Administration',
+        'dashboard-title': 'Analytics & Scaling Dashboard',
+        'dashboard-kpi-total-flights': 'Flights Analyzed',
+        'dashboard-kpi-routes': 'Active Routes',
+        'dashboard-kpi-avg-weight': 'Avg Weight / PAX',
+        'dashboard-kpi-avg-pcs': 'Avg Pieces / PAX',
         'predict-title': 'Flight Forecasting',
         'label-from': 'Departure Airport (FROM)',
         'label-to': 'Arrival Airport (TO)',
@@ -2072,8 +2084,11 @@ async function loadSystemStats(isSilent = true) {
 // Настройка вкладок (Tabs) и авторизация по паролю NW2026
 function setupTabs() {
     const tabPredictBtn = document.getElementById('tab-btn-predict');
+    const tabDashboardBtn = document.getElementById('tab-btn-dashboard');
     const tabAdminBtn = document.getElementById('tab-btn-admin');
+    
     const predictContent = document.getElementById('tab-content-predict');
+    const dashboardContent = document.getElementById('tab-content-dashboard');
     const adminContent = document.getElementById('tab-content-admin');
 
     const authModal = document.getElementById('admin-auth-modal');
@@ -2098,9 +2113,26 @@ function setupTabs() {
     if (tabPredictBtn) {
         tabPredictBtn.addEventListener('click', () => {
             tabPredictBtn.classList.add('active');
+            if (tabDashboardBtn) tabDashboardBtn.classList.remove('active');
             if (tabAdminBtn) tabAdminBtn.classList.remove('active');
+
             if (predictContent) predictContent.classList.remove('hidden');
+            if (dashboardContent) dashboardContent.classList.add('hidden');
             if (adminContent) adminContent.classList.add('hidden');
+        });
+    }
+
+    if (tabDashboardBtn) {
+        tabDashboardBtn.addEventListener('click', () => {
+            tabDashboardBtn.classList.add('active');
+            if (tabPredictBtn) tabPredictBtn.classList.remove('active');
+            if (tabAdminBtn) tabAdminBtn.classList.remove('active');
+
+            if (dashboardContent) dashboardContent.classList.remove('hidden');
+            if (predictContent) predictContent.classList.add('hidden');
+            if (adminContent) adminContent.classList.add('hidden');
+
+            renderDashboardAnalytics();
         });
     }
 
@@ -2109,8 +2141,11 @@ function setupTabs() {
             if (isAdminAuthenticated) {
                 tabAdminBtn.classList.add('active');
                 if (tabPredictBtn) tabPredictBtn.classList.remove('active');
+                if (tabDashboardBtn) tabDashboardBtn.classList.remove('active');
+
                 if (adminContent) adminContent.classList.remove('hidden');
                 if (predictContent) predictContent.classList.add('hidden');
+                if (dashboardContent) dashboardContent.classList.add('hidden');
             } else {
                 // Запрос ввода пароля NW2026 через стильное авиационное модальное окно
                 if (authModal) {
@@ -2124,6 +2159,15 @@ function setupTabs() {
             }
         });
     }
+
+    // Слушатели фильтров Дашборда
+    const btnRefreshDash = document.getElementById('btn-refresh-dashboard');
+    const filterRoute = document.getElementById('dash-filter-route');
+    const filterScope = document.getElementById('dash-filter-scope');
+
+    if (btnRefreshDash) btnRefreshDash.addEventListener('click', renderDashboardAnalytics);
+    if (filterRoute) filterRoute.addEventListener('change', renderDashboardAnalytics);
+    if (filterScope) filterScope.addEventListener('change', renderDashboardAnalytics);
 
     if (authCancelBtn) {
         authCancelBtn.addEventListener('click', () => {
@@ -4024,3 +4068,309 @@ function setupNumericInputValidation() {
 
     recalculateLoadPlanning();
 }
+
+// --- ОТРИСОВКА И РАСЧЕТ ДАШБОРДА АНАЛИТИКИ И МАСШТАБИРОВАНИЯ ---
+function renderDashboardAnalytics() {
+    const routeSelect = document.getElementById('dash-filter-route');
+    const scopeSelect = document.getElementById('dash-filter-scope');
+
+    const selectedRoute = routeSelect ? routeSelect.value : 'all';
+    const selectedScope = scopeSelect ? scopeSelect.value : 'all';
+
+    // 1. Собираем массив рейсов для анализа
+    let dataset = [];
+
+    if (selectedScope === 'all' || selectedScope === 'db') {
+        if (userFlights && Array.isArray(userFlights)) {
+            dataset = dataset.concat(userFlights.map(f => ({
+                from: ruToIata(f.from) || f.from,
+                to: ruToIata(f.to) || f.to,
+                flight_no: f.flight_no,
+                pax: getEffectivePaxCount(f),
+                bag_pcs: parseInt(f.bag_pcs, 10) || 0,
+                bag_weight: parseFloat(f.bag_weight) || 0,
+                hb_weight: parseFloat(f.hb_weight) || 0,
+                date: f.date,
+                source: 'db'
+            })));
+        }
+    }
+
+    if (selectedScope === 'all' || selectedScope === 'predictions') {
+        if (predictionsHistory && Array.isArray(predictionsHistory)) {
+            dataset = dataset.concat(predictionsHistory.map(p => ({
+                from: ruToIata(p.from) || p.from,
+                to: ruToIata(p.to) || p.to,
+                flight_no: p.flight_no,
+                pax: parseInt(p.pax, 10) || 0,
+                bag_pcs: parseInt(p.bag_pcs, 10) || 0,
+                bag_weight: parseFloat(p.bag_weight) || 0,
+                hb_weight: parseFloat(p.hb_weight) || 0,
+                date: p.calc_date,
+                compartments: p.compartments || [],
+                source: 'predictions'
+            })));
+        }
+    }
+
+    // 2. Обновляем списки выпадающего фильтра маршрутов
+    if (routeSelect) {
+        const savedRoute = routeSelect.value;
+        const routesSet = new Set();
+        dataset.forEach(f => {
+            if (f.from && f.to) {
+                routesSet.add(`${f.from} ➔ ${f.to}`);
+            }
+        });
+
+        // Сохраняем первую опцию "Все направления"
+        routeSelect.innerHTML = '<option value="all">Все направления</option>';
+        Array.from(routesSet).sort().forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r;
+            opt.textContent = r;
+            routeSelect.appendChild(opt);
+        });
+
+        if (Array.from(routeSelect.options).some(o => o.value === savedRoute)) {
+            routeSelect.value = savedRoute;
+        }
+    }
+
+    // 3. Фильтрация набора данных по выбранному маршруту
+    let filteredDataset = dataset;
+    if (selectedRoute && selectedRoute !== 'all') {
+        const [fromCode, toCode] = selectedRoute.split(' ➔ ').map(s => s.trim());
+        filteredDataset = dataset.filter(f => f.from === fromCode && f.to === toCode);
+    }
+
+    // 4. Расчет KPI Метрик
+    const totalFlights = filteredDataset.length;
+
+    const routesMap = new Set();
+    let totalPax = 0;
+    let totalPcs = 0;
+    let totalWeight = 0;
+    let totalHb = 0;
+
+    filteredDataset.forEach(f => {
+        if (f.from && f.to) routesMap.add(`${f.from} ➔ ${f.to}`);
+        totalPax += f.pax;
+        totalPcs += f.bag_pcs;
+        totalWeight += f.bag_weight;
+        totalHb += f.hb_weight;
+    });
+
+    const avgWeightPerPax = totalPax > 0 ? (totalWeight / totalPax) : 0;
+    const avgPcsPerPax = totalPax > 0 ? (totalPcs / totalPax) : 0;
+
+    // Обновляем карточки KPI
+    const kpiFlights = document.getElementById('dash-kpi-flights');
+    const kpiRoutes = document.getElementById('dash-kpi-routes');
+    const kpiWeight = document.getElementById('dash-kpi-weight');
+    const kpiPcs = document.getElementById('dash-kpi-pcs');
+
+    if (kpiFlights) kpiFlights.textContent = totalFlights;
+    if (kpiRoutes) kpiRoutes.textContent = routesMap.size;
+    if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">кг</span>`;
+    if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">шт</span>`;
+
+    // 5. Группировка по маршрутам для графиков
+    const routeStats = {};
+    filteredDataset.forEach(f => {
+        const routeKey = (f.from && f.to) ? `${f.from} ➔ ${f.to}` : 'Прочие';
+        if (!routeStats[routeKey]) {
+            routeStats[routeKey] = { route: routeKey, pax: 0, pcs: 0, weight: 0, flights: 0 };
+        }
+        routeStats[routeKey].pax += f.pax;
+        routeStats[routeKey].pcs += f.bag_pcs;
+        routeStats[routeKey].weight += f.bag_weight;
+        routeStats[routeKey].flights += 1;
+    });
+
+    const routeStatsList = Object.values(routeStats).map(r => ({
+        ...r,
+        avgWeight: r.pax > 0 ? (r.weight / r.pax) : 0,
+        avgPcs: r.pax > 0 ? (r.pcs / r.pax) : 0
+    }));
+
+    // График 1: Вес на 1 PAX по маршрутам
+    const weightContainer = document.getElementById('dash-chart-weight-container');
+    if (weightContainer) {
+        weightContainer.innerHTML = '';
+        const sortedByWeight = [...routeStatsList].sort((a, b) => b.avgWeight - a.avgWeight).slice(0, 5);
+        const maxW = sortedByWeight.length > 0 ? Math.max(...sortedByWeight.map(r => r.avgWeight), 1) : 1;
+
+        if (sortedByWeight.length === 0) {
+            weightContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
+        } else {
+            sortedByWeight.forEach(r => {
+                const percent = Math.min(100, Math.round((r.avgWeight / maxW) * 100));
+                const item = document.createElement('div');
+                item.className = 'chart-bar-item';
+                item.innerHTML = `
+                    <div class="bar-label-group">
+                        <span class="bar-label"><strong>${r.route}</strong> (${r.flights} рейсов)</span>
+                        <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} кг/пакс</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill gold" style="width: ${percent}%;"></div>
+                    </div>
+                `;
+                weightContainer.appendChild(item);
+            });
+        }
+    }
+
+    // График 2: Места на 1 PAX по направлениям
+    const pcsContainer = document.getElementById('dash-chart-pcs-container');
+    if (pcsContainer) {
+        pcsContainer.innerHTML = '';
+        const sortedByPcs = [...routeStatsList].sort((a, b) => b.avgPcs - a.avgPcs).slice(0, 5);
+        const maxPcs = sortedByPcs.length > 0 ? Math.max(...sortedByPcs.map(r => r.avgPcs), 0.1) : 1;
+
+        if (sortedByPcs.length === 0) {
+            pcsContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
+        } else {
+            sortedByPcs.forEach(r => {
+                const percent = Math.min(100, Math.round((r.avgPcs / maxPcs) * 100));
+                const item = document.createElement('div');
+                item.className = 'chart-bar-item';
+                item.innerHTML = `
+                    <div class="bar-label-group">
+                        <span class="bar-label"><strong>${r.route}</strong></span>
+                        <span class="bar-value font-mono highlight-cyan">${r.avgPcs.toFixed(2)} мест/пакс</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill cyan" style="width: ${percent}%;"></div>
+                    </div>
+                `;
+                pcsContainer.appendChild(item);
+            });
+        }
+    }
+
+    // График 3: Инфографика отсеков BULK
+    const bulkContainer = document.getElementById('dash-chart-bulk-container');
+    if (bulkContainer) {
+        bulkContainer.innerHTML = '';
+
+        // Агрегируем отсеки 1..8
+        const bulkTotals = Array(9).fill(0);
+        let predCount = 0;
+
+        if (predictionsHistory && predictionsHistory.length > 0) {
+            predictionsHistory.forEach(p => {
+                if (p.compartments && Array.isArray(p.compartments)) {
+                    predCount++;
+                    p.compartments.forEach(c => {
+                        if (c.num >= 1 && c.num <= 8) {
+                            bulkTotals[c.num] += (parseInt(c.pcs, 10) || 0);
+                        }
+                    });
+                }
+            });
+        }
+
+        for (let i = 1; i <= 8; i++) {
+            const avgPcsInCpt = predCount > 0 ? (bulkTotals[i] / predCount).toFixed(1) : '0';
+            const card = document.createElement('div');
+            card.className = 'bulk-viz-card';
+            card.innerHTML = `
+                <div class="bulk-viz-num">BULK ${i}</div>
+                <div class="bulk-viz-val">${avgPcsInCpt} <span style="font-size:0.7rem; color:var(--text-secondary);">мест</span></div>
+            `;
+            bulkContainer.appendChild(card);
+        }
+    }
+
+    // График 4: Динамика по дням недели
+    const weekdayContainer = document.getElementById('dash-chart-weekdays-container');
+    if (weekdayContainer) {
+        weekdayContainer.innerHTML = '';
+        const dayNames = currentLang === 'ru' ? ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayStats = Array(7).fill(0).map(() => ({ pax: 0, weight: 0, count: 0 }));
+
+        filteredDataset.forEach(f => {
+            if (f.date) {
+                try {
+                    const d = new Date(f.date);
+                    const dayIdx = d.getDay();
+                    if (!isNaN(dayIdx)) {
+                        dayStats[dayIdx].pax += f.pax;
+                        dayStats[dayIdx].weight += f.bag_weight;
+                        dayStats[dayIdx].count += 1;
+                    }
+                } catch(e){}
+            }
+        });
+
+        const dayAverages = dayStats.map((d, idx) => ({
+            day: dayNames[idx],
+            avgWeight: d.pax > 0 ? (d.weight / d.pax) : 0,
+            count: d.count
+        }));
+
+        const maxDayW = Math.max(...dayAverages.map(d => d.avgWeight), 1);
+
+        dayAverages.forEach(d => {
+            const percent = Math.min(100, Math.round((d.avgWeight / maxDayW) * 100));
+            const item = document.createElement('div');
+            item.className = 'chart-bar-item';
+            item.innerHTML = `
+                <div class="bar-label-group">
+                    <span class="bar-label"><strong>${d.day}</strong> (${d.count} рейсов)</span>
+                    <span class="bar-value font-mono highlight-gold">${d.avgWeight.toFixed(2)} кг/пакс</span>
+                </div>
+                <div class="bar-track">
+                    <div class="bar-fill gold" style="width: ${percent}%;"></div>
+                </div>
+            `;
+            weekdayContainer.appendChild(item);
+        });
+    }
+
+    // 6. Вывод аналитических рекомендаций (Insights)
+    const insightsContent = document.getElementById('dash-insights-content');
+    if (insightsContent) {
+        insightsContent.innerHTML = '';
+
+        const topWRoute = routeStatsList.sort((a,b) => b.avgWeight - a.avgWeight)[0];
+        const topPcsRoute = routeStatsList.sort((a,b) => b.avgPcs - a.avgPcs)[0];
+
+        const insight1 = document.createElement('div');
+        insight1.className = 'insight-card';
+        insight1.innerHTML = `
+            <div class="insight-icon">⚖️</div>
+            <div class="insight-heading">Максимальный коммерческий вес</div>
+            <div class="insight-desc">
+                ${topWRoute ? `Направление <strong>${topWRoute.route}</strong> генерирует наибольшую удельную нагрузку багажа: <strong>${topWRoute.avgWeight.toFixed(2)} кг/пакс</strong>. Рекомендуется закладывать повышенный норматив комм. загрузки.` : 'Данные анализируются'}
+            </div>
+        `;
+
+        const insight2 = document.createElement('div');
+        insight2.className = 'insight-card';
+        insight2.innerHTML = `
+            <div class="insight-icon">🧳</div>
+            <div class="insight-heading">Плотность багажных мест</div>
+            <div class="insight-desc">
+                ${topPcsRoute ? `Наибольшее число багажных мест фиксируется на маршруте <strong>${topPcsRoute.route}</strong> (<strong>${topPcsRoute.avgPcs.toFixed(2)} мест/пакс</strong>). Требуется повышенный контроль объемного лимита отсеков BULK 1-4.` : 'Данные анализируются'}
+            </div>
+        `;
+
+        const insight3 = document.createElement('div');
+        insight3.className = 'insight-card';
+        insight3.innerHTML = `
+            <div class="insight-icon">🚀</div>
+            <div class="insight-heading">Потенциал масштабирования</div>
+            <div class="insight-desc">
+                Средняя утилизация багажных нормативов составляет <strong>${avgWeightPerPax.toFixed(2)} кг/пакс</strong>. Система полностью готова к расширению расписания и точному центровочному прогнозированию новых направлений.
+            </div>
+        `;
+
+        insightsContent.appendChild(insight1);
+        insightsContent.appendChild(insight2);
+        insightsContent.appendChild(insight3);
+    }
+}
+
