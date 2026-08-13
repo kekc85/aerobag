@@ -4241,6 +4241,9 @@ function renderDashboardAnalytics() {
         }
     }
 
+    // Сохраняем срез периода (до сужения по выбранному маршруту selectedRoute)
+    const periodFilteredDataset = [...filteredDataset];
+
     if (selectedRoute && selectedRoute !== 'all') {
         const [fromCode, toCode] = selectedRoute.split(' ➔ ').map(s => s.trim());
         filteredDataset = filteredDataset.filter(f => f.from === fromCode && f.to === toCode);
@@ -4415,51 +4418,90 @@ function renderDashboardAnalytics() {
         });
     }
 
-    // График 4: Процентное распределение вылетов по направлениям (%)
+    // 6. График 4: Круговая диаграмма процентного распределения вылетов (НЕ зависимая от выбранного маршрута)
     const sharesContainer = document.getElementById('dash-chart-shares-container');
     if (sharesContainer) {
         sharesContainer.innerHTML = '';
         
-        // Считаем общее число вылетов во всей выборке
-        const grandTotalFlights = filteredDataset.length;
+        const periodTotalFlights = periodFilteredDataset.length;
 
-        if (grandTotalFlights === 0) {
-            sharesContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
+        if (periodTotalFlights === 0) {
+            sharesContainer.innerHTML = '<div class="empty-table-text">Нет данных за период</div>';
         } else {
-            // Сортируем маршруты по количеству выполненных вылетов
-            const sortedByFlights = [...routeStatsList].sort((a, b) => b.flights - a.flights);
+            // Группировка рейсов периода по маршрутам
+            const periodRouteMap = {};
+            periodFilteredDataset.forEach(f => {
+                const rKey = (f.from && f.to) ? `${f.from} ➔ ${f.to}` : 'Прочие';
+                if (!periodRouteMap[rKey]) {
+                    periodRouteMap[rKey] = { route: rKey, flights: 0 };
+                }
+                periodRouteMap[rKey].flights += 1;
+            });
+
+            const sortedPeriodRoutes = Object.values(periodRouteMap).sort((a, b) => b.flights - a.flights);
             
-            // Выделяем ТОП-4 направления и группируем прочие
-            let topRoutes = sortedByFlights.slice(0, 4);
-            const otherRoutes = sortedByFlights.slice(4);
-            
-            if (otherRoutes.length > 0) {
-                const otherFlightsCount = otherRoutes.reduce((acc, r) => acc + r.flights, 0);
-                topRoutes.push({
-                    route: currentLang === 'ru' ? 'Прочие направления' : 'Other Routes',
-                    flights: otherFlightsCount
+            // ТОП-4 маршрутов + Прочие
+            let slices = sortedPeriodRoutes.slice(0, 4);
+            const rest = sortedPeriodRoutes.slice(4);
+            if (rest.length > 0) {
+                const restCount = rest.reduce((acc, r) => acc + r.flights, 0);
+                slices.push({
+                    route: currentLang === 'ru' ? 'Прочие' : 'Others',
+                    flights: restCount
                 });
             }
 
-            const maxFlights = Math.max(...topRoutes.map(r => r.flights), 1);
+            const colors = ['#00f2ff', '#ffb700', '#10b981', '#8b5cf6', '#ec4899'];
+            
+            // Расчет круговых сегментов SVG (окружность R=40 => C = 2*PI*40 ≈ 251.327)
+            const C = 251.327;
+            let currentOffset = 0;
+            let svgCircles = '';
+            let legendHtml = '';
 
-            topRoutes.forEach(r => {
-                const sharePercent = ((r.flights / grandTotalFlights) * 100).toFixed(1);
-                const barPercent = Math.min(100, Math.round((r.flights / maxFlights) * 100));
-                
-                const item = document.createElement('div');
-                item.className = 'chart-bar-item';
-                item.innerHTML = `
-                    <div class="bar-label-group">
-                        <span class="bar-label"><strong>${r.route}</strong> (${r.flights} ${currentLang === 'ru' ? 'рейсов' : 'flights'})</span>
-                        <span class="bar-value font-mono highlight-gold">${sharePercent}%</span>
-                    </div>
-                    <div class="bar-track">
-                        <div class="bar-fill gold" style="width: ${barPercent}%;"></div>
+            slices.forEach((s, idx) => {
+                const sharePct = (s.flights / periodTotalFlights) * 100;
+                const dashLen = (sharePct / 100) * C;
+                const gapLen = C - dashLen;
+                const strokeColor = colors[idx % colors.length];
+
+                svgCircles += `
+                    <circle cx="50" cy="50" r="40" 
+                            fill="transparent" 
+                            stroke="${strokeColor}" 
+                            stroke-width="14" 
+                            stroke-dasharray="${dashLen.toFixed(2)} ${gapLen.toFixed(2)}" 
+                            stroke-dashoffset="${(-currentOffset).toFixed(2)}" />
+                `;
+                currentOffset += dashLen;
+
+                legendHtml += `
+                    <div class="pie-legend-item">
+                        <div class="pie-legend-left">
+                            <span class="pie-legend-dot" style="background: ${strokeColor};"></span>
+                            <span class="pie-legend-name">${s.route}</span>
+                        </div>
+                        <span class="pie-legend-val">${s.flights} (${sharePct.toFixed(1)}%)</span>
                     </div>
                 `;
-                sharesContainer.appendChild(item);
             });
+
+            sharesContainer.innerHTML = `
+                <div class="pie-chart-wrapper">
+                    <div class="pie-chart-container">
+                        <svg class="pie-chart-svg" viewBox="0 0 100 100">
+                            ${svgCircles}
+                        </svg>
+                        <div class="pie-chart-center">
+                            <div class="pie-chart-center-val">${periodTotalFlights}</div>
+                            <div class="pie-chart-center-lbl">${currentLang === 'ru' ? 'рейсов' : 'flights'}</div>
+                        </div>
+                    </div>
+                    <div class="pie-chart-legend">
+                        ${legendHtml}
+                    </div>
+                </div>
+            `;
         }
     }
 }
