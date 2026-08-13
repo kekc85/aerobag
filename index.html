@@ -595,7 +595,7 @@
                         </div>
                     </div>
 
-                    <!-- Сетка графиков и визуализаций -->
+                    <!-- Сетка графиков и визуализаций (2x2 Компактная) -->
                     <div class="dashboard-charts-grid">
                         <!-- График 1: Топ маршрутов по нормативу веса -->
                         <section class="panel glass aviation-panel dash-chart-panel">
@@ -617,13 +617,23 @@
                             </div>
                         </section>
 
-                        <!-- График 3: Сравнение по дням недели -->
-                        <section class="panel glass aviation-panel dash-chart-panel span-2-col">
+                        <!-- График 3: Сравнение по дням недели (Пн - Вс) -->
+                        <section class="panel glass aviation-panel dash-chart-panel">
                             <div class="hud-corner top-left"></div>
                             <div class="hud-corner top-right"></div>
                             <h3 class="panel-title">[ ДИНАМИКА ЗАГРУЗКИ ПО ДНЯМ НЕДЕЛИ (ПН - ВС) ]</h3>
-                            <div id="dash-chart-weekdays-container" class="chart-weekdays-list">
-                                <!-- Сравнение ПН-ВС -->
+                            <div id="dash-chart-weekdays-container" class="chart-bars-list">
+                                <!-- Динамические бары (Пн -> Вс) -->
+                            </div>
+                        </section>
+
+                        <!-- График 4: Сравнение нормативов ручной клади по маршрутам -->
+                        <section class="panel glass aviation-panel dash-chart-panel">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <h3 class="panel-title">[ РУЧНАЯ КЛАДЬ НА 1 ПАССАЖИРА (КГ/PAX) ]</h3>
+                            <div id="dash-chart-hb-container" class="chart-bars-list">
+                                <!-- Динамические бары -->
                             </div>
                         </section>
                     </div>

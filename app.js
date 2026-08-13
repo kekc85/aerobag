@@ -4292,18 +4292,20 @@ function renderDashboardAnalytics() {
     filteredDataset.forEach(f => {
         const routeKey = (f.from && f.to) ? `${f.from} ➔ ${f.to}` : 'Прочие';
         if (!routeStats[routeKey]) {
-            routeStats[routeKey] = { route: routeKey, pax: 0, pcs: 0, weight: 0, flights: 0 };
+            routeStats[routeKey] = { route: routeKey, pax: 0, pcs: 0, weight: 0, hb: 0, flights: 0 };
         }
         routeStats[routeKey].pax += f.pax;
         routeStats[routeKey].pcs += f.bag_pcs;
         routeStats[routeKey].weight += f.bag_weight;
+        routeStats[routeKey].hb += f.hb_weight;
         routeStats[routeKey].flights += 1;
     });
 
     const routeStatsList = Object.values(routeStats).map(r => ({
         ...r,
         avgWeight: r.pax > 0 ? (r.weight / r.pax) : 0,
-        avgPcs: r.pax > 0 ? (r.pcs / r.pax) : 0
+        avgPcs: r.pax > 0 ? (r.pcs / r.pax) : 0,
+        avgHb: r.pax > 0 ? (r.hb / r.pax) : 0
     }));
 
     // График 1: Вес на 1 PAX по маршрутам
@@ -4322,8 +4324,8 @@ function renderDashboardAnalytics() {
                 item.className = 'chart-bar-item';
                 item.innerHTML = `
                     <div class="bar-label-group">
-                        <span class="bar-label"><strong>${r.route}</strong> (${r.flights} рейсов)</span>
-                        <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} кг/пакс</span>
+                        <span class="bar-label"><strong>${r.route}</strong></span>
+                        <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} ${kgUnitText}</span>
                     </div>
                     <div class="bar-track">
                         <div class="bar-fill gold" style="width: ${percent}%;"></div>
@@ -4351,7 +4353,7 @@ function renderDashboardAnalytics() {
                 item.innerHTML = `
                     <div class="bar-label-group">
                         <span class="bar-label"><strong>${r.route}</strong></span>
-                        <span class="bar-value font-mono highlight-cyan">${r.avgPcs.toFixed(2)} мест/пакс</span>
+                        <span class="bar-value font-mono highlight-cyan">${r.avgPcs.toFixed(2)} ${pcsUnitText}</span>
                     </div>
                     <div class="bar-track">
                         <div class="bar-fill cyan" style="width: ${percent}%;"></div>
@@ -4366,7 +4368,7 @@ function renderDashboardAnalytics() {
     const weekdayContainer = document.getElementById('dash-chart-weekdays-container');
     if (weekdayContainer) {
         weekdayContainer.innerHTML = '';
-        const dayNames = currentLang === 'ru' ? ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const dayNames = currentLang === 'ru' ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
         const dayStats = Array(7).fill(0).map(() => ({ pax: 0, weight: 0, count: 0 }));
 
         filteredDataset.forEach(f => {
@@ -4374,13 +4376,13 @@ function renderDashboardAnalytics() {
             if (f.date) {
                 const dt = parseDateToJsDate(f.date);
                 if (dt && !isNaN(dt.getDay())) {
-                    dayIdx = dt.getDay();
+                    const jsDay = dt.getDay(); // 0=Вс, 1=Пн, 2=Вт, 3=Ср, 4=Чт, 5=Пт, 6=Сб
+                    dayIdx = (jsDay === 0) ? 6 : jsDay - 1; // 0=Пн ... 6=Вс
                 }
             }
 
-            // Если календарная дата не передана (нормативный рейс), относим к обобщенному расписанию
             if (dayIdx === null) {
-                dayIdx = 1; // Учитываем статистику в сводной аналитической норме
+                dayIdx = 0; // Пн по умолчанию
             }
 
             dayStats[dayIdx].pax += f.pax;
@@ -4405,13 +4407,40 @@ function renderDashboardAnalytics() {
                     <span class="bar-label"><strong>${d.day}</strong> (${d.count} ${currentLang === 'ru' ? 'рейсов' : 'flights'})</span>
                     <span class="bar-value font-mono highlight-gold">${d.avgWeight.toFixed(2)} ${kgUnitText}</span>
                 </div>
-                </div>
                 <div class="bar-track">
                     <div class="bar-fill gold" style="width: ${percent}%;"></div>
                 </div>
             `;
             weekdayContainer.appendChild(item);
         });
+    }
+
+    // График 4: Сравнение нормативов ручной клади по маршрутам (КГ / PAX)
+    const hbContainer = document.getElementById('dash-chart-hb-container');
+    if (hbContainer) {
+        hbContainer.innerHTML = '';
+        const sortedByHb = [...routeStatsList].sort((a, b) => b.avgHb - a.avgHb).slice(0, 5);
+        const maxHb = sortedByHb.length > 0 ? Math.max(...sortedByHb.map(r => r.avgHb), 0.1) : 1;
+
+        if (sortedByHb.length === 0) {
+            hbContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
+        } else {
+            sortedByHb.forEach(r => {
+                const percent = Math.min(100, Math.round((r.avgHb / maxHb) * 100));
+                const item = document.createElement('div');
+                item.className = 'chart-bar-item';
+                item.innerHTML = `
+                    <div class="bar-label-group">
+                        <span class="bar-label"><strong>${r.route}</strong></span>
+                        <span class="bar-value font-mono highlight-cyan">${r.avgHb.toFixed(2)} ${kgUnitText}</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill cyan" style="width: ${percent}%;"></div>
+                    </div>
+                `;
+                hbContainer.appendChild(item);
+            });
+        }
     }
 }
 
