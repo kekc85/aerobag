@@ -4107,6 +4107,16 @@ function renderDashboardAnalytics() {
     const routeSelect = document.getElementById('dash-filter-route');
     const selectedRoute = routeSelect ? routeSelect.value : 'all';
 
+    // Helper for checking valid 3-letter IATA codes (rejects #REF!, NULL, undefined)
+    const isValidIataCode = (code) => {
+        if (!code) return false;
+        const str = String(code).trim().toUpperCase();
+        if (str.includes('#') || str.includes('REF') || str.includes('NULL') || str.includes('UNDEFINED')) {
+            return false;
+        }
+        return /^[A-Z]{3}$/.test(str);
+    };
+
     // 1. Используем данные из загруженной базы рейсов и системных нормативов (baggageDb.rules)
     let dataset = [];
 
@@ -4114,7 +4124,7 @@ function renderDashboardAnalytics() {
         userFlights.forEach(f => {
             const fromIata = ruToIata(f.from) || f.from;
             const toIata = ruToIata(f.to) || f.to;
-            if (fromIata && toIata) {
+            if (isValidIataCode(fromIata) && isValidIataCode(toIata)) {
                 dataset.push({
                     from: fromIata,
                     to: toIata,
@@ -4134,7 +4144,7 @@ function renderDashboardAnalytics() {
         baggageDb.rules.forEach(r => {
             const fromIata = ruToIata(r.from) || r.from;
             const toIata = ruToIata(r.to) || r.to;
-            if (fromIata && toIata) {
+            if (isValidIataCode(fromIata) && isValidIataCode(toIata)) {
                 const paxCount = parseInt(r.pax_no, 10) || 150;
                 const pcsPax = parseFloat(r.pcs_pax) || 0;
                 const wghtPc = parseFloat(r.wght_pc) || 0;
@@ -4157,12 +4167,12 @@ function renderDashboardAnalytics() {
         });
     }
 
-    // 2. Обновляем списки выпадающего фильтра маршрутов (включая CXR, IST и все направления)
+    // 2. Обновляем списки выпадающего фильтра маршрутов (исключая битые типы #REF!)
     if (routeSelect) {
         const savedRoute = routeSelect.value;
         const routesSet = new Set();
         dataset.forEach(f => {
-            if (f.from && f.to) {
+            if (isValidIataCode(f.from) && isValidIataCode(f.to)) {
                 routesSet.add(`${f.from} ➔ ${f.to}`);
             }
         });
@@ -4198,16 +4208,16 @@ function renderDashboardAnalytics() {
             
             filteredDataset = filteredDataset.filter(f => {
                 if (!f.date) return false;
-                const d = new Date(f.date);
-                return d >= cutoffDate;
+                const d = parseDateToJsDate(f.date);
+                return d && d >= cutoffDate;
             });
             periodSubtext = `За последние ${days} дней`;
         } else if (selectedPeriod === 'year') {
             const currentYear = now.getFullYear();
             filteredDataset = filteredDataset.filter(f => {
                 if (!f.date) return false;
-                const d = new Date(f.date);
-                return d.getFullYear() === currentYear;
+                const d = parseDateToJsDate(f.date);
+                return d && d.getFullYear() === currentYear;
             });
             periodSubtext = `За ${currentYear} год`;
         } else if (selectedPeriod === 'custom') {
@@ -4223,13 +4233,22 @@ function renderDashboardAnalytics() {
 
                 filteredDataset = filteredDataset.filter(f => {
                     if (!f.date) return false;
-                    const d = new Date(f.date);
-                    return d >= fromDate && d <= toDate;
+                    const d = parseDateToJsDate(f.date);
+                    return d && d >= fromDate && d <= toDate;
                 });
                 periodSubtext = `Интервал: ${fromVal || '...'} — ${toVal || '...'}`;
             }
         }
     }
+
+    // Сохраняем общее число уникальных активных маршрутов во временном диапазоне (до сужения по выбранной маршрутной линии)
+    const systemRoutesSet = new Set();
+    filteredDataset.forEach(f => {
+        if (isValidIataCode(f.from) && isValidIataCode(f.to)) {
+            systemRoutesSet.add(`${f.from} ➔ ${f.to}`);
+        }
+    });
+    const totalActiveSystemRoutes = systemRoutesSet.size;
 
     if (selectedRoute && selectedRoute !== 'all') {
         const [fromCode, toCode] = selectedRoute.split(' ➔ ').map(s => s.trim());
@@ -4239,14 +4258,12 @@ function renderDashboardAnalytics() {
     // 4. Расчет KPI Метрик
     const totalFlights = filteredDataset.length;
 
-    const routesMap = new Set();
     let totalPax = 0;
     let totalPcs = 0;
     let totalWeight = 0;
     let totalHb = 0;
 
     filteredDataset.forEach(f => {
-        if (f.from && f.to) routesMap.add(`${f.from} ➔ ${f.to}`);
         totalPax += f.pax;
         totalPcs += f.bag_pcs;
         totalWeight += f.bag_weight;
@@ -4266,7 +4283,7 @@ function renderDashboardAnalytics() {
     const pcsUnitText = currentLang === 'ru' ? 'мест/пассажира' : 'pcs/pax';
 
     if (kpiFlights) kpiFlights.textContent = totalFlights;
-    if (kpiRoutes) kpiRoutes.textContent = routesMap.size;
+    if (kpiRoutes) kpiRoutes.textContent = totalActiveSystemRoutes;
     if (kpiWeight) kpiWeight.innerHTML = `${avgWeightPerPax.toFixed(2)} <span class="kpi-unit">${kgUnitText}</span>`;
     if (kpiPcs) kpiPcs.innerHTML = `${avgPcsPerPax.toFixed(2)} <span class="kpi-unit">${pcsUnitText}</span>`;
 
