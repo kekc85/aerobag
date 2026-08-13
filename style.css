@@ -3307,10 +3307,32 @@ body.light-theme .history-row-clickable.selected-history-row {
 .pie-chart-legend {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     flex-grow: 1;
     min-width: 0;
     width: 100%;
+    max-height: 210px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+/* Скроллбар для прокрутки ВСЕХ направлений в легенде */
+.pie-chart-legend::-webkit-scrollbar {
+    width: 4px;
+}
+.pie-chart-legend::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 2px;
+}
+.pie-chart-legend::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 2px;
+}
+.light-theme .pie-chart-legend::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.8);
+}
+.light-theme .pie-chart-legend::-webkit-scrollbar-thumb {
+    background: #0284c7;
 }
 
 .pie-legend-item {

@@ -4440,30 +4440,36 @@ function renderDashboardAnalytics() {
 
             const sortedPeriodRoutes = Object.values(periodRouteMap).sort((a, b) => b.flights - a.flights);
             
-            // ТОП-6 маршрутов + Прочие направления
-            let slices = sortedPeriodRoutes.slice(0, 6);
-            const rest = sortedPeriodRoutes.slice(6);
-            if (rest.length > 0) {
-                const restCount = rest.reduce((acc, r) => acc + r.flights, 0);
-                slices.push({
+            // На круговой диаграмме показываем основные дуги, а в легенде выводим ВСЕ НАПРАВЛЕНИЯ
+            const allPeriodRoutes = sortedPeriodRoutes;
+
+            let chartSlices = sortedPeriodRoutes.slice(0, 6);
+            const restRoutes = sortedPeriodRoutes.slice(6);
+            if (restRoutes.length > 0) {
+                const restCount = restRoutes.reduce((acc, r) => acc + r.flights, 0);
+                chartSlices.push({
                     route: currentLang === 'ru' ? 'Прочие' : 'Others',
-                    flights: restCount
+                    flights: restCount,
+                    isRest: true
                 });
             }
 
-            const colors = ['#00f2ff', '#ffb700', '#10b981', '#8b5cf6', '#f97316', '#06b6d4', '#ec4899', '#64748b'];
-            
+            const colors = [
+                '#00f2ff', '#ffb700', '#10b981', '#8b5cf6', 
+                '#f97316', '#06b6d4', '#ec4899', '#3b82f6', 
+                '#a855f7', '#14b8a6', '#f43f5e', '#eab308'
+            ];
+
             // Расчет круговых сегментов SVG (окружность R=40 => C = 2*PI*40 ≈ 251.327)
             const C = 251.327;
             let currentOffset = 0;
             let svgCircles = '';
-            let legendHtml = '';
 
-            slices.forEach((s, idx) => {
+            chartSlices.forEach((s, idx) => {
                 const sharePct = (s.flights / periodTotalFlights) * 100;
                 const dashLen = (sharePct / 100) * C;
                 const gapLen = C - dashLen;
-                const strokeColor = colors[idx % colors.length];
+                const strokeColor = s.isRest ? '#64748b' : colors[idx % colors.length];
 
                 svgCircles += `
                     <circle cx="50" cy="50" r="40" 
@@ -4474,14 +4480,21 @@ function renderDashboardAnalytics() {
                             stroke-dashoffset="${(-currentOffset).toFixed(2)}" />
                 `;
                 currentOffset += dashLen;
+            });
+
+            // Генерируем полную легенду ДЛЯ ВСЕХ НАПРАВЛЕНИЙ БАЗЫ ДАННЫХ
+            let legendHtml = '';
+            allPeriodRoutes.forEach((s, idx) => {
+                const sharePct = ((s.flights / periodTotalFlights) * 100).toFixed(1);
+                const dotColor = idx < 6 ? colors[idx % colors.length] : '#64748b';
 
                 legendHtml += `
                     <div class="pie-legend-item">
                         <div class="pie-legend-left">
-                            <span class="pie-legend-dot" style="background: ${strokeColor};"></span>
+                            <span class="pie-legend-dot" style="background: ${dotColor};"></span>
                             <span class="pie-legend-name">${s.route}</span>
                         </div>
-                        <span class="pie-legend-val">${s.flights} (${sharePct.toFixed(1)}%)</span>
+                        <span class="pie-legend-val">${s.flights} (${sharePct}%)</span>
                     </div>
                 `;
             });
