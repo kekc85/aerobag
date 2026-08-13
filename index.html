@@ -519,21 +519,13 @@
                         <div class="dashboard-controls-grid">
                             <div class="dash-title-group">
                                 <h2 class="panel-title" data-translate="dashboard-title">[ ANALYTICS & SCALING DASHBOARD ]</h2>
-                                <p class="dash-subtext">Аналитический обзор нормативов багажа, утилизации отсеков BULK и коммерческого потенциала</p>
+                                <p class="dash-subtext">Аналитический обзор коммерческих нормативов багажа за весь период загруженной базы данных</p>
                             </div>
                             <div class="dash-filters-group">
                                 <div class="filter-item">
                                     <label for="dash-filter-route">Маршрут / Аэропорт</label>
                                     <select id="dash-filter-route" class="form-control compact-select">
                                         <option value="all">Все направления</option>
-                                    </select>
-                                </div>
-                                <div class="filter-item">
-                                    <label for="dash-filter-scope">Источник данных</label>
-                                    <select id="dash-filter-scope" class="form-control compact-select">
-                                        <option value="all">База данных + История расчетов</option>
-                                        <option value="db">Только статистика из базы (.xls)</option>
-                                        <option value="predictions">Только история прогнозов LIR</option>
                                     </select>
                                 </div>
                                 <button type="button" id="btn-refresh-dashboard" class="btn btn-primary aviation-btn">
@@ -551,7 +543,7 @@
                                 <span class="kpi-title" data-translate="dashboard-kpi-total-flights">Проанализировано рейсов</span>
                             </div>
                             <div id="dash-kpi-flights" class="kpi-value">0</div>
-                            <div class="kpi-sub font-mono">Статистическая выборка системы</div>
+                            <div class="kpi-sub font-mono">За весь период базы данных</div>
                         </div>
 
                         <div class="kpi-card glass highlight-cyan">
@@ -560,7 +552,7 @@
                                 <span class="kpi-title" data-translate="dashboard-kpi-routes">Активных маршрутов</span>
                             </div>
                             <div id="dash-kpi-routes" class="kpi-value">0</div>
-                            <div class="kpi-sub font-mono">Уникальные направления полетов</div>
+                            <div class="kpi-sub font-mono">За весь период базы данных</div>
                         </div>
 
                         <div class="kpi-card glass highlight-gold">
@@ -569,7 +561,7 @@
                                 <span class="kpi-title" data-translate="dashboard-kpi-avg-weight">Средний вес на 1 PAX</span>
                             </div>
                             <div id="dash-kpi-weight" class="kpi-value">0.00 <span class="kpi-unit">кг</span></div>
-                            <div class="kpi-sub font-mono">Коммерческая багажная норма</div>
+                            <div class="kpi-sub font-mono">За весь период базы данных</div>
                         </div>
 
                         <div class="kpi-card glass highlight-gold">
@@ -578,11 +570,11 @@
                                 <span class="kpi-title" data-translate="dashboard-kpi-avg-pcs">Среднее мест на 1 PAX</span>
                             </div>
                             <div id="dash-kpi-pcs" class="kpi-value">0.00 <span class="kpi-unit">шт</span></div>
-                            <div class="kpi-sub font-mono">Интенсивность сдачи багажа</div>
+                            <div class="kpi-sub font-mono">За весь период базы данных</div>
                         </div>
                     </div>
 
-                    <!-- Сетка графиков и визуализаций 2x2 -->
+                    <!-- Сетка графиков и визуализаций -->
                     <div class="dashboard-charts-grid">
                         <!-- График 1: Топ маршрутов по нормативу веса -->
                         <section class="panel glass aviation-panel dash-chart-panel">
@@ -604,21 +596,11 @@
                             </div>
                         </section>
 
-                        <!-- График 3: Утилизация отсеков BULK -->
-                        <section class="panel glass aviation-panel dash-chart-panel">
+                        <!-- График 3: Сравнение по дням недели -->
+                        <section class="panel glass aviation-panel dash-chart-panel span-2-col">
                             <div class="hud-corner top-left"></div>
                             <div class="hud-corner top-right"></div>
-                            <h3 class="panel-title">[ ЗАГРУЗКА БАГАЖНО-ГРУЗОВЫХ ОТСЕКОВ BULK ]</h3>
-                            <div id="dash-chart-bulk-container" class="chart-bulk-grid">
-                                <!-- Динамическая инфографика BULK отсеков -->
-                            </div>
-                        </section>
-
-                        <!-- График 4: Сравнение по дням недели -->
-                        <section class="panel glass aviation-panel dash-chart-panel">
-                            <div class="hud-corner top-left"></div>
-                            <div class="hud-corner top-right"></div>
-                            <h3 class="panel-title">[ ДИНАМИКА ЗАГРУЗКИ ПО ДНЯМ НЕДЕЛИ ]</h3>
+                            <h3 class="panel-title">[ ДИНАМИКА ЗАГРУЗКИ ПО ДНЯМ НЕДЕЛИ (ПН - ВС) ]</h3>
                             <div id="dash-chart-weekdays-container" class="chart-weekdays-list">
                                 <!-- Сравнение ПН-ВС -->
                             </div>

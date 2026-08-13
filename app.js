@@ -4072,45 +4072,22 @@ function setupNumericInputValidation() {
 // --- ОТРИСОВКА И РАСЧЕТ ДАШБОРДА АНАЛИТИКИ И МАСШТАБИРОВАНИЯ ---
 function renderDashboardAnalytics() {
     const routeSelect = document.getElementById('dash-filter-route');
-    const scopeSelect = document.getElementById('dash-filter-scope');
-
     const selectedRoute = routeSelect ? routeSelect.value : 'all';
-    const selectedScope = scopeSelect ? scopeSelect.value : 'all';
 
-    // 1. Собираем массив рейсов для анализа
+    // 1. Используем исключительно данные, занесённые в базу данных
     let dataset = [];
-
-    if (selectedScope === 'all' || selectedScope === 'db') {
-        if (userFlights && Array.isArray(userFlights)) {
-            dataset = dataset.concat(userFlights.map(f => ({
-                from: ruToIata(f.from) || f.from,
-                to: ruToIata(f.to) || f.to,
-                flight_no: f.flight_no,
-                pax: getEffectivePaxCount(f),
-                bag_pcs: parseInt(f.bag_pcs, 10) || 0,
-                bag_weight: parseFloat(f.bag_weight) || 0,
-                hb_weight: parseFloat(f.hb_weight) || 0,
-                date: f.date,
-                source: 'db'
-            })));
-        }
-    }
-
-    if (selectedScope === 'all' || selectedScope === 'predictions') {
-        if (predictionsHistory && Array.isArray(predictionsHistory)) {
-            dataset = dataset.concat(predictionsHistory.map(p => ({
-                from: ruToIata(p.from) || p.from,
-                to: ruToIata(p.to) || p.to,
-                flight_no: p.flight_no,
-                pax: parseInt(p.pax, 10) || 0,
-                bag_pcs: parseInt(p.bag_pcs, 10) || 0,
-                bag_weight: parseFloat(p.bag_weight) || 0,
-                hb_weight: parseFloat(p.hb_weight) || 0,
-                date: p.calc_date,
-                compartments: p.compartments || [],
-                source: 'predictions'
-            })));
-        }
+    if (userFlights && Array.isArray(userFlights)) {
+        dataset = userFlights.map(f => ({
+            from: ruToIata(f.from) || f.from,
+            to: ruToIata(f.to) || f.to,
+            flight_no: f.flight_no,
+            pax: getEffectivePaxCount(f),
+            bag_pcs: parseInt(f.bag_pcs, 10) || 0,
+            bag_weight: parseFloat(f.bag_weight) || 0,
+            hb_weight: parseFloat(f.hb_weight) || 0,
+            date: f.date,
+            source: 'db'
+        }));
     }
 
     // 2. Обновляем списки выпадающего фильтра маршрутов
@@ -4330,7 +4307,7 @@ function renderDashboardAnalytics() {
         });
     }
 
-    // 6. Вывод аналитических рекомендаций (Insights)
+    // 5. Вывод аналитических рекомендаций по базе данных (Insights)
     const insightsContent = document.getElementById('dash-insights-content');
     if (insightsContent) {
         insightsContent.innerHTML = '';
@@ -4344,7 +4321,7 @@ function renderDashboardAnalytics() {
             <div class="insight-icon">⚖️</div>
             <div class="insight-heading">Максимальный коммерческий вес</div>
             <div class="insight-desc">
-                ${topWRoute ? `Направление <strong>${topWRoute.route}</strong> генерирует наибольшую удельную нагрузку багажа: <strong>${topWRoute.avgWeight.toFixed(2)} кг/пакс</strong>. Рекомендуется закладывать повышенный норматив комм. загрузки.` : 'Данные анализируются'}
+                ${topWRoute ? `Направление <strong>${topWRoute.route}</strong> генерирует наибольшую удельную нагрузку багажа по базе данных: <strong>${topWRoute.avgWeight.toFixed(2)} кг/пакс</strong>.` : 'Данные анализируются'}
             </div>
         `;
 
@@ -4354,17 +4331,17 @@ function renderDashboardAnalytics() {
             <div class="insight-icon">🧳</div>
             <div class="insight-heading">Плотность багажных мест</div>
             <div class="insight-desc">
-                ${topPcsRoute ? `Наибольшее число багажных мест фиксируется на маршруте <strong>${topPcsRoute.route}</strong> (<strong>${topPcsRoute.avgPcs.toFixed(2)} мест/пакс</strong>). Требуется повышенный контроль объемного лимита отсеков BULK 1-4.` : 'Данные анализируются'}
+                ${topPcsRoute ? `Наибольшая интенсивность сдачи мест багажа зафиксирована на направлении <strong>${topPcsRoute.route}</strong> (<strong>${topPcsRoute.avgPcs.toFixed(2)} мест/пакс</strong>).` : 'Данные анализируются'}
             </div>
         `;
 
         const insight3 = document.createElement('div');
         insight3.className = 'insight-card';
         insight3.innerHTML = `
-            <div class="insight-icon">🚀</div>
-            <div class="insight-heading">Потенциал масштабирования</div>
+            <div class="insight-icon">📈</div>
+            <div class="insight-heading">Общая коммерческая норма</div>
             <div class="insight-desc">
-                Средняя утилизация багажных нормативов составляет <strong>${avgWeightPerPax.toFixed(2)} кг/пакс</strong>. Система полностью готова к расширению расписания и точному центровочному прогнозированию новых направлений.
+                Средняя нормативная багажная нагрузка по всей базе данных составляет <strong>${avgWeightPerPax.toFixed(2)} кг/пакс</strong> (при среднем количестве мест <strong>${avgPcsPerPax.toFixed(2)} шт/пакс</strong>).
             </div>
         `;
 

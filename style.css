@@ -3340,9 +3340,16 @@ body.light-theme .history-row-clickable.selected-history-row {
     gap: 14px;
 }
 
+.span-2-col {
+    grid-column: span 2;
+}
+
 @media (max-width: 900px) {
     .dashboard-charts-grid {
         grid-template-columns: 1fr;
+    }
+    .span-2-col {
+        grid-column: span 1;
     }
 }
 
