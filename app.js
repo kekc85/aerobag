@@ -3930,6 +3930,25 @@ function parseExcelDate(val) {
     return null;
 }
 
+function parseDateToJsDate(val) {
+    if (!val) return null;
+    if (val instanceof Date && !isNaN(val.getTime())) {
+        return val;
+    }
+    const isoStr = parseExcelDate(val);
+    if (isoStr) {
+        const parts = isoStr.split('-');
+        if (parts.length === 3) {
+            const y = parseInt(parts[0], 10);
+            const m = parseInt(parts[1], 10) - 1;
+            const d = parseInt(parts[2], 10);
+            const dt = new Date(y, m, d);
+            if (!isNaN(dt.getTime())) return dt;
+        }
+    }
+    return null;
+}
+
 function formatDateStr(dateStr) {
     if (!dateStr) return '';
     const parts = dateStr.split('-');
@@ -4330,41 +4349,7 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // График 3: Инфографика отсеков BULK
-    const bulkContainer = document.getElementById('dash-chart-bulk-container');
-    if (bulkContainer) {
-        bulkContainer.innerHTML = '';
-
-        // Агрегируем отсеки 1..8
-        const bulkTotals = Array(9).fill(0);
-        let predCount = 0;
-
-        if (predictionsHistory && predictionsHistory.length > 0) {
-            predictionsHistory.forEach(p => {
-                if (p.compartments && Array.isArray(p.compartments)) {
-                    predCount++;
-                    p.compartments.forEach(c => {
-                        if (c.num >= 1 && c.num <= 8) {
-                            bulkTotals[c.num] += (parseInt(c.pcs, 10) || 0);
-                        }
-                    });
-                }
-            });
-        }
-
-        for (let i = 1; i <= 8; i++) {
-            const avgPcsInCpt = predCount > 0 ? (bulkTotals[i] / predCount).toFixed(1) : '0';
-            const card = document.createElement('div');
-            card.className = 'bulk-viz-card';
-            card.innerHTML = `
-                <div class="bulk-viz-num">BULK ${i}</div>
-                <div class="bulk-viz-val">${avgPcsInCpt} <span style="font-size:0.7rem; color:var(--text-secondary);">мест</span></div>
-            `;
-            bulkContainer.appendChild(card);
-        }
-    }
-
-    // График 4: Динамика по дням недели
+    // График 3: Динамика по дням недели (ПН - ВС)
     const weekdayContainer = document.getElementById('dash-chart-weekdays-container');
     if (weekdayContainer) {
         weekdayContainer.innerHTML = '';
@@ -4372,17 +4357,22 @@ function renderDashboardAnalytics() {
         const dayStats = Array(7).fill(0).map(() => ({ pax: 0, weight: 0, count: 0 }));
 
         filteredDataset.forEach(f => {
+            let dayIdx = null;
             if (f.date) {
-                try {
-                    const d = new Date(f.date);
-                    const dayIdx = d.getDay();
-                    if (!isNaN(dayIdx)) {
-                        dayStats[dayIdx].pax += f.pax;
-                        dayStats[dayIdx].weight += f.bag_weight;
-                        dayStats[dayIdx].count += 1;
-                    }
-                } catch(e){}
+                const dt = parseDateToJsDate(f.date);
+                if (dt && !isNaN(dt.getDay())) {
+                    dayIdx = dt.getDay();
+                }
             }
+
+            // Если календарная дата не передана (нормативный рейс), относим к обобщенному расписанию
+            if (dayIdx === null) {
+                dayIdx = 1; // Учитываем статистику в сводной аналитической норме
+            }
+
+            dayStats[dayIdx].pax += f.pax;
+            dayStats[dayIdx].weight += f.bag_weight;
+            dayStats[dayIdx].count += 1;
         });
 
         const dayAverages = dayStats.map((d, idx) => ({
@@ -4399,8 +4389,9 @@ function renderDashboardAnalytics() {
             item.className = 'chart-bar-item';
             item.innerHTML = `
                 <div class="bar-label-group">
-                    <span class="bar-label"><strong>${d.day}</strong> (${d.count} рейсов)</span>
-                    <span class="bar-value font-mono highlight-gold">${d.avgWeight.toFixed(2)} кг/пакс</span>
+                    <span class="bar-label"><strong>${d.day}</strong> (${d.count} ${currentLang === 'ru' ? 'рейсов' : 'flights'})</span>
+                    <span class="bar-value font-mono highlight-gold">${d.avgWeight.toFixed(2)} ${kgUnitText}</span>
+                </div>
                 </div>
                 <div class="bar-track">
                     <div class="bar-fill gold" style="width: ${percent}%;"></div>
@@ -4408,49 +4399,6 @@ function renderDashboardAnalytics() {
             `;
             weekdayContainer.appendChild(item);
         });
-    }
-
-    // 5. Вывод аналитических рекомендаций по базе данных (Insights)
-    const insightsContent = document.getElementById('dash-insights-content');
-    if (insightsContent) {
-        insightsContent.innerHTML = '';
-
-        const topWRoute = routeStatsList.sort((a,b) => b.avgWeight - a.avgWeight)[0];
-        const topPcsRoute = routeStatsList.sort((a,b) => b.avgPcs - a.avgPcs)[0];
-
-        const insight1 = document.createElement('div');
-        insight1.className = 'insight-card';
-        insight1.innerHTML = `
-            <div class="insight-icon">⚖️</div>
-            <div class="insight-heading">Максимальный коммерческий вес</div>
-            <div class="insight-desc">
-                ${topWRoute ? `Направление <strong>${topWRoute.route}</strong> генерирует наибольшую удельную нагрузку багажа по базе данных: <strong>${topWRoute.avgWeight.toFixed(2)} кг/пакс</strong>.` : 'Данные анализируются'}
-            </div>
-        `;
-
-        const insight2 = document.createElement('div');
-        insight2.className = 'insight-card';
-        insight2.innerHTML = `
-            <div class="insight-icon">🧳</div>
-            <div class="insight-heading">Плотность багажных мест</div>
-            <div class="insight-desc">
-                ${topPcsRoute ? `Наибольшая интенсивность сдачи мест багажа зафиксирована на направлении <strong>${topPcsRoute.route}</strong> (<strong>${topPcsRoute.avgPcs.toFixed(2)} мест/пакс</strong>).` : 'Данные анализируются'}
-            </div>
-        `;
-
-        const insight3 = document.createElement('div');
-        insight3.className = 'insight-card';
-        insight3.innerHTML = `
-            <div class="insight-icon">📈</div>
-            <div class="insight-heading">Общая коммерческая норма</div>
-            <div class="insight-desc">
-                Средняя нормативная багажная нагрузка по всей базе данных составляет <strong>${avgWeightPerPax.toFixed(2)} кг/пакс</strong> (при среднем количестве мест <strong>${avgPcsPerPax.toFixed(2)} шт/пакс</strong>).
-            </div>
-        `;
-
-        insightsContent.appendChild(insight1);
-        insightsContent.appendChild(insight2);
-        insightsContent.appendChild(insight3);
     }
 }
 
