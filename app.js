@@ -4415,30 +4415,50 @@ function renderDashboardAnalytics() {
         });
     }
 
-    // График 4: Сравнение нормативов ручной клади по маршрутам (КГ / PAX)
-    const hbContainer = document.getElementById('dash-chart-hb-container');
-    if (hbContainer) {
-        hbContainer.innerHTML = '';
-        const sortedByHb = [...routeStatsList].sort((a, b) => b.avgHb - a.avgHb).slice(0, 5);
-        const maxHb = sortedByHb.length > 0 ? Math.max(...sortedByHb.map(r => r.avgHb), 0.1) : 1;
+    // График 4: Процентное распределение вылетов по направлениям (%)
+    const sharesContainer = document.getElementById('dash-chart-shares-container');
+    if (sharesContainer) {
+        sharesContainer.innerHTML = '';
+        
+        // Считаем общее число вылетов во всей выборке
+        const grandTotalFlights = filteredDataset.length;
 
-        if (sortedByHb.length === 0) {
-            hbContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
+        if (grandTotalFlights === 0) {
+            sharesContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
         } else {
-            sortedByHb.forEach(r => {
-                const percent = Math.min(100, Math.round((r.avgHb / maxHb) * 100));
+            // Сортируем маршруты по количеству выполненных вылетов
+            const sortedByFlights = [...routeStatsList].sort((a, b) => b.flights - a.flights);
+            
+            // Выделяем ТОП-4 направления и группируем прочие
+            let topRoutes = sortedByFlights.slice(0, 4);
+            const otherRoutes = sortedByFlights.slice(4);
+            
+            if (otherRoutes.length > 0) {
+                const otherFlightsCount = otherRoutes.reduce((acc, r) => acc + r.flights, 0);
+                topRoutes.push({
+                    route: currentLang === 'ru' ? 'Прочие направления' : 'Other Routes',
+                    flights: otherFlightsCount
+                });
+            }
+
+            const maxFlights = Math.max(...topRoutes.map(r => r.flights), 1);
+
+            topRoutes.forEach(r => {
+                const sharePercent = ((r.flights / grandTotalFlights) * 100).toFixed(1);
+                const barPercent = Math.min(100, Math.round((r.flights / maxFlights) * 100));
+                
                 const item = document.createElement('div');
                 item.className = 'chart-bar-item';
                 item.innerHTML = `
                     <div class="bar-label-group">
-                        <span class="bar-label"><strong>${r.route}</strong></span>
-                        <span class="bar-value font-mono highlight-cyan">${r.avgHb.toFixed(2)} ${kgUnitText}</span>
+                        <span class="bar-label"><strong>${r.route}</strong> (${r.flights} ${currentLang === 'ru' ? 'рейсов' : 'flights'})</span>
+                        <span class="bar-value font-mono highlight-gold">${sharePercent}%</span>
                     </div>
                     <div class="bar-track">
-                        <div class="bar-fill cyan" style="width: ${percent}%;"></div>
+                        <div class="bar-fill gold" style="width: ${barPercent}%;"></div>
                     </div>
                 `;
-                hbContainer.appendChild(item);
+                sharesContainer.appendChild(item);
             });
         }
     }
