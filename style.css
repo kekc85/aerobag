@@ -366,19 +366,27 @@ body.light-theme .tab-btn.active {
 /* Макет воркспейса */
 .workspace-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 #tab-content-predict .workspace-grid {
-    grid-template-columns: 580px 1fr;
+    grid-template-columns: minmax(0, 580px) minmax(0, 1fr);
     align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 @media (max-width: 1024px) {
     .workspace-grid,
     #tab-content-predict .workspace-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 }
 
@@ -386,6 +394,10 @@ body.light-theme .tab-btn.active {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .right-column {
@@ -397,7 +409,9 @@ body.light-theme .tab-btn.active {
     position: relative;
     padding: 12px 16px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* Угловые рамки HUD (Heads-Up Display) */
@@ -2336,21 +2350,56 @@ body.light-theme .footer-table tr.ttl-row td {
         font-size: 0.9rem;
     }
 
-    /* Адаптивный скролл таблицы коммерческой загрузки (ULD / BULK) */
+    .left-column, .right-column {
+        gap: 8px;
+        min-width: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    /* Адаптивный горизонтальный скролл таблицы коммерческой загрузки (ULD / BULK) */
+    .table-section.load-planning-section {
+        overflow: hidden !important;
+    }
+
     .unified-load-wrapper {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        width: 100%;
-        display: block;
-        padding-bottom: 6px;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        display: block !important;
+        padding-bottom: 8px;
+    }
+
+    .unified-load-wrapper::-webkit-scrollbar {
+        height: 6px;
+    }
+    .unified-load-wrapper::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.4);
+        border-radius: 3px;
+    }
+    .unified-load-wrapper::-webkit-scrollbar-thumb {
+        background: var(--primary);
+        border-radius: 3px;
+    }
+    .light-theme .unified-load-wrapper::-webkit-scrollbar-track {
+        background: rgba(241, 245, 249, 0.8);
+    }
+    .light-theme .unified-load-wrapper::-webkit-scrollbar-thumb {
+        background: #0284c7;
     }
 
     .fixed-load-table {
-        min-width: 520px;
+        min-width: 480px !important;
+        width: 100% !important;
     }
 
     .load-rows-scroll-container {
-        min-width: 520px;
+        min-width: 480px !important;
+        width: 100% !important;
+        overflow-x: visible !important;
     }
 
     .fixed-load-table th, .fixed-load-table td {
@@ -3736,22 +3785,38 @@ body.light-theme .dash-chart-panel .panel-title {
     color: #0284c7;
 }
 
+.chart-bars-list,
+.pcs-tiles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
 /* Скроллбар для прокрутки контейнеров графиков маршрутов */
-.chart-bars-list::-webkit-scrollbar {
+.chart-bars-list::-webkit-scrollbar,
+.pcs-tiles-list::-webkit-scrollbar {
     width: 4px;
 }
-.chart-bars-list::-webkit-scrollbar-track {
+.chart-bars-list::-webkit-scrollbar-track,
+.pcs-tiles-list::-webkit-scrollbar-track {
     background: rgba(15, 23, 42, 0.4);
     border-radius: 2px;
 }
-.chart-bars-list::-webkit-scrollbar-thumb {
+.chart-bars-list::-webkit-scrollbar-thumb,
+.pcs-tiles-list::-webkit-scrollbar-thumb {
     background: var(--primary);
     border-radius: 2px;
 }
-.light-theme .chart-bars-list::-webkit-scrollbar-track {
+.light-theme .chart-bars-list::-webkit-scrollbar-track,
+.light-theme .pcs-tiles-list::-webkit-scrollbar-track {
     background: rgba(241, 245, 249, 0.8);
 }
-.light-theme .chart-bars-list::-webkit-scrollbar-thumb {
+.light-theme .chart-bars-list::-webkit-scrollbar-thumb,
+.light-theme .pcs-tiles-list::-webkit-scrollbar-thumb {
     background: #0284c7;
 }
 
