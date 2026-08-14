@@ -4004,27 +4004,37 @@ body.light-theme .pcs-status-badge.light {
 /* ==========================================================================
    СТИЛИ ДЛЯ ПАНЕЛИ 3: ВЕРТИКАЛЬНЫЙ СТОЛБЧАТЫЙ ГРАФИК ДНЕЙ НЕДЕЛИ (ПН - ВС)
    ========================================================================== */
+.weekday-chart-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex: 1;
+    margin-top: 4px;
+}
+
 .weekday-chart-wrapper {
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 220px;
-    padding-top: 4px;
-    gap: 8px;
+    overflow: hidden;
+    padding-top: 2px;
+    gap: 4px;
 }
 
 .weekday-hint-bar {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-family: var(--font-mono);
     color: var(--text-secondary);
     background: rgba(0, 242, 255, 0.05);
     border: 1px dashed rgba(0, 242, 255, 0.2);
-    padding: 4px 8px;
+    padding: 3px 8px;
     border-radius: 6px;
     letter-spacing: 0.3px;
+    margin-bottom: 2px;
 }
 
 body.light-theme .weekday-hint-bar {
@@ -4037,10 +4047,10 @@ body.light-theme .weekday-hint-bar {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 8px;
+    gap: 6px;
     flex: 1;
-    height: 160px;
-    padding: 0 4px 4px 4px;
+    height: 95px;
+    padding: 0 4px 2px 4px;
     border-bottom: 1px solid var(--card-border);
 }
 
@@ -4062,36 +4072,38 @@ body.light-theme .weekday-hint-bar {
 
 .weekday-bar-val {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    align-items: baseline;
+    justify-content: center;
+    gap: 2px;
     font-family: var(--font-mono);
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     font-weight: 800;
     color: #ffd700;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     white-space: nowrap;
     text-align: center;
     transition: transform 0.2s ease;
-    line-height: 1.1;
+    line-height: 1;
+    position: relative;
 }
 
 .weekday-bar-val .val-unit {
-    font-size: 0.62rem;
+    font-size: 0.64rem;
     color: var(--text-secondary);
     font-weight: 600;
-    opacity: 0.85;
+    opacity: 0.9;
 }
 
 .peak-pill {
-    display: inline-block;
-    font-size: 0.58rem;
+    position: absolute;
+    top: -12px;
+    font-size: 0.52rem;
     font-weight: 800;
-    padding: 1px 4px;
+    padding: 1px 3px;
     border-radius: 3px;
     background: linear-gradient(135deg, #00f2ff, #0284c7);
     color: #040814;
-    margin-bottom: 2px;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.4px;
     box-shadow: 0 0 6px var(--primary-glow);
 }
 
@@ -4116,10 +4128,10 @@ body.light-theme .weekday-col:hover .weekday-bar-val {
 
 .weekday-col-track {
     width: 100%;
-    max-width: 32px;
-    height: 120px;
+    max-width: 26px;
+    height: 72px;
     background: rgba(255, 255, 255, 0.04);
-    border-radius: 6px 6px 2px 2px;
+    border-radius: 5px 5px 2px 2px;
     display: flex;
     align-items: flex-end;
     overflow: hidden;
@@ -4136,7 +4148,7 @@ body.light-theme .weekday-col-track {
     width: 100%;
     border-radius: 4px 4px 0 0;
     background: linear-gradient(180deg, #ffd700 0%, #d97706 100%);
-    box-shadow: 0 0 12px rgba(255, 183, 0, 0.3);
+    box-shadow: 0 0 10px rgba(255, 183, 0, 0.25);
     transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease;
     min-height: 4px;
 }

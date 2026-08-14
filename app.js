@@ -4439,7 +4439,7 @@ function renderDashboardAnalytics() {
                 <div class="weekday-bar-val font-mono">
                     ${isPeak ? '<span class="peak-pill">MAX</span>' : ''}
                     <span class="val-num">${d.avgWeight > 0 ? d.avgWeight.toFixed(2) : '-'}</span>
-                    <span class="val-unit">${kgUnitText}</span>
+                    <span class="val-unit">${currentLang === 'ru' ? 'кг' : 'kg'}</span>
                 </div>
                 <div class="weekday-col-track">
                     <div class="weekday-col-fill" style="height: ${heightPct}%;"></div>
