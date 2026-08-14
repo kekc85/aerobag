@@ -12,3 +12,6 @@ Thumbs.db
 
 # Zip builds
 *.zip
+
+# Agent skills (локальные)
+.agents/
