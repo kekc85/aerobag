@@ -4318,7 +4318,7 @@ function renderDashboardAnalytics() {
                             <span class="bar-rank-badge ${idx === 0 ? 'top-1' : ''}">#${idx + 1}</span>
                             <strong>${r.route}</strong>
                         </span>
-                        <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} ${kgUnitText}</span>
+                        <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} <span class="val-unit">${currentLang === 'ru' ? 'кг' : 'kg'}</span></span>
                     </div>
                     <div class="bar-track">
                         <div class="bar-fill gold" style="width: ${percent}%;"></div>
@@ -4357,10 +4357,11 @@ function renderDashboardAnalytics() {
                     <div class="pcs-tile-left">
                         <span class="pcs-rank-number ${idx === 0 ? 'top-1' : ''}">#${idx + 1}</span>
                         <span class="pcs-tile-route">${r.route}</span>
-                    </div>
-                    <div class="pcs-tile-right">
                         <span class="pcs-status-badge ${statusClass}">${statusLabel}</span>
-                        <span class="pcs-tile-val">${r.avgPcs.toFixed(2)} <small style="font-size:0.7rem; color:var(--text-secondary);">${pcsUnitText}</small></span>
+                    </div>
+                    <div class="pcs-tile-right font-mono">
+                        <span class="pcs-tile-val">${r.avgPcs.toFixed(2)}</span>
+                        <span class="pcs-tile-unit">${currentLang === 'ru' ? 'мест' : 'pcs'}</span>
                     </div>
                 `;
                 pcsContainer.appendChild(item);

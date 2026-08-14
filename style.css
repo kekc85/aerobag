@@ -3948,12 +3948,13 @@ body.light-theme .chart-bar-item:hover .bar-track {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 7px 10px;
+    border-radius: 6px;
     background: rgba(8, 18, 41, 0.5);
     border: 1px solid var(--card-border);
     transition: all 0.2s ease;
-    gap: 12px;
+    gap: 8px;
+    box-sizing: border-box;
 }
 
 .pcs-rank-tile:hover {
@@ -3976,15 +3977,17 @@ body.light-theme .pcs-rank-tile:hover {
 .pcs-tile-left {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
 }
 
 .pcs-rank-number {
     font-family: var(--font-mono);
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    padding: 2px 6px;
+    padding: 2px 5px;
     border-radius: 4px;
     background: rgba(0, 242, 255, 0.12);
     color: var(--primary);
@@ -4001,38 +4004,54 @@ body.light-theme .pcs-rank-tile:hover {
 
 .pcs-tile-route {
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-family: var(--font-mono);
     color: var(--text-primary);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .pcs-tile-right {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: baseline;
+    gap: 4px;
     flex-shrink: 0;
+    text-align: right;
 }
 
 .pcs-tile-val {
     font-family: var(--font-mono);
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     font-weight: 800;
     color: var(--primary);
+}
+
+.pcs-tile-unit {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 body.light-theme .pcs-tile-val {
     color: #0284c7;
 }
 
+body.light-theme .pcs-tile-unit {
+    color: #64748b;
+}
+
 .pcs-status-badge {
-    font-size: 0.68rem;
+    font-size: 0.62rem;
     font-family: var(--font-mono);
     font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 4px;
+    padding: 1px 5px;
+    border-radius: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .pcs-status-badge.heavy {
@@ -4293,24 +4312,33 @@ body.light-theme .weekday-col-track {
     .pie-chart-center-lbl {
         font-size: 0.55rem !important;
     }
-    .pie-chart-legend {
-        width: 100%;
-        flex: 1;
-        min-width: 0;
-        max-height: 195px;
-        padding-right: 2px;
-        gap: 4px;
-    }
-    .pie-legend-item {
-        font-size: 0.76rem !important;
-        padding: 2px 2px !important;
-        gap: 4px;
-    }
     .pie-legend-name {
         font-size: 0.74rem !important;
     }
     .pie-legend-val {
         font-size: 0.72rem !important;
+    }
+
+    /* Карточки мест багажа на мобильных */
+    .pcs-rank-tile {
+        padding: 5px 8px !important;
+        gap: 6px !important;
+    }
+    .pcs-tile-left {
+        gap: 5px !important;
+    }
+    .pcs-tile-route {
+        font-size: 0.78rem !important;
+    }
+    .pcs-status-badge {
+        font-size: 0.58rem !important;
+        padding: 1px 4px !important;
+    }
+    .pcs-tile-val {
+        font-size: 0.82rem !important;
+    }
+    .pcs-tile-unit {
+        font-size: 0.62rem !important;
     }
 }
 
