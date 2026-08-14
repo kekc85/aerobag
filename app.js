@@ -2161,14 +2161,12 @@ function setupTabs() {
     }
 
     // Слушатели фильтров Дашборда
-    const btnRefreshDash = document.getElementById('btn-refresh-dashboard');
     const filterRoute = document.getElementById('dash-filter-route');
     const filterPeriod = document.getElementById('dash-filter-period');
     const customDateContainer = document.getElementById('dash-custom-date-container');
     const dateFrom = document.getElementById('dash-date-from');
     const dateTo = document.getElementById('dash-date-to');
 
-    if (btnRefreshDash) btnRefreshDash.addEventListener('click', renderDashboardAnalytics);
     if (filterRoute) filterRoute.addEventListener('change', renderDashboardAnalytics);
     if (filterPeriod) {
         filterPeriod.addEventListener('change', () => {
