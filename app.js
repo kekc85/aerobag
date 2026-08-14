@@ -2098,6 +2098,23 @@ function setupTabs() {
     const authCancelBtn = document.getElementById('admin-auth-cancel');
     const togglePassBtn = document.getElementById('btn-toggle-show-pass');
 
+    function switchTab(tabKey) {
+        if (tabPredictBtn) tabPredictBtn.classList.toggle('active', tabKey === 'predict');
+        if (tabDashboardBtn) tabDashboardBtn.classList.toggle('active', tabKey === 'dashboard');
+        if (tabAdminBtn) tabAdminBtn.classList.toggle('active', tabKey === 'admin');
+
+        if (predictContent) predictContent.classList.toggle('hidden', tabKey !== 'predict');
+        if (dashboardContent) dashboardContent.classList.toggle('hidden', tabKey !== 'dashboard');
+        if (adminContent) adminContent.classList.toggle('hidden', tabKey !== 'admin');
+
+        if (tabKey === 'dashboard') {
+            renderDashboardAnalytics();
+        } else if (tabKey === 'admin') {
+            renderAirportsList();
+            renderManualFlightSelects();
+        }
+    }
+
     if (togglePassBtn && passwordInput) {
         togglePassBtn.addEventListener('click', () => {
             if (passwordInput.type === 'password') {
@@ -2111,41 +2128,17 @@ function setupTabs() {
     }
 
     if (tabPredictBtn) {
-        tabPredictBtn.addEventListener('click', () => {
-            tabPredictBtn.classList.add('active');
-            if (tabDashboardBtn) tabDashboardBtn.classList.remove('active');
-            if (tabAdminBtn) tabAdminBtn.classList.remove('active');
-
-            if (predictContent) predictContent.classList.remove('hidden');
-            if (dashboardContent) dashboardContent.classList.add('hidden');
-            if (adminContent) adminContent.classList.add('hidden');
-        });
+        tabPredictBtn.addEventListener('click', () => switchTab('predict'));
     }
 
     if (tabDashboardBtn) {
-        tabDashboardBtn.addEventListener('click', () => {
-            tabDashboardBtn.classList.add('active');
-            if (tabPredictBtn) tabPredictBtn.classList.remove('active');
-            if (tabAdminBtn) tabAdminBtn.classList.remove('active');
-
-            if (dashboardContent) dashboardContent.classList.remove('hidden');
-            if (predictContent) predictContent.classList.add('hidden');
-            if (adminContent) adminContent.classList.add('hidden');
-
-            renderDashboardAnalytics();
-        });
+        tabDashboardBtn.addEventListener('click', () => switchTab('dashboard'));
     }
 
     if (tabAdminBtn) {
         tabAdminBtn.addEventListener('click', () => {
             if (isAdminAuthenticated) {
-                tabAdminBtn.classList.add('active');
-                if (tabPredictBtn) tabPredictBtn.classList.remove('active');
-                if (tabDashboardBtn) tabDashboardBtn.classList.remove('active');
-
-                if (adminContent) adminContent.classList.remove('hidden');
-                if (predictContent) predictContent.classList.add('hidden');
-                if (dashboardContent) dashboardContent.classList.add('hidden');
+                switchTab('admin');
             } else {
                 // Запрос ввода пароля NW2026 через стильное авиационное модальное окно
                 if (authModal) {
@@ -2194,10 +2187,7 @@ function setupTabs() {
             if (entered === 'NW2026') {
                 isAdminAuthenticated = true;
                 if (authModal) authModal.classList.add('hidden');
-                if (tabAdminBtn) tabAdminBtn.classList.add('active');
-                if (tabPredictBtn) tabPredictBtn.classList.remove('active');
-                if (adminContent) adminContent.classList.remove('hidden');
-                if (predictContent) predictContent.classList.add('hidden');
+                switchTab('admin');
             } else {
                 if (authError) authError.classList.remove('hidden');
                 if (passwordInput) {
