@@ -612,6 +612,38 @@ body.light-theme .btn-secondary:hover {
     color: #ffffff;
     background-color: #b45309;
 }
+
+.btn-danger {
+    background-color: rgba(255, 51, 102, 0.08);
+    border: 1px solid rgba(255, 51, 102, 0.3);
+    color: var(--danger);
+    font-family: var(--font-mono);
+    text-transform: uppercase;
+}
+
+.btn-danger:hover {
+    background-color: var(--danger);
+    color: #040814;
+    box-shadow: 0 0 12px rgba(255, 51, 102, 0.3);
+}
+
+body.light-theme .btn-danger:hover {
+    color: #fff;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+}
+
+/* Грид распределения паксов (в 4 колонки в ряд) */
+.pax-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
 /* Результаты расчета прогноза */
 .results-wrapper {
     display: flex;
