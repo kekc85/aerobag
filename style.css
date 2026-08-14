@@ -7,37 +7,37 @@
     /* Переменные для ТЕМНОЙ темы (Авиационная радарная кабина - по умолчанию) */
     --bg-primary: #040814;
     --bg-secondary: #081026;
-    --card-bg: rgba(8, 18, 41, 0.65);
-    --card-border: rgba(0, 242, 255, 0.15);
-    --text-primary: #e0f2fe;
+    --card-bg: rgba(8, 18, 41, 0.75);
+    --card-border: rgba(0, 242, 255, 0.18);
+    --text-primary: #f0f9ff;
     --text-secondary: #38bdf8;
-    --text-muted: #0369a1;
+    --text-muted: #0284c7;
     
     --primary: #00f2ff; /* Авиационный Cyan */
-    --primary-hover: #00b8d4;
+    --primary-hover: #38bdf8;
     --primary-glow: rgba(0, 242, 255, 0.25);
     
     --secondary: #ffb700; /* Янтарный Warning/Caution */
-    --secondary-hover: #e59e00;
-    --secondary-glow: rgba(255, 183, 0, 0.2);
+    --secondary-hover: #fbbf24;
+    --secondary-glow: rgba(255, 183, 0, 0.22);
     
     --success: #00ff66; /* Радарный зеленый */
-    --success-glow: rgba(0, 255, 102, 0.2);
+    --success-glow: rgba(0, 255, 102, 0.22);
     
     --danger: #ff3366;
-    --danger-hover: #e02454;
+    --danger-hover: #f43f5e;
     --warning: #ffb700;
     --warning-bg: rgba(255, 183, 0, 0.08);
     
     --font-main: 'Montserrat', sans-serif;
     --font-accent: 'Outfit', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace; /* Высокотехнологичный авиационный шрифт для цифр и таблиц */
+    --font-mono: 'JetBrains Mono', monospace;
     
     --purple-glow: 0 0 20px rgba(0, 242, 255, 0.15);
-    --blue-glow: 0 0 20px rgba(56, 189, 248, 0.15);
+    --blue-glow: 0 0 22px rgba(0, 242, 255, 0.22);
     --green-glow: 0 0 20px rgba(0, 255, 102, 0.15);
     
-    --transition-speed: 0.25s;
+    --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 body.light-theme {
@@ -47,25 +47,25 @@ body.light-theme {
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --card-bg: #ffffff;
-    --card-border: #cbd5e1;
+    --card-border: #e2e8f0;
     --text-primary: #0f172a;
     --text-secondary: #0284c7;
     --text-muted: #64748b;
     
     --primary: #0284c7;
     --primary-hover: #0369a1;
-    --primary-glow: rgba(2, 132, 199, 0.15);
+    --primary-glow: rgba(2, 132, 199, 0.18);
     
     --secondary: #d97706;
     --secondary-hover: #b45309;
-    --secondary-glow: rgba(217, 119, 6, 0.15);
+    --secondary-glow: rgba(217, 119, 6, 0.18);
     
     --success: #10b981;
-    --success-glow: rgba(16, 185, 129, 0.15);
+    --success-glow: rgba(16, 185, 129, 0.18);
     
-    --purple-glow: 0 4px 15px rgba(2, 132, 199, 0.08);
-    --blue-glow: 0 4px 15px rgba(2, 132, 199, 0.08);
-    --green-glow: 0 4px 15px rgba(16, 185, 129, 0.08);
+    --purple-glow: 0 4px 16px rgba(2, 132, 199, 0.08);
+    --blue-glow: 0 4px 18px rgba(2, 132, 199, 0.12);
+    --green-glow: 0 4px 16px rgba(16, 185, 129, 0.08);
 }
 
 /* Сброс стилей */
@@ -83,6 +83,8 @@ body {
     overflow-x: hidden;
     transition: background-color var(--transition-speed), color var(--transition-speed);
     position: relative;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Фоновая радарная сетка координат */
@@ -93,17 +95,17 @@ body {
     right: 0;
     bottom: 0;
     background-image: 
-        linear-gradient(rgba(0, 242, 255, 0.015) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 242, 255, 0.015) 1px, transparent 1px);
-    background-size: 30px 30px;
+        linear-gradient(rgba(0, 242, 255, 0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 242, 255, 0.012) 1px, transparent 1px);
+    background-size: 32px 32px;
     pointer-events: none;
     z-index: 0;
 }
 
 body.light-theme .aviation-grid-overlay {
     background-image: 
-        linear-gradient(rgba(8, 145, 178, 0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(8, 145, 178, 0.02) 1px, transparent 1px);
+        linear-gradient(rgba(2, 132, 199, 0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(2, 132, 199, 0.015) 1px, transparent 1px);
 }
 
 .app-container {
@@ -117,11 +119,15 @@ body.light-theme .aviation-grid-overlay {
 /* Glassmorphism утилита с авиационными границами */
 .glass {
     background: var(--card-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     border: 1px solid var(--card-border);
     border-radius: 12px;
-    transition: background var(--transition-speed), border var(--transition-speed);
+    transition: background var(--transition-speed), border-color var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+body.light-theme .glass {
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
 }
 
 /* Шапка Airline Dispatch */
@@ -129,9 +135,9 @@ body.light-theme .aviation-grid-overlay {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 20px;
-    margin-bottom: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 10px 22px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
 }
 
 .header-logo {
@@ -285,11 +291,17 @@ body.light-theme .btn-lang.active {
 /* Вкладки (Tabs) в авиационном HUD стиле */
 .tab-navigation {
     display: flex;
-    gap: 4px;
-    padding: 3px;
-    margin-bottom: 10px;
-    border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.2);
+    gap: 6px;
+    padding: 4px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    background-color: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--card-border);
+}
+
+body.light-theme .tab-navigation {
+    background-color: #f1f5f9;
+    border-color: #e2e8f0;
 }
 
 .tab-btn {
@@ -297,27 +309,51 @@ body.light-theme .btn-lang.active {
     background: transparent;
     border: none;
     color: var(--text-secondary);
-    padding: 10px 16px;
-    border-radius: 6px;
+    padding: 11px 18px;
+    border-radius: 8px;
     font-weight: 700;
-    font-size: 0.9rem;
+    font-size: 0.88rem;
     font-family: var(--font-mono);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     border: 1px solid transparent;
+    position: relative;
+    user-select: none;
 }
 
 .tab-btn:hover {
     color: var(--primary);
-    background-color: rgba(0, 242, 255, 0.03);
+    background-color: rgba(0, 242, 255, 0.06);
+}
+
+.tab-btn:active {
+    transform: scale(0.985);
 }
 
 .tab-btn.active {
-    background-color: var(--primary-glow);
+    background: linear-gradient(180deg, rgba(0, 242, 255, 0.15) 0%, rgba(0, 242, 255, 0.05) 100%);
     color: var(--primary);
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(0, 242, 255, 0.35);
+    box-shadow: 0 0 16px rgba(0, 242, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+body.light-theme .tab-btn {
+    color: #475569;
+}
+
+body.light-theme .tab-btn:hover {
+    color: #0284c7;
+    background-color: #ffffff;
+}
+
+body.light-theme .tab-btn.active {
+    background: #ffffff;
+    color: #0284c7;
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
     box-shadow: inset 0 0 8px rgba(0, 242, 255, 0.1);
 }
 
@@ -427,13 +463,13 @@ body.light-theme .btn-lang.active {
 .form-control {
     width: 100%;
     padding: 10px 14px;
-    background-color: rgba(4, 8, 20, 0.9);
+    background-color: rgba(4, 8, 20, 0.92);
     border: 1px solid var(--card-border);
-    border-radius: 6px;
+    border-radius: 8px;
     color: var(--text-primary);
     font-family: var(--font-main);
-    font-size: 0.85rem;
-    transition: all 0.2s;
+    font-size: 0.86rem;
+    transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
 }
 
 select.form-control {
@@ -448,19 +484,19 @@ select.form-control {
 
 .form-control option {
     background-color: #040814;
-    color: #e0f2fe;
+    color: #f0f9ff;
 }
 
 .form-control:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 8px var(--primary-glow);
+    box-shadow: 0 0 0 1px var(--primary), 0 0 12px var(--primary-glow);
 }
 
 .form-control:disabled {
     background-color: rgba(4, 8, 20, 0.5);
     color: rgba(56, 189, 248, 0.4);
-    border-color: rgba(0, 242, 255, 0.05);
+    border-color: rgba(0, 242, 255, 0.08);
     cursor: not-allowed;
 }
 
@@ -472,7 +508,7 @@ select.form-control:disabled {
 input[type="date"].form-control {
     color-scheme: dark;
     font-family: var(--font-mono);
-    font-weight: bold;
+    font-weight: 600;
 }
 
 body.light-theme input[type="date"].form-control {
@@ -482,12 +518,17 @@ body.light-theme input[type="date"].form-control {
 /* Светлая тема */
 body.light-theme .form-control {
     background-color: #ffffff;
-    border: 1px solid var(--card-border);
+    border: 1px solid #cbd5e1;
     color: var(--text-primary);
 }
 
+body.light-theme .form-control:focus {
+    border-color: #0284c7;
+    box-shadow: 0 0 0 1px #0284c7, 0 0 10px rgba(2, 132, 199, 0.18);
+}
+
 body.light-theme select.form-control {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230e7490' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 }
 
 body.light-theme .form-control option {
@@ -506,83 +547,72 @@ body.light-theme .form-control option {
 /* Кнопки */
 .btn {
     padding: 10px 18px;
-    border-radius: 6px;
-    font-weight: bold;
+    border-radius: 8px;
+    font-weight: 700;
     font-size: 0.85rem;
     cursor: pointer;
     border: none;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-align: center;
     white-space: nowrap;
+    user-select: none;
+}
+
+.btn:active {
+    transform: scale(0.98);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--primary), #2563eb);
+    background: linear-gradient(135deg, var(--primary) 0%, #0284c7 100%);
     color: #040814;
-    box-shadow: 0 0 12px var(--primary-glow);
+    box-shadow: 0 0 14px var(--primary-glow);
     font-family: var(--font-mono);
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
     text-transform: uppercase;
+    font-weight: 800;
 }
 
 body.light-theme .btn-primary {
-    color: #fff;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.25);
 }
 
 .btn-primary:hover {
-    box-shadow: 0 0 18px var(--primary);
-    transform: translateY(-0.5px);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+    filter: brightness(1.08);
 }
 
 .btn-secondary {
     background-color: var(--secondary); /* Янтарный #ffb700 */
     border: 1px solid var(--secondary);
-    color: #040814; /* Темный фон для контраста текста */
-    box-shadow: 0 0 10px var(--secondary-glow);
+    color: #040814;
+    box-shadow: 0 0 12px var(--secondary-glow);
     font-family: var(--font-mono);
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+}
+
+body.light-theme .btn-secondary {
+    background-color: #d97706;
+    border-color: #d97706;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.2);
 }
 
 .btn-secondary:hover {
-    background-color: var(--secondary-hover); /* #e59e00 */
+    background-color: var(--secondary-hover);
     border-color: var(--secondary-hover);
     color: #040814;
-    box-shadow: 0 0 16px var(--secondary);
+    box-shadow: 0 0 18px var(--secondary);
 }
 
-.btn-danger {
-    background-color: rgba(255, 51, 102, 0.08);
-    border: 1px solid rgba(255, 51, 102, 0.3);
-    color: var(--danger);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
+body.light-theme .btn-secondary:hover {
+    color: #ffffff;
+    background-color: #b45309;
 }
-
-.btn-danger:hover {
-    background-color: var(--danger);
-    color: #040814;
-    box-shadow: 0 0 12px rgba(255, 51, 102, 0.3);
-}
-
-body.light-theme .btn-danger:hover {
-    color: #fff;
-}
-
-.btn-block {
-    display: block;
-    width: 100%;
-}
-
-/* Грид распределения паксов */
-.pax-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-/* Результаты */
+/* Результаты расчета прогноза */
 .results-wrapper {
     display: flex;
     flex-direction: column;
@@ -592,7 +622,7 @@ body.light-theme .btn-danger:hover {
 .results-grid {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 12px;
 }
 
 .result-card {
@@ -600,56 +630,141 @@ body.light-theme .btn-danger:hover {
     align-items: center;
     gap: 16px;
     padding: 14px 20px;
-    border-radius: 8px;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.result-card:hover {
+    transform: translateY(-1px);
 }
 
 .aviation-result {
-    border-left: 4px solid var(--primary);
+    border-left: 5px solid var(--primary);
+    background: rgba(8, 18, 41, 0.6);
 }
 
-.green-glow { border-left-color: var(--success); box-shadow: var(--green-glow); }
-.blue-glow { border-left-color: var(--primary); box-shadow: var(--blue-glow); }
-.purple-glow { border-left-color: var(--secondary); box-shadow: var(--purple-glow); }
+body.light-theme .aviation-result {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Главная доминанта: ВЕС БАГАЖА (Hero Card) */
+.result-card.blue-glow {
+    border-left-color: var(--primary);
+    background: linear-gradient(135deg, rgba(0, 242, 255, 0.08) 0%, rgba(8, 18, 41, 0.8) 100%);
+    box-shadow: 0 0 24px rgba(0, 242, 255, 0.16);
+    padding: 16px 22px;
+}
+
+.result-card.blue-glow .card-value {
+    font-size: 2.1rem;
+    color: #ffffff;
+    text-shadow: 0 0 16px rgba(0, 242, 255, 0.4);
+}
+
+body.light-theme .result-card.blue-glow {
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, #ffffff 100%);
+    border-left-color: #0284c7;
+    border-left-width: 5px;
+    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12);
+}
+
+body.light-theme .result-card.blue-glow .card-value {
+    color: #0284c7;
+    text-shadow: none;
+}
+
+/* Места багажа (PCS) */
+.result-card.purple-glow {
+    border-left-color: var(--secondary);
+    background: linear-gradient(135deg, rgba(255, 183, 0, 0.05) 0%, rgba(8, 18, 41, 0.7) 100%);
+    box-shadow: 0 0 18px rgba(255, 183, 0, 0.1);
+}
+
+body.light-theme .result-card.purple-glow {
+    border-left-color: #d97706;
+    border-left-width: 5px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.08);
+}
+
+body.light-theme .result-card.purple-glow .card-value {
+    color: #d97706;
+}
+
+/* Ручная кладь (CABIN BAG) */
+.result-card.green-glow {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, rgba(0, 255, 102, 0.05) 0%, rgba(8, 18, 41, 0.7) 100%);
+    box-shadow: 0 0 18px rgba(0, 255, 102, 0.1);
+}
+
+body.light-theme .result-card.green-glow {
+    border-left-color: #10b981;
+    border-left-width: 5px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
+}
+
+body.light-theme .result-card.green-glow .card-value {
+    color: #059669;
+}
 
 .card-icon {
     font-size: 1.8rem;
+    flex-shrink: 0;
 }
 
 .card-info {
     display: flex;
     flex-direction: column;
+    gap: 2px;
 }
 
 .card-label {
-    font-size: 0.7rem;
-    font-weight: bold;
+    font-size: 0.72rem;
+    font-weight: 700;
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    font-family: var(--font-mono);
+}
+
+body.light-theme .card-label {
+    color: #475569;
 }
 
 .card-value {
-    font-size: 1.6rem;
+    font-size: 1.7rem;
     font-weight: 800;
     color: var(--text-primary);
+    line-height: 1.15;
 }
 
 .monospace-val {
     font-family: var(--font-mono);
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
 }
 
 .value-container {
     display: flex;
     align-items: baseline;
-    gap: 4px;
+    gap: 6px;
 }
 
 .unit {
-    font-size: 0.85rem;
+    font-size: 0.88rem;
     color: var(--text-secondary);
-    font-weight: bold;
+    font-weight: 700;
     font-family: var(--font-mono);
+}
+
+body.light-theme .unit {
+    color: #64748b;
 }
 
 /* Предупреждение о датах */
@@ -3445,24 +3560,49 @@ body.light-theme .history-row-clickable.selected-history-row {
 }
 
 .kpi-card {
-    padding: 16px;
-    border-radius: 8px;
+    padding: 18px;
+    border-radius: 10px;
     display: flex;
     flex-direction: column;
     gap: 6px;
     position: relative;
     overflow: hidden;
     border: 1px solid var(--card-border);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
 }
 
 .kpi-card.highlight-cyan {
-    border-left: 4px solid var(--primary);
-    background: linear-gradient(135deg, rgba(0, 242, 255, 0.05), rgba(15, 23, 42, 0.6));
+    border-left: 5px solid var(--primary);
+    background: linear-gradient(135deg, rgba(0, 242, 255, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%);
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1);
 }
 
 .kpi-card.highlight-gold {
-    border-left: 4px solid var(--secondary);
-    background: linear-gradient(135deg, rgba(255, 183, 0, 0.05), rgba(15, 23, 42, 0.6));
+    border-left: 5px solid var(--secondary);
+    background: linear-gradient(135deg, rgba(255, 183, 0, 0.08) 0%, rgba(15, 23, 42, 0.75) 100%);
+    box-shadow: 0 0 20px rgba(255, 183, 0, 0.1);
+}
+
+body.light-theme .kpi-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+}
+
+body.light-theme .kpi-card.highlight-cyan {
+    border-left: 5px solid #0284c7;
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, #ffffff 100%);
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.08);
+}
+
+body.light-theme .kpi-card.highlight-gold {
+    border-left: 5px solid #d97706;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.06) 0%, #ffffff 100%);
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.08);
 }
 
 .kpi-header {
@@ -3480,19 +3620,28 @@ body.light-theme .history-row-clickable.selected-history-row {
     font-family: var(--font-mono);
     color: var(--text-secondary);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+}
+
+body.light-theme .kpi-title {
+    color: #475569;
 }
 
 .kpi-value {
-    font-size: 1.8rem;
+    font-size: 1.9rem;
     font-weight: 800;
     font-family: var(--font-mono);
     color: #ffffff;
     line-height: 1.1;
+    letter-spacing: 0.5px;
 }
 
 .highlight-cyan .kpi-value { color: var(--primary); }
 .highlight-gold .kpi-value { color: var(--secondary); }
+
+body.light-theme .highlight-cyan .kpi-value { color: #0284c7; }
+body.light-theme .highlight-gold .kpi-value { color: #d97706; }
 
 .kpi-unit {
     font-size: 1rem;
@@ -3500,10 +3649,20 @@ body.light-theme .history-row-clickable.selected-history-row {
     color: var(--text-secondary);
 }
 
+body.light-theme .kpi-unit {
+    color: #64748b;
+}
+
 .kpi-sub {
-    font-size: 0.68rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
-    opacity: 0.7;
+    opacity: 0.85;
+    font-family: var(--font-mono);
+}
+
+body.light-theme .kpi-sub {
+    color: #64748b;
+    opacity: 1;
 }
 
 /* Charts Grid */
@@ -3564,29 +3723,61 @@ body.light-theme .history-row-clickable.selected-history-row {
 .chart-bar-item {
     display: flex;
     flex-direction: column;
-    gap: 3px;
+    gap: 4px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    transition: background-color 0.15s ease;
+}
+
+.chart-bar-item:hover {
+    background: rgba(0, 242, 255, 0.05);
+}
+
+body.light-theme .chart-bar-item:hover {
+    background: rgba(2, 132, 199, 0.05);
 }
 
 .bar-label-group {
     display: flex;
     justify-content: space-between;
-    font-size: 0.78rem;
+    font-size: 0.8rem;
     font-family: var(--font-mono);
+}
+
+body.light-theme .bar-label-group {
+    color: #1e293b;
 }
 
 .bar-track {
     width: 100%;
     height: 12px;
-    background: rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     overflow: hidden;
     position: relative;
+    transition: background-color 0.2s ease;
+}
+
+body.light-theme .bar-track {
+    background: #e2e8f0;
+}
+
+.chart-bar-item:hover .bar-track {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+body.light-theme .chart-bar-item:hover .bar-track {
+    background: #cbd5e1;
 }
 
 .bar-fill {
     height: 100%;
     border-radius: 6px;
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease;
+}
+
+.chart-bar-item:hover .bar-fill {
+    filter: brightness(1.15);
 }
 
 .bar-fill.cyan {
