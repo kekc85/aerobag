@@ -3754,24 +3754,47 @@ body.light-theme .kpi-sub {
     display: flex;
     flex-direction: column;
     gap: 4px;
-    padding: 3px 6px;
+    padding: 4px 8px;
     border-radius: 6px;
-    transition: background-color 0.15s ease;
+    transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .chart-bar-item:hover {
-    background: rgba(0, 242, 255, 0.05);
+    background: rgba(0, 242, 255, 0.06);
+    transform: translateX(2px);
 }
 
 body.light-theme .chart-bar-item:hover {
-    background: rgba(2, 132, 199, 0.05);
+    background: rgba(2, 132, 199, 0.06);
 }
 
 .bar-label-group {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
+    align-items: center;
+    font-size: 0.82rem;
     font-family: var(--font-mono);
+}
+
+.bar-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(255, 183, 0, 0.15);
+    color: var(--secondary);
+    border: 1px solid rgba(255, 183, 0, 0.3);
+    margin-right: 6px;
+}
+
+.bar-rank-badge.top-1 {
+    background: linear-gradient(135deg, #ffb700, #f59e0b);
+    color: #040814;
+    border: none;
+    box-shadow: 0 0 8px rgba(255, 183, 0, 0.4);
 }
 
 body.light-theme .bar-label-group {
@@ -3780,7 +3803,7 @@ body.light-theme .bar-label-group {
 
 .bar-track {
     width: 100%;
-    height: 12px;
+    height: 10px;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
     overflow: hidden;
@@ -3807,7 +3830,7 @@ body.light-theme .chart-bar-item:hover .bar-track {
 }
 
 .chart-bar-item:hover .bar-fill {
-    filter: brightness(1.15);
+    filter: brightness(1.2);
 }
 
 .bar-fill.cyan {
@@ -3818,6 +3841,311 @@ body.light-theme .chart-bar-item:hover .bar-track {
 .bar-fill.gold {
     background: linear-gradient(90deg, #d97706, var(--secondary));
     box-shadow: 0 0 10px var(--secondary-glow);
+}
+
+/* ==========================================================================
+   СТИЛИ ДЛЯ ПАНЕЛИ 2: РАНЖИРОВАННЫЕ КАРТОЧКИ МЕСТ БАГАЖА (PCS / PAX)
+   ========================================================================== */
+.pcs-tiles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.pcs-tiles-list::-webkit-scrollbar {
+    width: 4px;
+}
+.pcs-tiles-list::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.4);
+    border-radius: 2px;
+}
+.pcs-tiles-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 2px;
+}
+.light-theme .pcs-tiles-list::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.8);
+}
+.light-theme .pcs-tiles-list::-webkit-scrollbar-thumb {
+    background: #0284c7;
+}
+
+.pcs-rank-tile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(8, 18, 41, 0.5);
+    border: 1px solid var(--card-border);
+    transition: all 0.2s ease;
+    gap: 12px;
+}
+
+.pcs-rank-tile:hover {
+    background: rgba(0, 242, 255, 0.08);
+    border-color: rgba(0, 242, 255, 0.35);
+    transform: translateY(-1px);
+}
+
+body.light-theme .pcs-rank-tile {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+body.light-theme .pcs-rank-tile:hover {
+    background: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.1);
+}
+
+.pcs-tile-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.pcs-rank-number {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0, 242, 255, 0.12);
+    color: var(--primary);
+    border: 1px solid rgba(0, 242, 255, 0.25);
+    flex-shrink: 0;
+}
+
+.pcs-rank-number.top-1 {
+    background: linear-gradient(135deg, #00f2ff, #0284c7);
+    color: #040814;
+    border: none;
+    box-shadow: 0 0 8px var(--primary-glow);
+}
+
+.pcs-tile-route {
+    font-weight: 700;
+    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    white-space: nowrap;
+}
+
+.pcs-tile-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.pcs-tile-val {
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+body.light-theme .pcs-tile-val {
+    color: #0284c7;
+}
+
+.pcs-status-badge {
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pcs-status-badge.heavy {
+    background: rgba(255, 183, 0, 0.15);
+    color: #ffb700;
+    border: 1px solid rgba(255, 183, 0, 0.3);
+}
+
+.pcs-status-badge.standard {
+    background: rgba(0, 242, 255, 0.12);
+    color: #00f2ff;
+    border: 1px solid rgba(0, 242, 255, 0.25);
+}
+
+.pcs-status-badge.light {
+    background: rgba(0, 255, 102, 0.12);
+    color: #00ff66;
+    border: 1px solid rgba(0, 255, 102, 0.25);
+}
+
+body.light-theme .pcs-status-badge.heavy {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+    border-color: rgba(217, 119, 6, 0.3);
+}
+
+body.light-theme .pcs-status-badge.standard {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.3);
+}
+
+body.light-theme .pcs-status-badge.light {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+/* ==========================================================================
+   СТИЛИ ДЛЯ ПАНЕЛИ 3: ВЕРТИКАЛЬНЫЙ СТОЛБЧАТЫЙ ГРАФИК ДНЕЙ НЕДЕЛИ (ПН - ВС)
+   ========================================================================== */
+.weekday-chart-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 210px;
+    padding-top: 8px;
+}
+
+.weekday-columns-grid {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+    flex: 1;
+    height: 160px;
+    padding: 0 4px 4px 4px;
+    border-bottom: 1px solid var(--card-border);
+}
+
+.weekday-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    flex: 1;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.weekday-col:hover {
+    transform: translateY(-2px);
+}
+
+.weekday-bar-val {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 800;
+    color: #ffd700;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.weekday-col:hover .weekday-bar-val {
+    transform: scale(1.1);
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(255, 183, 0, 0.8);
+}
+
+body.light-theme .weekday-bar-val {
+    color: #b45309;
+}
+
+body.light-theme .weekday-col:hover .weekday-bar-val {
+    color: #d97706;
+    text-shadow: none;
+}
+
+.weekday-col-track {
+    width: 100%;
+    max-width: 32px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 6px 6px 2px 2px;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+body.light-theme .weekday-col-track {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+.weekday-col-fill {
+    width: 100%;
+    border-radius: 4px 4px 0 0;
+    background: linear-gradient(180deg, #ffd700 0%, #d97706 100%);
+    box-shadow: 0 0 12px rgba(255, 183, 0, 0.3);
+    transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease;
+    min-height: 4px;
+}
+
+.weekday-col.peak-day .weekday-col-fill {
+    background: linear-gradient(180deg, #00f2ff 0%, #0284c7 100%);
+    box-shadow: 0 0 16px rgba(0, 242, 255, 0.5);
+}
+
+.weekday-col.peak-day .weekday-bar-val {
+    color: #00f2ff;
+}
+
+body.light-theme .weekday-col.peak-day .weekday-col-fill {
+    background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
+}
+
+body.light-theme .weekday-col.peak-day .weekday-bar-val {
+    color: #0284c7;
+}
+
+.weekday-col:hover .weekday-col-fill {
+    filter: brightness(1.25);
+}
+
+.weekday-labels-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 4px 0 4px;
+}
+
+.weekday-footer-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.weekday-name {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-transform: uppercase;
+}
+
+.weekday-flights-count {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.8;
+}
+
+body.light-theme .weekday-flights-count {
+    color: #64748b;
+    opacity: 1;
 }
 
 /* Bulk Grid visualizer */

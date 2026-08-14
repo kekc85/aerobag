@@ -4298,7 +4298,7 @@ function renderDashboardAnalytics() {
         avgHb: r.pax > 0 ? (r.hb / r.pax) : 0
     }));
 
-    // График 1: Вес на 1 PAX по маршрутам (все направления — прокручивающийся список)
+    // График 1: Вес на 1 PAX по маршрутам (Ранжированные полосы с бейджами ТОП-направлений)
     const weightContainer = document.getElementById('dash-chart-weight-container');
     if (weightContainer) {
         weightContainer.innerHTML = '';
@@ -4308,13 +4308,16 @@ function renderDashboardAnalytics() {
         if (sortedByWeight.length === 0) {
             weightContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
         } else {
-            sortedByWeight.forEach(r => {
+            sortedByWeight.forEach((r, idx) => {
                 const percent = Math.min(100, Math.round((r.avgWeight / maxW) * 100));
                 const item = document.createElement('div');
                 item.className = 'chart-bar-item';
                 item.innerHTML = `
                     <div class="bar-label-group">
-                        <span class="bar-label"><strong>${r.route}</strong></span>
+                        <span class="bar-label">
+                            <span class="bar-rank-badge ${idx === 0 ? 'top-1' : ''}">#${idx + 1}</span>
+                            <strong>${r.route}</strong>
+                        </span>
                         <span class="bar-value font-mono highlight-gold">${r.avgWeight.toFixed(2)} ${kgUnitText}</span>
                     </div>
                     <div class="bar-track">
@@ -4326,27 +4329,38 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // График 2: Места на 1 PAX по направлениям (все направления — прокручивающийся список)
+    // График 2: Места на 1 PAX по направлениям (Ранжированные карточки емкости / Capacity Tiles)
     const pcsContainer = document.getElementById('dash-chart-pcs-container');
     if (pcsContainer) {
         pcsContainer.innerHTML = '';
+        pcsContainer.className = 'pcs-tiles-list';
         const sortedByPcs = [...routeStatsList].sort((a, b) => b.avgPcs - a.avgPcs);
-        const maxPcs = sortedByPcs.length > 0 ? Math.max(...sortedByPcs.map(r => r.avgPcs), 0.1) : 1;
 
         if (sortedByPcs.length === 0) {
             pcsContainer.innerHTML = '<div class="empty-table-text">Нет данных для графиков</div>';
         } else {
-            sortedByPcs.forEach(r => {
-                const percent = Math.min(100, Math.round((r.avgPcs / maxPcs) * 100));
+            sortedByPcs.forEach((r, idx) => {
+                // Определение категории загрузки багажа
+                let statusClass = 'standard';
+                let statusLabel = currentLang === 'ru' ? 'Стандарт' : 'Standard';
+                if (r.avgPcs >= 1.35) {
+                    statusClass = 'heavy';
+                    statusLabel = currentLang === 'ru' ? 'Тяжелый' : 'Heavy';
+                } else if (r.avgPcs < 0.85) {
+                    statusClass = 'light';
+                    statusLabel = currentLang === 'ru' ? 'Легкий' : 'Light';
+                }
+
                 const item = document.createElement('div');
-                item.className = 'chart-bar-item';
+                item.className = 'pcs-rank-tile';
                 item.innerHTML = `
-                    <div class="bar-label-group">
-                        <span class="bar-label"><strong>${r.route}</strong></span>
-                        <span class="bar-value font-mono highlight-cyan">${r.avgPcs.toFixed(2)} ${pcsUnitText}</span>
+                    <div class="pcs-tile-left">
+                        <span class="pcs-rank-number ${idx === 0 ? 'top-1' : ''}">#${idx + 1}</span>
+                        <span class="pcs-tile-route">${r.route}</span>
                     </div>
-                    <div class="bar-track">
-                        <div class="bar-fill cyan" style="width: ${percent}%;"></div>
+                    <div class="pcs-tile-right">
+                        <span class="pcs-status-badge ${statusClass}">${statusLabel}</span>
+                        <span class="pcs-tile-val">${r.avgPcs.toFixed(2)} <small style="font-size:0.7rem; color:var(--text-secondary);">${pcsUnitText}</small></span>
                     </div>
                 `;
                 pcsContainer.appendChild(item);
@@ -4354,7 +4368,7 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // График 3: Динамика по дням недели (ПН - ВС)
+    // График 3: Динамика по дням недели (ПН - ВС) (Вертикальный столбчатый график / Vertical Columns Chart)
     const weekdayContainer = document.getElementById('dash-chart-weekdays-container');
     if (weekdayContainer) {
         weekdayContainer.innerHTML = '';
@@ -4386,23 +4400,58 @@ function renderDashboardAnalytics() {
             count: d.count
         }));
 
-        const maxDayW = Math.max(...dayAverages.map(d => d.avgWeight), 1);
+        const maxDayW = Math.max(...dayAverages.map(d => d.avgWeight), 0.1);
+        
+        // Находим индекс дня с пиковой нагрузкой (больше 0)
+        let peakIdx = -1;
+        let peakVal = 0;
+        dayAverages.forEach((d, idx) => {
+            if (d.avgWeight > peakVal) {
+                peakVal = d.avgWeight;
+                peakIdx = idx;
+            }
+        });
 
-        dayAverages.forEach(d => {
-            const percent = Math.min(100, Math.round((d.avgWeight / maxDayW) * 100));
-            const item = document.createElement('div');
-            item.className = 'chart-bar-item';
-            item.innerHTML = `
-                <div class="bar-label-group">
-                    <span class="bar-label"><strong>${d.day}</strong> (${d.count} ${currentLang === 'ru' ? 'рейсов' : 'flights'})</span>
-                    <span class="bar-value font-mono highlight-gold">${d.avgWeight.toFixed(2)} ${kgUnitText}</span>
-                </div>
-                <div class="bar-track">
-                    <div class="bar-fill gold" style="width: ${percent}%;"></div>
+        const chartWrap = document.createElement('div');
+        chartWrap.className = 'weekday-chart-wrapper';
+
+        // 1. Верхняя область с вертикальными колонками
+        const colsGrid = document.createElement('div');
+        colsGrid.className = 'weekday-columns-grid';
+
+        dayAverages.forEach((d, idx) => {
+            const isPeak = (idx === peakIdx && peakVal > 0);
+            const heightPct = Math.min(100, Math.max(8, Math.round((d.avgWeight / maxDayW) * 100)));
+
+            const col = document.createElement('div');
+            col.className = `weekday-col ${isPeak ? 'peak-day' : ''}`;
+            col.title = `${d.day}: ${d.avgWeight.toFixed(2)} ${kgUnitText} (${d.count} ${currentLang === 'ru' ? 'рейсов' : 'flights'})`;
+            col.innerHTML = `
+                <div class="weekday-bar-val font-mono">${d.avgWeight > 0 ? d.avgWeight.toFixed(2) : '-'}</div>
+                <div class="weekday-col-track">
+                    <div class="weekday-col-fill" style="height: ${heightPct}%;"></div>
                 </div>
             `;
-            weekdayContainer.appendChild(item);
+            colsGrid.appendChild(col);
         });
+        chartWrap.appendChild(colsGrid);
+
+        // 2. Нижняя область с подписями дней и количеством рейсов
+        const footer = document.createElement('div');
+        footer.className = 'weekday-labels-footer';
+
+        dayAverages.forEach(d => {
+            const item = document.createElement('div');
+            item.className = 'weekday-footer-item';
+            item.innerHTML = `
+                <span class="weekday-name">${d.day}</span>
+                <span class="weekday-flights-count">${d.count} ${currentLang === 'ru' ? 'рейс.' : 'flt.'}</span>
+            `;
+            footer.appendChild(item);
+        });
+        chartWrap.appendChild(footer);
+
+        weekdayContainer.appendChild(chartWrap);
     }
 
     // 6. График 4: Круговая диаграмма процентного распределения вылетов (НЕ зависимая от выбранного маршрута)
