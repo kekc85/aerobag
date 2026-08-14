@@ -2110,8 +2110,7 @@ function setupTabs() {
         if (tabKey === 'dashboard') {
             renderDashboardAnalytics();
         } else if (tabKey === 'admin') {
-            renderAirportsList();
-            renderManualFlightSelects();
+            populateAirportDropdowns();
         }
     }
 
