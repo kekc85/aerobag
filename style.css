@@ -4072,48 +4072,65 @@ body.light-theme .weekday-hint-bar {
 
 .weekday-bar-val {
     display: flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 2px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
     font-family: var(--font-mono);
-    font-size: 0.78rem;
-    font-weight: 800;
-    color: #ffd700;
     margin-bottom: 4px;
     white-space: nowrap;
     text-align: center;
     transition: transform 0.2s ease;
-    line-height: 1;
-    position: relative;
+    min-height: 28px;
 }
 
-.weekday-bar-val .val-unit {
-    font-size: 0.64rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-    opacity: 0.9;
+.val-num-group {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 2px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #ffd700;
+    line-height: 1;
 }
 
 .peak-pill {
-    position: absolute;
-    top: -12px;
+    display: inline-block;
     font-size: 0.52rem;
     font-weight: 800;
-    padding: 1px 3px;
+    padding: 1px 4px;
     border-radius: 3px;
     background: linear-gradient(135deg, #00f2ff, #0284c7);
     color: #040814;
     letter-spacing: 0.4px;
     box-shadow: 0 0 6px var(--primary-glow);
+    margin-bottom: 2px;
+    line-height: 1;
+}
+
+.peak-pill-placeholder {
+    display: inline-block;
+    height: 11px;
+    visibility: hidden;
+}
+
+.weekday-bar-val .val-unit {
+    font-size: 0.62rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    opacity: 0.9;
 }
 
 .weekday-col:hover .weekday-bar-val {
     transform: scale(1.08);
+}
+
+.weekday-col:hover .val-num-group {
     color: #ffffff;
     text-shadow: 0 0 10px rgba(255, 183, 0, 0.8);
 }
 
-body.light-theme .weekday-bar-val {
+body.light-theme .val-num-group {
     color: #b45309;
 }
 
@@ -4121,7 +4138,7 @@ body.light-theme .weekday-bar-val .val-unit {
     color: #64748b;
 }
 
-body.light-theme .weekday-col:hover .weekday-bar-val {
+body.light-theme .weekday-col:hover .val-num-group {
     color: #d97706;
     text-shadow: none;
 }
@@ -4151,6 +4168,60 @@ body.light-theme .weekday-col-track {
     box-shadow: 0 0 10px rgba(255, 183, 0, 0.25);
     transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1), filter 0.2s ease;
     min-height: 4px;
+}
+
+/* Адаптивные правила для мобильных экранов дашборда */
+@media (max-width: 640px) {
+    .weekday-columns-grid {
+        gap: 3px;
+        height: 90px;
+    }
+    .weekday-col-track {
+        max-width: 20px;
+        height: 64px;
+    }
+    .val-num-group {
+        font-size: 0.66rem;
+        gap: 1px;
+    }
+    .weekday-bar-val .val-unit {
+        font-size: 0.52rem;
+    }
+    .weekday-name {
+        font-size: 0.72rem;
+    }
+    .weekday-flights-count {
+        font-size: 0.58rem;
+    }
+    
+    /* Круговая диаграмма на мобильных: вертикальный стек */
+    .pie-chart-wrapper {
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        padding: 6px 4px;
+    }
+    .pie-chart-container {
+        width: 130px;
+        height: 130px;
+        margin: 0 auto;
+    }
+    .pie-chart-legend {
+        width: 100%;
+        max-height: 170px;
+        padding-right: 4px;
+    }
+    .pie-legend-item {
+        font-size: 0.8rem;
+        padding: 4px 2px;
+        gap: 6px;
+    }
+    .pie-legend-name {
+        font-size: 0.8rem;
+    }
+    .pie-legend-val {
+        font-size: 0.78rem;
+    }
 }
 
 .weekday-col.peak-day .weekday-col-fill {
