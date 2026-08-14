@@ -4415,6 +4415,15 @@ function renderDashboardAnalytics() {
         const chartWrap = document.createElement('div');
         chartWrap.className = 'weekday-chart-wrapper';
 
+        // Подсказка с описанием метрики
+        const hintBar = document.createElement('div');
+        hintBar.className = 'weekday-hint-bar';
+        hintBar.innerHTML = `
+            <span class="hint-icon">⚖️</span>
+            <span>${currentLang === 'ru' ? 'Средний вес багажа на 1 пассажира (кг/PAX)' : 'Avg baggage weight per passenger (kg/PAX)'}</span>
+        `;
+        chartWrap.appendChild(hintBar);
+
         // 1. Верхняя область с вертикальными колонками
         const colsGrid = document.createElement('div');
         colsGrid.className = 'weekday-columns-grid';
@@ -4427,7 +4436,11 @@ function renderDashboardAnalytics() {
             col.className = `weekday-col ${isPeak ? 'peak-day' : ''}`;
             col.title = `${d.day}: ${d.avgWeight.toFixed(2)} ${kgUnitText} (${d.count} ${currentLang === 'ru' ? 'рейсов' : 'flights'})`;
             col.innerHTML = `
-                <div class="weekday-bar-val font-mono">${d.avgWeight > 0 ? d.avgWeight.toFixed(2) : '-'}</div>
+                <div class="weekday-bar-val font-mono">
+                    ${isPeak ? '<span class="peak-pill">MAX</span>' : ''}
+                    <span class="val-num">${d.avgWeight > 0 ? d.avgWeight.toFixed(2) : '-'}</span>
+                    <span class="val-unit">${kgUnitText}</span>
+                </div>
                 <div class="weekday-col-track">
                     <div class="weekday-col-fill" style="height: ${heightPct}%;"></div>
                 </div>
