@@ -4311,11 +4311,11 @@ function renderDashboardAnalytics() {
         avgHb: r.pax > 0 ? (r.hb / r.pax) : 0
     }));
 
-    // График 1: Вес на 1 PAX по маршрутам
+    // График 1: Вес на 1 PAX по маршрутам (все направления — прокручивающийся список)
     const weightContainer = document.getElementById('dash-chart-weight-container');
     if (weightContainer) {
         weightContainer.innerHTML = '';
-        const sortedByWeight = [...routeStatsList].sort((a, b) => b.avgWeight - a.avgWeight).slice(0, 5);
+        const sortedByWeight = [...routeStatsList].sort((a, b) => b.avgWeight - a.avgWeight);
         const maxW = sortedByWeight.length > 0 ? Math.max(...sortedByWeight.map(r => r.avgWeight), 1) : 1;
 
         if (sortedByWeight.length === 0) {
@@ -4339,11 +4339,11 @@ function renderDashboardAnalytics() {
         }
     }
 
-    // График 2: Места на 1 PAX по направлениям
+    // График 2: Места на 1 PAX по направлениям (все направления — прокручивающийся список)
     const pcsContainer = document.getElementById('dash-chart-pcs-container');
     if (pcsContainer) {
         pcsContainer.innerHTML = '';
-        const sortedByPcs = [...routeStatsList].sort((a, b) => b.avgPcs - a.avgPcs).slice(0, 5);
+        const sortedByPcs = [...routeStatsList].sort((a, b) => b.avgPcs - a.avgPcs);
         const maxPcs = sortedByPcs.length > 0 ? Math.max(...sortedByPcs.map(r => r.avgPcs), 0.1) : 1;
 
         if (sortedByPcs.length === 0) {
