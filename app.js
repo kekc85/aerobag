@@ -5012,9 +5012,10 @@ function runBacktestAccuracySimulation() {
             if (newSample.length > 0) {
                 const sampleSlice = newSample.slice(0, 20);
                 const means = calculateMeansFromFlights(sampleSlice, 0.3);
-                if (means) {
+                if (means && typeof means.pcs_pax === 'number' && typeof means.wght_pc === 'number' && !isNaN(means.pcs_pax) && !isNaN(means.wght_pc)) {
                     const effectivePax = Math.max(1, Math.round(actualPax * 0.97));
-                    const seasonMultiplier = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
+                    const seasonInfo = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
+                    const seasonMultiplier = (seasonInfo && typeof seasonInfo.multiplier === 'number') ? seasonInfo.multiplier : 1.0;
                     const adjustedK = means.pcs_pax * seasonMultiplier;
                     newPredPcs = Math.round(effectivePax * adjustedK);
                     newPredWeight = Math.round(newPredPcs * means.wght_pc);
