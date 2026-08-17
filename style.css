@@ -1184,17 +1184,24 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 14px;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 8px;
 }
 
 .table-header-container .panel-title {
     margin: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+    padding-left: 0;
 }
 
 .table-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 8px;
+    margin-left: auto;
 }
 
 .table-actions .aviation-checkbox-container {
