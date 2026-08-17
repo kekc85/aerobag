@@ -2070,6 +2070,11 @@ function setupEventListeners() {
     enforce3LetterCaps(manualToCustom);
 
 
+    // Обработчик переключателя режима явки пассажиров (Факт 100% / Бронь 97%)
+    document.querySelectorAll('input[name="pax-mode"]').forEach(radio => {
+        radio.addEventListener('change', () => calculateBaggageForecast(false));
+    });
+
     // Обработчик кнопки расчета (пишет в историю прогнозов)
     document.getElementById('btn-calculate').addEventListener('click', () => calculateBaggageForecast(true));
     document.getElementById('form-manual-flight').addEventListener('submit', handleManualFlightSubmit);
@@ -2320,7 +2325,17 @@ function updateActiveDateRangeAndCounts() {
     if (activeCountEl) activeCountEl.textContent = activeCount30;
 }
 
-// --- ЛОГИКА РАСЧЕТА ПРОГНОЗА БАГАЖА ---
+// --- ЛОГИКА РАСЧЕТА ПРОГНОЗА БАГАЖА (SMART WATERFALL + АДАПТИВНАЯ ВЫБОРКА) ---
+
+function getRuDayShort(dayIdx) {
+    const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+    return days[dayIdx] || '';
+}
+
+function getEnDayShort(dayIdx) {
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    return days[dayIdx] || '';
+}
 
 function calculateBaggageForecast(logToHistory = false) {
     const fromVal = document.getElementById('select-from').value;
@@ -2332,9 +2347,28 @@ function calculateBaggageForecast(logToHistory = false) {
         paxVal = 1000;
         paxInputEl.value = 1000;
     }
+
+    // Проверяем выбранный режим явки пассажиров (Факт 100% или Бронь 97%)
+    const paxModeRadio = document.querySelector('input[name="pax-mode"]:checked');
+    const paxModeFactor = paxModeRadio ? parseFloat(paxModeRadio.value) : 1.0;
+    const isBookingMode = paxModeFactor < 0.99;
+    const effectivePaxVal = isBookingMode ? Math.max(1, Math.round(paxVal * paxModeFactor)) : paxVal;
+
+    const hintEl = document.getElementById('pax-expected-hint');
+    if (hintEl) {
+        if (isBookingMode && paxVal > 0) {
+            const hintText = currentLang === 'ru'
+                ? `Ожидается ~${effectivePaxVal} пасс. (с учетом неявки 3%)`
+                : `Expected ~${effectivePaxVal} pax (with 3% no-show)`;
+            hintEl.textContent = hintText;
+            hintEl.classList.remove('hidden');
+        } else {
+            hintEl.classList.add('hidden');
+        }
+    }
     
     const warningBox = document.getElementById('date-warning');
-    warningBox.classList.add('hidden');
+    if (warningBox) warningBox.classList.add('hidden');
 
     if (!fromVal || !toVal || paxVal <= 0) {
         document.getElementById('res-pcs').textContent = '0';
@@ -2343,22 +2377,22 @@ function calculateBaggageForecast(logToHistory = false) {
         document.getElementById('coef-pcs-pax').textContent = '-';
         document.getElementById('coef-weight-pc').textContent = '-';
         document.getElementById('coef-hb-pax').textContent = '-';
-        document.getElementById('calc-source-desc').textContent = '-';
+        document.getElementById('calc-source-desc').innerHTML = '-';
         return;
     }
 
     // Считываем параметры расширенного анализа данных
-    const scopeVal = document.getElementById('select-analysis-scope').value;
-    const periodTypeVal = document.getElementById('select-period-type').value;
-    const customStartVal = document.getElementById('input-analysis-start-date').value;
-    const customEndVal = document.getElementById('input-analysis-end-date').value;
-    const seasonalMonthVal = document.getElementById('select-seasonal-month').value;
-    const seasonalYearVal = document.getElementById('select-seasonal-year').value;
+    const scopeVal = document.getElementById('select-analysis-scope')?.value || 'auto';
+    const periodTypeVal = document.getElementById('select-period-type')?.value || 'auto';
+    const customStartVal = document.getElementById('input-analysis-start-date')?.value || '';
+    const customEndVal = document.getElementById('input-analysis-end-date')?.value || '';
+    const seasonalMonthVal = document.getElementById('select-seasonal-month')?.value || '0';
+    const seasonalYearVal = document.getElementById('select-seasonal-year')?.value || 'all';
 
     let coefs = null;
-    let sourceDesc = '';
+    let sourceDescHtml = '';
 
-    // Всегда по умолчанию приоритет загруженным данным
+    // Вызываем интеллектуальный расчет с 4-уровневым каскадом и адаптивным окном
     coefs = getUploadedCoefficients(
         fromVal, toVal, flightVal,
         scopeVal, periodTypeVal,
@@ -2367,120 +2401,35 @@ function calculateBaggageForecast(logToHistory = false) {
     );
 
     if (coefs) {
-        const scopeText = coefs.isFlightSpecific 
-            ? (translations[currentLang]['scope-flight'] || 'Рейс')
-            : (translations[currentLang]['scope-route'] || 'Направление');
-
-        const fromIata = ruToIata(fromVal) || fromVal;
-        const toIata = ruToIata(toVal) || toVal;
-
-        if (coefs.periodType === '30days') {
-            if (coefs.isFallback) {
-                const dateStr = formatDateStr(coefs.fallbackDate);
-                let msg = '';
-                if (flightVal) {
-                    msg = translations[currentLang]['warning-no-flights-30']
-                        .replace('{flight}', flightVal)
-                        .replace('{from}', fromIata)
-                        .replace('{to}', toIata)
-                        .replace('{date}', dateStr);
-                } else {
-                    msg = translations[currentLang]['warning-no-route-30']
-                        .replace('{from}', fromIata)
-                        .replace('{to}', toIata)
-                        .replace('{date}', dateStr);
-                }
-                document.getElementById('warning-text').textContent = msg;
-                warningBox.classList.remove('hidden');
-                
-                sourceDesc = translations[currentLang]['source-desc-uploaded-closest'].replace('{date}', dateStr);
-            } else {
-                sourceDesc = `${translations[currentLang]['source-desc-uploaded-30']} (${scopeText})`;
-            }
-        } else if (coefs.periodType === 'weekday4') {
-            const dateInputEl = document.getElementById('input-date');
-            const targetDateVal = dateInputEl ? dateInputEl.value : '';
-            const targetDayOfWeek = getDayOfWeekFromIsoStr(targetDateVal || new Date().toISOString().split('T')[0]);
-            
-            const ruDaysAccusative = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'];
-            const ruDaysNominative = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
-            const enDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-            const weekdayAccusative = currentLang === 'ru' ? ruDaysAccusative[targetDayOfWeek] : enDays[targetDayOfWeek];
-            const weekdayNominative = currentLang === 'ru' ? ruDaysNominative[targetDayOfWeek] : enDays[targetDayOfWeek];
-
-            if (coefs.isFallback) {
-                const dateStr = formatDateStr(coefs.fallbackDate);
-                let msg = '';
-                if (flightVal) {
-                    msg = translations[currentLang]['warning-no-flights-weekday4']
-                        .replace('{flight}', flightVal)
-                        .replace('{from}', fromIata)
-                        .replace('{to}', toIata)
-                        .replace('{weekday}', weekdayAccusative)
-                        .replace('{date}', dateStr);
-                } else {
-                    msg = translations[currentLang]['warning-no-route-weekday4']
-                        .replace('{from}', fromIata)
-                        .replace('{to}', toIata)
-                        .replace('{weekday}', weekdayAccusative)
-                        .replace('{date}', dateStr);
-                }
-                document.getElementById('warning-text').textContent = msg;
-                warningBox.classList.remove('hidden');
-                
-                sourceDesc = translations[currentLang]['source-desc-uploaded-weekday4-fallback'].replace('{date}', dateStr).replace('{scope}', scopeText);
-            } else {
-                sourceDesc = translations[currentLang]['source-desc-uploaded-weekday4']
-                    .replace('{weekday}', weekdayNominative)
-                    .replace('{scope}', scopeText);
-            }
-        } else if (coefs.periodType === 'custom') {
-            const startStr = customStartVal ? formatDateStr(customStartVal) : '...';
-            const endStr = customEndVal ? formatDateStr(customEndVal) : '...';
-            sourceDesc = translations[currentLang]['source-desc-uploaded-custom']
-                .replace('{start}', startStr)
-                .replace('{end}', endStr)
-                .replace('{scope}', scopeText);
-        } else if (coefs.periodType === 'seasonal') {
-            const monthKeys = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-            const monthKey = monthKeys[parseInt(seasonalMonthVal)] || 'jan';
-            const monthName = translations[currentLang][`month-${monthKey}`] || 'Month';
-            const yearStr = seasonalYearVal === 'all' 
-                ? (translations[currentLang]['opt-all-years'] || 'все года')
-                : seasonalYearVal;
-            sourceDesc = translations[currentLang]['source-desc-uploaded-seasonal']
-                .replace('{month}', monthName)
-                .replace('{year}', yearStr)
-                .replace('{scope}', scopeText);
-        }
+        const badgeClass = coefs.levelCode || `level-${coefs.level || 1}`;
+        sourceDescHtml = `<span class="waterfall-badge ${badgeClass}">${coefs.levelName || 'Загруженные данные'}</span>`;
     }
 
-    // Если в загруженных нет вообще, делаем фолбэк к историческим
+    // Если в загруженных нет данных вообще, обращаемся к историческим нормативам базы
     if (!coefs) {
         coefs = getHistoricalCoefficients(fromVal, toVal, flightVal);
         if (coefs) {
-            sourceDesc = translations[currentLang]['source-desc-historical'];
+            sourceDescHtml = `<span class="waterfall-badge level-4">${translations[currentLang]['source-desc-historical']}</span>`;
         }
     }
 
-    // Крайний фолбэк к стандартным нормам
+    // Крайний дефолтный норматив
     if (!coefs) {
         coefs = {
             pcs_pax: 0.4,
             wght_pc: 13.0,
             hb_pax: 2.0
         };
-        sourceDesc = translations[currentLang]['source-desc-default'];
+        sourceDescHtml = `<span class="waterfall-badge level-4">${translations[currentLang]['source-desc-default']}</span>`;
     }
 
-    // --- ВЫЧИСЛЕНИЕ РЕЗУЛЬТАТОВ (ОКРУГЛЕНИЕ ДО ЦЕЛЫХ) ---
-    const expectedPcs = Math.round(paxVal * coefs.pcs_pax);
+    // --- ВЫЧИСЛЕНИЕ РЕЗУЛЬТАТОВ НА ЭФФЕКТИВНЫХ ПАССАЖИРОВ ---
+    const expectedPcs = Math.round(effectivePaxVal * coefs.pcs_pax);
     // Вес багажа и ручной клади округляются до целых
     const expectedWeight = Math.round(expectedPcs * coefs.wght_pc);
-    const expectedHb = Math.round(paxVal * coefs.hb_pax);
+    const expectedHb = Math.round(effectivePaxVal * coefs.hb_pax);
 
-    // Вывод результатов с красивой анимацией (с целыми числами)
+    // Вывод результатов с плавной анимацией
     animateNumber('res-pcs', expectedPcs, 0);
     animateNumber('res-weight', expectedWeight, 0);
     animateNumber('res-hb', expectedHb, 0);
@@ -2489,12 +2438,11 @@ function calculateBaggageForecast(logToHistory = false) {
     document.getElementById('coef-pcs-pax').textContent = coefs.pcs_pax.toFixed(4);
     document.getElementById('coef-weight-pc').textContent = coefs.wght_pc.toFixed(2) + ' кг';
     document.getElementById('coef-hb-pax').textContent = coefs.hb_pax.toFixed(2) + ' кг';
-    document.getElementById('calc-source-desc').textContent = sourceDesc;
+    document.getElementById('calc-source-desc').innerHTML = sourceDescHtml;
 
     // Отрисовываем детализацию отобранных рейсов и расчётных агрегированных значений
     renderSampledFlightsDetails(coefs);
 
-    // Обновляем связанные расчеты средней массы и распределения
     // Обновляем плашку активного рейса в шапке
     const dateInputEl = document.getElementById('input-date');
     const targetDateVal = dateInputEl ? dateInputEl.value : '';
@@ -2512,7 +2460,9 @@ function calculateBaggageForecast(logToHistory = false) {
             bag_weight: expectedWeight,
             hb_weight: expectedHb,
             flight_date: targetDateVal || new Date().toISOString().split('T')[0],
-            calc_date: new Date().toISOString()
+            calc_date: new Date().toISOString(),
+            pax_mode: isBookingMode ? 'booking_97' : 'fact_100',
+            waterfall_level: coefs.level || 1
         };
         predictionsHistory.unshift(prediction);
         savePredictionsHistory();
@@ -2556,15 +2506,16 @@ function renderSampledFlightsDetails(coefs) {
         containerEl.classList.remove('hidden');
 
         if (titleEl) {
+            const levelHeader = coefs.levelName ? `[ ${coefs.levelName} ]` : '';
             const titlePattern = translations[currentLang]['sampled-flights-title'] || 'Отобранные рейсы для расчета ({count} вып.):';
-            titleEl.textContent = titlePattern.replace('{count}', flights.length);
+            titleEl.textContent = `${levelHeader} ${titlePattern.replace('{count}', flights.length)}`.trim();
         }
 
         const ruShortDays = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
         const enShortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         let htmlBody = '';
-        flights.forEach((f, idx) => {
+        flights.forEach((f) => {
             const pax = getEffectivePaxCount(f);
             const pcs = parseInt(f.bag_pcs) || 0;
             const weight = parseFloat(f.bag_weight) || 0;
@@ -2577,15 +2528,9 @@ function renderSampledFlightsDetails(coefs) {
                 formattedDate += ` (${dayName})`;
             }
 
-            let weightBadge = '';
-            if (coefs.isWeighted && coefs.weights && coefs.weights[idx] !== undefined) {
-                const wPct = Math.round(coefs.weights[idx] * 100);
-                weightBadge = `<span style="background: rgba(0, 240, 255, 0.15); border: 1px solid var(--accent-cyan); color: var(--accent-cyan); font-size: 0.75rem; padding: 1px 6px; border-radius: 4px; margin-left: 6px; font-weight: bold;">${wPct}%</span>`;
-            }
-
             htmlBody += `
                 <tr>
-                    <td>${formattedDate} ${weightBadge}</td>
+                    <td>${formattedDate}</td>
                     <td><strong>${f.flight_no || '-'}</strong></td>
                     <td class="cyan-val">${pax}</td>
                     <td class="gold-val">${pcs}</td>
@@ -2599,15 +2544,8 @@ function renderSampledFlightsDetails(coefs) {
         const totalsLabel = translations[currentLang]['sample-totals-label'] || 'ИТОГО (СУММЫ):';
         const unitKg = translations[currentLang]['unit-kg'] || 'кг';
 
-        let formulaTitle = coefs.isWeighted
-            ? '📐 <strong>Расчет коэффициентов (Экспоненциальное весовое сглаживание 40% / 30% / 20% / 10%):</strong>'
-            : '📐 <strong>Расчет коэффициентов (Суммарное среднее):</strong>';
-
-        let formulaDetails = coefs.isWeighted && coefs.weights && coefs.weights.length > 0
-            ? `• <strong>PCS/PAX</strong> = <strong>${coefs.pcs_pax.toFixed(4)}</strong> (веса свежести: ${coefs.weights.map(w => Math.round(w*100) + '%').join(' / ')})<br/>
-               • <strong>Weight/PC</strong> = <strong>${coefs.wght_pc.toFixed(2)} ${unitKg}</strong><br/>
-               • <strong>HB/PAX</strong> = <strong>${coefs.hb_pax.toFixed(2)} ${unitKg}</strong>`
-            : `• <strong>PCS/PAX</strong> = ${coefs.totalBags} / ${coefs.totalPax} = <strong>${coefs.pcs_pax.toFixed(4)}</strong><br/>
+        const formulaTitle = '📐 <strong>Расчет коэффициентов (Взвешенное отношение сумм):</strong>';
+        const formulaDetails = `• <strong>PCS/PAX</strong> = ${coefs.totalBags} / ${coefs.totalPax} = <strong>${coefs.pcs_pax.toFixed(4)}</strong><br/>
                • <strong>Weight/PC</strong> = ${coefs.totalBagWeight.toLocaleString('ru-RU')} / ${coefs.totalBags} = <strong>${coefs.wght_pc.toFixed(2)} ${unitKg}</strong><br/>
                • <strong>HB/PAX</strong> = ${coefs.totalHbWeight.toLocaleString('ru-RU')} / ${coefs.totalPax} = <strong>${coefs.hb_pax.toFixed(2)} ${unitKg}</strong>`;
 
@@ -2628,7 +2566,7 @@ function renderSampledFlightsDetails(coefs) {
         `;
         tfootEl.innerHTML = htmlFoot;
     } else {
-        // Если использовались нормативные правила базы данных (rules) без списка выполнений
+        // Если использовались нормативные правила базы данных без списка выполнений
         containerEl.classList.remove('hidden');
         if (titleEl) {
             titleEl.textContent = currentLang === 'ru' ? 'Исторические нормативы базы данных:' : 'Historical Database Standards:';
@@ -2685,177 +2623,187 @@ function getDayOfWeekFromIsoStr(isoStr) {
     return isNaN(d.getTime()) ? 0 : d.getDay();
 }
 
-// Поиск коэффициентов по загруженной базе рейсов с учетом параметров фильтрации и сезонности
-function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType = '30days', customStart = '', customEnd = '', seasonalMonth = '0', seasonalYear = 'all') {
-    if (userFlights.length === 0) return null;
+// Поиск коэффициентов по загруженной базе рейсов с использованием 4-уровневой интеллектуальной иерархии (Smart Waterfall)
+function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType = 'auto', customStart = '', customEnd = '', seasonalMonth = '0', seasonalYear = 'all') {
+    if (!userFlights || userFlights.length === 0) return null;
 
-    const fromIata = ruToIata(from);
-    const toIata = ruToIata(to);
-    
-    // Фильтруем строго по маршруту
+    const fromIata = ruToIata(from) || from;
+    const toIata = ruToIata(to) || to;
+
+    const dateInputEl = document.getElementById('input-date');
+    const targetDateVal = dateInputEl ? dateInputEl.value : '';
+    const targetDateMs = targetDateVal ? Date.parse(targetDateVal) : Date.now();
+    const targetDayOfWeek = getDayOfWeekFromIsoStr(targetDateVal || new Date().toISOString().split('T')[0]);
+
     const routeFlights = userFlights.filter(f => ruToIata(f.from) === fromIata && ruToIata(f.to) === toIata);
-    if (routeFlights.length === 0) return null;
 
-    // Определяем целевые рейсы на основе области (scope)
-    let targetFlights = routeFlights;
-    let isFlightSpecific = false;
-
-    if (flightNo && (scope === 'flight' || scope === 'auto')) {
-        const matchingFlights = routeFlights.filter(f => f.flight_no === flightNo);
-        if (matchingFlights.length > 0) {
-            targetFlights = matchingFlights;
-            isFlightSpecific = true;
-        } else if (scope === 'flight') {
-            // Если область "Строго по рейсу" и совпадений нет
-            return null;
+    // 1. Если выбран явный кастомный диапазон дат
+    if (periodType === 'custom') {
+        const startMs = customStart ? Date.parse(customStart) : 0;
+        const endMs = customEnd ? Date.parse(customEnd) : Infinity;
+        let targetFlights = (flightNo && scope === 'flight') ? routeFlights.filter(f => f.flight_no === flightNo) : routeFlights;
+        const filtered = targetFlights.filter(f => {
+            const fTime = Date.parse(f.date);
+            return !isNaN(fTime) && fTime >= startMs && fTime <= endMs;
+        });
+        if (filtered.length > 0) {
+            const result = calculateMeansFromFlights(filtered);
+            result.level = 3;
+            result.levelCode = 'level-3';
+            result.levelName = `${currentLang === 'ru' ? 'Пользовательский период' : 'Custom Period'} (${filtered.length} выл.)`;
+            result.matchedCount = filtered.length;
+            return result;
         }
+        return null;
     }
 
-    // Определяем целевой день недели, если используется weekday4
-    let targetDayOfWeek = new Date().getDay();
-    let targetDateVal = '';
-    if (periodType === 'weekday4') {
-        const dateInputEl = document.getElementById('input-date');
-        targetDateVal = dateInputEl ? dateInputEl.value : '';
-        targetDayOfWeek = getDayOfWeekFromIsoStr(targetDateVal || new Date().toISOString().split('T')[0]);
+    // 2. Если выбран явный сезонный срез
+    if (periodType === 'seasonal') {
+        let targetFlights = (flightNo && scope === 'flight') ? routeFlights.filter(f => f.flight_no === flightNo) : routeFlights;
+        const filtered = targetFlights.filter(f => {
+            if (!f.date) return false;
+            const dateObj = new Date(f.date);
+            const mMatch = dateObj.getMonth() === parseInt(seasonalMonth, 10);
+            const yMatch = (seasonalYear === 'all') || (dateObj.getFullYear() === parseInt(seasonalYear, 10));
+            return mMatch && yMatch;
+        });
+        if (filtered.length > 0) {
+            const result = calculateMeansFromFlights(filtered);
+            result.level = 3;
+            result.levelCode = 'level-3';
+            result.levelName = `${currentLang === 'ru' ? 'Сезонный срез' : 'Seasonal Slice'} (${filtered.length} выл.)`;
+            result.matchedCount = filtered.length;
+            return result;
+        }
+        return null;
     }
 
-    // Фильтруем по времени
-    let filtered = [];
-    let isFallback = false;
-    let fallbackDate = '';
+    // --- УМНЫЙ ВОДОПАД (4 УРОВНЯ НАДЕЖНОСТИ) ---
+    // Окно анализа: 180 дней до даты вылета
+    const window180Ms = 180 * 24 * 60 * 60 * 1000;
+    const MAX_SAMPLE_SIZE = 20; // Оптимальный объем выборки (до 20 актуальных рейсов)
+    const MIN_SAMPLE_THRESHOLD = 3; // Порог минимального числа рейсов для надежной группы
 
-    if (periodType === '30days') {
-        filtered = targetFlights.filter(f => f.active);
-        if (filtered.length === 0 && scope === 'auto') {
-            // Фолбэк на ближайшую дату для конкретного рейса
-            const sorted = [...targetFlights].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-            if (sorted.length > 0) {
-                fallbackDate = sorted[0].date;
-                filtered = targetFlights.filter(f => f.date === fallbackDate);
-                isFallback = true;
-            }
-        }
-    } else if (periodType === 'weekday4') {
-        const targetDateMs = targetDateVal ? Date.parse(targetDateVal) : Date.now();
-        const window60Ms = 60 * 24 * 60 * 60 * 1000; // 60 дней диапазона
+    const dayNameRu = getRuDayShort(targetDayOfWeek);
+    const dayNameEn = getEnDayShort(targetDayOfWeek);
 
-        // 1. Ищем последние 4 рейса за 60 дней в тот же день недели
-        filtered = targetFlights.filter(f => {
+    // УРОВЕНЬ 1: Номер рейса + День недели (самое точное совпадение)
+    if (flightNo && (scope === 'auto' || scope === 'flight')) {
+        let level1Flights = routeFlights.filter(f => {
+            if (f.flight_no !== flightNo) return false;
             if (getDayOfWeekFromIsoStr(f.date) !== targetDayOfWeek) return false;
             const fMs = Date.parse(f.date);
             if (isNaN(fMs)) return false;
             const diff = targetDateMs - fMs;
-            return diff >= 0 && diff <= window60Ms;
-        });
+            return diff >= 0 && diff <= window180Ms;
+        }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
-        // Сортируем по дате (свежие вверху) и берем последние 4
-        filtered = filtered.sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 4);
-
-        // 2. Если за 60 дней по дню недели рейсов нет — берем среднее значение за ближайшие 30 дней до даты вылета
-        if (filtered.length === 0) {
-            isFallback = true;
-            filtered = targetFlights.filter(f => {
+        // Если за 180 дней мало рейсов, но они есть в истории до даты вылета
+        if (level1Flights.length < MIN_SAMPLE_THRESHOLD) {
+            level1Flights = routeFlights.filter(f => {
+                if (f.flight_no !== flightNo) return false;
+                if (getDayOfWeekFromIsoStr(f.date) !== targetDayOfWeek) return false;
                 const fMs = Date.parse(f.date);
-                if (isNaN(fMs)) return false;
-                const diff = targetDateMs - fMs;
-                return diff >= 0 && diff <= 30 * 24 * 60 * 60 * 1000;
-            });
-            filtered = filtered.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-
-            // Если за 30 дней до целевой даты рейсов не летело, берем 1 последний рейс до даты вылета
-            if (filtered.length === 0) {
-                const pastFlights = targetFlights
-                    .filter(f => Date.parse(f.date) <= targetDateMs)
-                    .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-                if (pastFlights.length > 0) {
-                    filtered = [pastFlights[0]];
-                }
-            }
-
-            if (filtered.length > 0) {
-                fallbackDate = filtered[0].date;
-            }
+                return !isNaN(fMs) && fMs <= targetDateMs;
+            }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
         }
-    } else if (periodType === 'custom') {
-        const startMs = customStart ? Date.parse(customStart) : 0;
-        const endMs = customEnd ? Date.parse(customEnd) : Infinity;
-        
-        filtered = targetFlights.filter(f => {
-            const fTime = Date.parse(f.date);
-            return !isNaN(fTime) && fTime >= startMs && fTime <= endMs;
-        });
-    } else if (periodType === 'seasonal') {
-        filtered = targetFlights.filter(f => {
-            if (!f.date) return false;
-            const dateObj = new Date(f.date);
-            const mMatch = dateObj.getMonth() === parseInt(seasonalMonth);
-            const yMatch = (seasonalYear === 'all') || (dateObj.getFullYear() === parseInt(seasonalYear));
-            return mMatch && yMatch;
-        });
-    }
 
-    // Фолбэк с уровня рейса на уровень маршрута в режиме "auto", если за выбранный период по конкретному рейсу нет данных
-    if (filtered.length === 0 && scope === 'auto' && isFlightSpecific) {
-        let routeTargetFlights = routeFlights;
-        if (periodType === '30days') {
-            filtered = routeTargetFlights.filter(f => f.active);
-            if (filtered.length === 0) {
-                const sorted = [...routeTargetFlights].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
-                if (sorted.length > 0) {
-                    fallbackDate = sorted[0].date;
-                    filtered = routeTargetFlights.filter(f => f.date === fallbackDate);
-                    isFallback = true;
-                }
+        if (level1Flights.length >= MIN_SAMPLE_THRESHOLD || (scope === 'flight' && level1Flights.length > 0)) {
+            const sample = level1Flights.slice(0, MAX_SAMPLE_SIZE);
+            const res = calculateMeansFromFlights(sample);
+            if (res) {
+                res.level = 1;
+                res.levelCode = 'level-1';
+                res.levelName = currentLang === 'ru' 
+                    ? `🟢 Уровень 1: Рейс ${flightNo} (${dayNameRu}) • ${sample.length} выл.`
+                    : `🟢 Level 1: Flight ${flightNo} (${dayNameEn}) • ${sample.length} flt.`;
+                res.matchedCount = sample.length;
+                return res;
             }
-        } else if (periodType === 'weekday4') {
-            // Фолбэк на уровень маршрута с тем же днем недели
-            filtered = routeTargetFlights.filter(f => {
-                return getDayOfWeekFromIsoStr(f.date) === targetDayOfWeek;
-            });
-            filtered = filtered.sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 4);
-            
-            // Если и на уровне маршрута нет этого дня недели, берем последние 4 рейса по маршруту за любые дни
-            if (filtered.length === 0) {
-                filtered = routeTargetFlights.sort((a, b) => Date.parse(b.date) - Date.parse(a.date)).slice(0, 4);
-                if (filtered.length > 0) {
-                    isFallback = true;
-                    fallbackDate = filtered[0].date;
-                }
-            }
-        } else if (periodType === 'custom') {
-            const startMs = customStart ? Date.parse(customStart) : 0;
-            const endMs = customEnd ? Date.parse(customEnd) : Infinity;
-            filtered = routeTargetFlights.filter(f => {
-                const fTime = Date.parse(f.date);
-                return !isNaN(fTime) && fTime >= startMs && fTime <= endMs;
-            });
-        } else if (periodType === 'seasonal') {
-            filtered = routeTargetFlights.filter(f => {
-                if (!f.date) return false;
-                const dateObj = new Date(f.date);
-                const mMatch = dateObj.getMonth() === parseInt(seasonalMonth);
-                const yMatch = (seasonalYear === 'all') || (dateObj.getFullYear() === parseInt(seasonalYear));
-                return mMatch && yMatch;
-            });
-        }
-        if (filtered.length > 0) {
-            isFlightSpecific = false; // Успешно откатились до общего маршрута
         }
     }
 
-    if (filtered.length === 0) return null;
+    // УРОВЕНЬ 2: Маршрут (FROM -> TO) + День недели (все рейсы по маршруту в этот день недели)
+    if (scope === 'auto' || scope === 'route') {
+        let level2Flights = routeFlights.filter(f => {
+            if (getDayOfWeekFromIsoStr(f.date) !== targetDayOfWeek) return false;
+            const fMs = Date.parse(f.date);
+            if (isNaN(fMs)) return false;
+            const diff = targetDateMs - fMs;
+            return diff >= 0 && diff <= window180Ms;
+        }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
-    const isWeighted = false;
-    const result = calculateMeansFromFlights(filtered, isWeighted);
-    if (result) {
-        result.isFallback = isFallback;
-        result.fallbackDate = fallbackDate;
-        result.isFlightSpecific = isFlightSpecific;
-        result.periodType = periodType;
-        result.matchedCount = filtered.length;
+        if (level2Flights.length < MIN_SAMPLE_THRESHOLD) {
+            level2Flights = routeFlights.filter(f => {
+                if (getDayOfWeekFromIsoStr(f.date) !== targetDayOfWeek) return false;
+                const fMs = Date.parse(f.date);
+                return !isNaN(fMs) && fMs <= targetDateMs;
+            }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+        }
+
+        if (level2Flights.length >= MIN_SAMPLE_THRESHOLD || (scope === 'route' && level2Flights.length > 0)) {
+            const sample = level2Flights.slice(0, MAX_SAMPLE_SIZE);
+            const res = calculateMeansFromFlights(sample);
+            if (res) {
+                res.level = 2;
+                res.levelCode = 'level-2';
+                res.levelName = currentLang === 'ru'
+                    ? `🔵 Уровень 2: Маршрут ${fromIata}➔${toIata} (${dayNameRu}) • ${sample.length} выл.`
+                    : `🔵 Level 2: Route ${fromIata}➔${toIata} (${dayNameEn}) • ${sample.length} flt.`;
+                res.matchedCount = sample.length;
+                return res;
+            }
+        }
+
+        // УРОВЕНЬ 3: Маршрут (FROM -> TO) за все дни недели
+        let level3Flights = routeFlights.filter(f => {
+            const fMs = Date.parse(f.date);
+            if (isNaN(fMs)) return false;
+            const diff = targetDateMs - fMs;
+            return diff >= 0 && diff <= window180Ms;
+        }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+
+        if (level3Flights.length < MIN_SAMPLE_THRESHOLD) {
+            level3Flights = routeFlights.filter(f => {
+                const fMs = Date.parse(f.date);
+                return !isNaN(fMs) && fMs <= targetDateMs;
+            }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+        }
+
+        if (level3Flights.length > 0) {
+            const sample = level3Flights.slice(0, MAX_SAMPLE_SIZE);
+            const res = calculateMeansFromFlights(sample);
+            if (res) {
+                res.level = 3;
+                res.levelCode = 'level-3';
+                res.levelName = currentLang === 'ru'
+                    ? `🟡 Уровень 3: Маршрут ${fromIata}➔${toIata} (все дни) • ${sample.length} выл.`
+                    : `🟡 Level 3: Route ${fromIata}➔${toIata} (all days) • ${sample.length} flt.`;
+                res.matchedCount = sample.length;
+                return res;
+            }
+        }
     }
-    return result;
+
+    // УРОВЕНЬ 4: Аэропорт вылета (DEP / FROM) — все направления из этого аэропорта
+    const originFlights = userFlights.filter(f => ruToIata(f.from) === fromIata && Date.parse(f.date) <= targetDateMs)
+        .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+
+    if (originFlights.length > 0) {
+        const sample = originFlights.slice(0, MAX_SAMPLE_SIZE);
+        const res = calculateMeansFromFlights(sample);
+        if (res) {
+            res.level = 4;
+            res.levelCode = 'level-4';
+            res.levelName = currentLang === 'ru'
+                ? `⚪ Уровень 4: Аэропорт вылета ${fromIata} (все напр.) • ${sample.length} выл.`
+                : `⚪ Level 4: Departure Airport ${fromIata} (all routes) • ${sample.length} flt.`;
+            res.matchedCount = sample.length;
+            return res;
+        }
+    }
+
+    return null;
 }
 
 // Расчет средних коэффициентов по переданному массиву рейсов (с поддержкой экспоненциального весового сглаживания)
