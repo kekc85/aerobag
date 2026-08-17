@@ -2070,9 +2070,12 @@ function setupEventListeners() {
     enforce3LetterCaps(manualToCustom);
 
 
-    // Обновление подсказки эффективных пассажиров (без автоматического пересчета прогноза)
+    // Обработчик переключателя режима явки пассажиров (Факт 100% / Бронь 97%) с автоматическим пересчетом
     document.querySelectorAll('input[name="pax-mode"]').forEach(radio => {
-        radio.addEventListener('change', updatePaxExpectedHint);
+        radio.addEventListener('change', () => {
+            updatePaxExpectedHint();
+            calculateBaggageForecast(false);
+        });
     });
 
     const inputPaxEl = document.getElementById('input-pax');
