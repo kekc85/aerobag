@@ -148,14 +148,14 @@ const translations = {
         // Аналитические параметры
         'analysis-settings-title': 'ПАРАМЕТРЫ АНАЛИЗА И СЕЗОННОСТИ',
         'label-analysis-scope': 'Область сопоставления (Matching Scope)',
-        'opt-scope-auto': 'Автомат (Рейс ➔ Направление)',
-        'opt-scope-flight': 'Только выбранный рейс',
-        'opt-scope-route': 'Всё направление (Маршрут)',
+        'opt-scope-auto': 'Smart Waterfall: Авто-каскад (Рейс+День ➔ Маршрут+День ➔ Маршрут ➔ Аэропорт)',
+        'opt-scope-flight': 'Только выбранный рейс (Строго номер рейса)',
+        'opt-scope-route': 'Всё направление (Все рейсы маршрута)',
         'label-period-type': 'Период анализа данных (Data Period)',
-        'opt-period-weekday4': 'Последние 4 рейса (по дням недели) (По умолчанию)',
-        'opt-period-30days': 'Последние 30 дней',
-        'opt-period-custom': 'Произвольный диапазон',
-        'opt-period-seasonal': 'Сезонный месяц',
+        'opt-period-auto': 'Smart Waterfall (180 дней, сглаживание α=0.3, авто-сезонность) (По умолчанию)',
+        'opt-period-all-history': 'Вся доступная история рейсов (3 года)',
+        'opt-period-custom': 'Произвольный диапазон дат',
+        'opt-period-seasonal': 'Сезонный срез (выбранный месяц и год)',
         'label-flight-date': 'Дата рейса',
         'sampled-flights-title': 'Отобранные рейсы для расчета ({count} вып.):',
         'th-sample-date': 'Дата (день)',
@@ -322,14 +322,14 @@ const translations = {
         // Analytical settings
         'analysis-settings-title': 'ANALYSIS & SEASONALITY SETTINGS',
         'label-analysis-scope': 'Matching Scope',
-        'opt-scope-auto': 'Auto (Flight ➔ Route)',
+        'opt-scope-auto': 'Smart Waterfall: Auto Cascade (Flight+Day ➔ Route+Day ➔ Route ➔ Airport)',
         'opt-scope-flight': 'Strict Flight Match',
-        'opt-scope-route': 'Entire Route (Ignore Flight No)',
+        'opt-scope-route': 'Entire Route (All Route Flights)',
         'label-period-type': 'Analysis Period (Data Period)',
-        'opt-period-weekday4': 'Last 4 Flights (by weekday) (Default)',
-        'opt-period-30days': 'Last 30 Days',
+        'opt-period-auto': 'Smart Waterfall (180 days, α=0.3 smoothing, auto-seasonality) (Default)',
+        'opt-period-all-history': 'All Available History (3 Years)',
         'opt-period-custom': 'Custom Date Range',
-        'opt-period-seasonal': 'Seasonal Month',
+        'opt-period-seasonal': 'Seasonal Month Slice',
         'label-flight-date': 'Flight Date',
         'sampled-flights-title': 'Selected Flights for Calculation ({count} flts):',
         'th-sample-date': 'Date (Day)',
@@ -1832,8 +1832,17 @@ function setupEventListeners() {
                 if (customRangeInputs) customRangeInputs.classList.add('hidden');
                 if (seasonalInputs) seasonalInputs.classList.add('hidden');
             }
+            calculateBaggageForecast(false);
         });
     }
+
+    // Слушатели живого пересчета при смене параметров анализа и сезонности
+    ['select-analysis-scope', 'input-analysis-start-date', 'input-analysis-end-date', 'select-seasonal-month', 'select-seasonal-year'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            ['change', 'input'].forEach(evt => el.addEventListener(evt, () => calculateBaggageForecast(false)));
+        }
+    });
 
     // Язык
     document.getElementById('btn-lang-ru').addEventListener('click', () => setLanguage('ru'));
@@ -2705,6 +2714,25 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
             result.levelCode = 'level-3';
             result.levelName = `${currentLang === 'ru' ? 'Сезонный срез' : 'Seasonal Slice'} (${filtered.length} выл.)`;
             result.matchedCount = filtered.length;
+            return finalizeResult(result);
+        }
+        return null;
+    }
+
+    // 3. Если выбрана вся доступная история базы (3 года)
+    if (periodType === 'all_history') {
+        let targetFlights = (flightNo && scope === 'flight') ? routeFlights.filter(f => f.flight_no === flightNo) : routeFlights;
+        const filtered = targetFlights.filter(f => {
+            const fTime = Date.parse(f.date);
+            return !isNaN(fTime) && fTime <= targetDateMs;
+        }).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+        if (filtered.length > 0) {
+            const sample = filtered.slice(0, 30);
+            const result = calculateMeansFromFlights(sample);
+            result.level = 3;
+            result.levelCode = 'level-3';
+            result.levelName = `${currentLang === 'ru' ? 'Вся история базы' : 'All Database History'} • ${sample.length} выл.`;
+            result.matchedCount = sample.length;
             return finalizeResult(result);
         }
         return null;
