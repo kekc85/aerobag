@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.82';
+const APP_VERSION = 'v12.0.83';
 const APP_BUILD_DATE = '17.08.2026';
 
 // Глобальное состояние
