@@ -34,11 +34,28 @@ const translations = {
         'tab-predict': 'Прогнозирование',
         'tab-dashboard': 'Дашборд аналитики',
         'tab-admin': 'Администрирование',
-        'dashboard-title': 'Дашборд аналитики и масштабирования',
+        'dashboard-title': '[ ДАШБОРД АНАЛИТИКИ И МАСШТАБИРОВАНИЯ ]',
+        'dash-subtext': 'Аналитический обзор коммерческих нормативов багажа за весь период загруженной базы данных',
+        'dash-label-route': 'Маршрут / Аэропорт',
+        'dash-opt-all-routes': 'Все направления',
+        'dash-label-period': 'Период времени',
+        'dash-opt-all-period': 'За весь период',
+        'dash-opt-30-days': 'За последние 30 дней',
+        'dash-opt-60-days': 'За последние 60 дней',
+        'dash-opt-90-days': 'За последние 90 дней',
+        'dash-opt-current-year': 'За текущий год',
+        'dash-opt-custom-range': 'Произвольный интервал...',
+        'dash-label-date-from': 'С даты',
+        'dash-label-date-to': 'По дату',
         'dashboard-kpi-total-flights': 'Проанализировано рейсов',
         'dashboard-kpi-routes': 'Номеров рейсов',
-        'dashboard-kpi-avg-weight': 'Средний вес на 1 PAX',
-        'dashboard-kpi-avg-pcs': 'Среднее мест на 1 PAX',
+        'dashboard-kpi-avg-weight': 'Средний вес на 1 пассажира',
+        'dashboard-kpi-avg-pcs': 'Среднее мест на 1 пассажира',
+        'dashboard-kpi-period-all': 'За весь период базы данных',
+        'dash-chart1-title': '[ ВЕС НА 1 PAX ПО МАРШРУТАМ (КГ) ]',
+        'dash-chart2-title': '[ МЕСТА НА 1 PAX ПО МАРШРУТАМ (PCS) ]',
+        'dash-chart3-title': '[ ДИНАМИКА ПО ДНЯМ НЕДЕЛИ (КГ/PAX) ]',
+        'dash-chart4-title': '[ ДОЛИ ВЫЛЕТОВ ПО МАРШРУТАМ (%) ]',
         'predict-title': 'Прогнозирование рейса',
         'label-from': 'Аэропорт вылета (FROM)',
         'label-to': 'Аэропорт прилета (TO)',
@@ -206,11 +223,28 @@ const translations = {
         'tab-predict': 'Forecasting',
         'tab-dashboard': 'Analytics Dashboard',
         'tab-admin': 'Administration',
-        'dashboard-title': 'Analytics & Scaling Dashboard',
+        'dashboard-title': '[ ANALYTICS & SCALING DASHBOARD ]',
+        'dash-subtext': 'Analytical overview of baggage commercial norms across the loaded database',
+        'dash-label-route': 'Route / Airport',
+        'dash-opt-all-routes': 'All Routes',
+        'dash-label-period': 'Time Period',
+        'dash-opt-all-period': 'All Time',
+        'dash-opt-30-days': 'Last 30 Days',
+        'dash-opt-60-days': 'Last 60 Days',
+        'dash-opt-90-days': 'Last 90 Days',
+        'dash-opt-current-year': 'Current Year',
+        'dash-opt-custom-range': 'Custom Date Range...',
+        'dash-label-date-from': 'From Date',
+        'dash-label-date-to': 'To Date',
         'dashboard-kpi-total-flights': 'Flights Analyzed',
         'dashboard-kpi-routes': 'Flight Numbers',
         'dashboard-kpi-avg-weight': 'Avg Weight / PAX',
         'dashboard-kpi-avg-pcs': 'Avg Pieces / PAX',
+        'dashboard-kpi-period-all': 'For entire database period',
+        'dash-chart1-title': '[ WEIGHT PER PAX BY ROUTE (KG) ]',
+        'dash-chart2-title': '[ PIECES PER PAX BY ROUTE (PCS) ]',
+        'dash-chart3-title': '[ WEEKDAY DYNAMICS (KG/PAX) ]',
+        'dash-chart4-title': '[ FLIGHT SHARES BY ROUTE (%) ]',
         'predict-title': 'Flight Forecasting',
         'label-from': 'Departure Airport (FROM)',
         'label-to': 'Arrival Airport (TO)',
@@ -1045,6 +1079,7 @@ function setLanguage(lang) {
         renderFlightsTable();
         renderPredictionsTable();
     }
+    renderDashboardAnalytics();
 }
 
 // Переключение темы оформления
@@ -4270,8 +4305,8 @@ function renderDashboardAnalytics() {
             }
         });
 
-        // Сохраняем первую опцию "Все направления"
-        routeSelect.innerHTML = '<option value="all">Все направления</option>';
+        // Сохраняем первую опцию "Все направления" / "All Routes"
+        routeSelect.innerHTML = `<option value="all">${currentLang === 'ru' ? 'Все направления' : 'All Routes'}</option>`;
         Array.from(routesSet).sort().forEach(r => {
             const opt = document.createElement('option');
             opt.value = r;
@@ -4289,7 +4324,7 @@ function renderDashboardAnalytics() {
     const selectedPeriod = periodSelect ? periodSelect.value : 'all';
     
     let filteredDataset = dataset;
-    let periodSubtext = 'За весь период базы данных';
+    let periodSubtext = currentLang === 'ru' ? 'За весь период базы данных' : 'For entire database period';
 
     if (selectedPeriod !== 'all') {
         const now = new Date();
@@ -4304,7 +4339,7 @@ function renderDashboardAnalytics() {
                 const d = parseDateToJsDate(f.date);
                 return d && d >= cutoffDate;
             });
-            periodSubtext = `За последние ${days} дней`;
+            periodSubtext = currentLang === 'ru' ? `За последние ${days} дней` : `Last ${days} days`;
         } else if (selectedPeriod === 'year') {
             const currentYear = now.getFullYear();
             filteredDataset = filteredDataset.filter(f => {
@@ -4312,7 +4347,7 @@ function renderDashboardAnalytics() {
                 const d = parseDateToJsDate(f.date);
                 return d && d.getFullYear() === currentYear;
             });
-            periodSubtext = `За ${currentYear} год`;
+            periodSubtext = currentLang === 'ru' ? `За ${currentYear} год` : `For year ${currentYear}`;
         } else if (selectedPeriod === 'custom') {
             const dateFromInput = document.getElementById('dash-date-from');
             const dateToInput = document.getElementById('dash-date-to');
@@ -4329,7 +4364,9 @@ function renderDashboardAnalytics() {
                     const d = parseDateToJsDate(f.date);
                     return d && d >= fromDate && d <= toDate;
                 });
-                periodSubtext = `Интервал: ${fromVal || '...'} — ${toVal || '...'}`;
+                periodSubtext = currentLang === 'ru' 
+                    ? `Интервал: ${fromVal || '...'} — ${toVal || '...'}`
+                    : `Interval: ${fromVal || '...'} — ${toVal || '...'}`;
             }
         }
     }
@@ -4371,8 +4408,8 @@ function renderDashboardAnalytics() {
     const kpiWeight = document.getElementById('dash-kpi-weight');
     const kpiPcs = document.getElementById('dash-kpi-pcs');
 
-    const kgUnitText = currentLang === 'ru' ? 'кг/пассажира' : 'kg/pax';
-    const pcsUnitText = currentLang === 'ru' ? 'мест/пассажира' : 'pcs/pax';
+    const kgUnitText = currentLang === 'ru' ? 'кг/пассажира' : 'kg/passenger';
+    const pcsUnitText = currentLang === 'ru' ? 'мест/пассажира' : 'pcs/passenger';
 
     if (kpiFlights) kpiFlights.textContent = totalFlights;
     if (kpiRoutes) kpiRoutes.textContent = totalFlightNumbers;
@@ -4448,13 +4485,13 @@ function renderDashboardAnalytics() {
             sortedByPcs.forEach((r, idx) => {
                 // Определение категории загрузки багажа
                 let statusClass = 'standard';
-                let statusLabel = currentLang === 'ru' ? 'Стандарт' : 'Standard';
+                let statusLabel = currentLang === 'ru' ? 'СТАНДАРТ' : 'STANDARD';
                 if (r.avgPcs >= 1.35) {
                     statusClass = 'heavy';
-                    statusLabel = currentLang === 'ru' ? 'Тяжелый' : 'Heavy';
+                    statusLabel = currentLang === 'ru' ? 'ТЯЖЕЛЫЙ' : 'HEAVY';
                 } else if (r.avgPcs < 0.85) {
                     statusClass = 'light';
-                    statusLabel = currentLang === 'ru' ? 'Легкий' : 'Light';
+                    statusLabel = currentLang === 'ru' ? 'ЛЕГКИЙ' : 'LIGHT';
                 }
 
                 const item = document.createElement('div');
@@ -4479,7 +4516,7 @@ function renderDashboardAnalytics() {
     const weekdayContainer = document.getElementById('dash-chart-weekdays-container');
     if (weekdayContainer) {
         weekdayContainer.innerHTML = '';
-        const dayNames = currentLang === 'ru' ? ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const dayNames = currentLang === 'ru' ? ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'] : ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
         const dayStats = Array(7).fill(0).map(() => ({ pax: 0, weight: 0, count: 0 }));
 
         filteredDataset.forEach(f => {
@@ -4671,7 +4708,7 @@ function renderDashboardAnalytics() {
                         </svg>
                         <div class="pie-chart-center">
                             <div class="pie-chart-center-val">${periodTotalFlights}</div>
-                            <div class="pie-chart-center-lbl">${currentLang === 'ru' ? 'рейсов' : 'flights'}</div>
+                            <div class="pie-chart-center-lbl">${currentLang === 'ru' ? 'РЕЙСОВ' : 'FLIGHTS'}</div>
                         </div>
                     </div>
                     <div class="pie-chart-legend">
@@ -4693,7 +4730,7 @@ function renderDashboardAnalytics() {
                     // Сброс выделения при повторном клике
                     selectedPieRoute = null;
                     if (centerVal) centerVal.textContent = periodTotalFlights;
-                    if (centerLbl) centerLbl.textContent = currentLang === 'ru' ? 'рейсов' : 'flights';
+                    if (centerLbl) centerLbl.textContent = currentLang === 'ru' ? 'РЕЙСОВ' : 'FLIGHTS';
 
                     circles.forEach(c => {
                         c.style.strokeWidth = '14px';
