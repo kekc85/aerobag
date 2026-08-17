@@ -131,9 +131,9 @@
                                     <div class="form-group">
                                         <label for="select-analysis-scope" data-translate="label-analysis-scope">Область сопоставления (Matching Scope)</label>
                                         <select id="select-analysis-scope" class="form-control">
-                                            <option value="auto" data-translate="opt-scope-auto">Smart Waterfall: Авто-каскад (Рейс+День ➔ Маршрут+День ➔ Маршрут ➔ Аэропорт)</option>
-                                            <option value="flight" data-translate="opt-scope-flight">Только выбранный рейс (Строго номер рейса)</option>
-                                            <option value="route" data-translate="opt-scope-route">Всё направление (Все рейсы маршрута)</option>
+                                            <option value="auto" data-translate="opt-scope-auto">Smart Waterfall (Авто-каскад)</option>
+                                            <option value="flight" data-translate="opt-scope-flight">Только выбранный рейс</option>
+                                            <option value="route" data-translate="opt-scope-route">Всё направление (Маршрут)</option>
                                         </select>
                                     </div>
 
@@ -141,10 +141,10 @@
                                     <div class="form-group">
                                         <label for="select-period-type" data-translate="label-period-type">Период анализа данных (Data Period)</label>
                                         <select id="select-period-type" class="form-control">
-                                            <option value="auto" data-translate="opt-period-auto" selected>Smart Waterfall (180 дней, сглаживание α=0.3, авто-сезонность) (По умолчанию)</option>
-                                            <option value="all_history" data-translate="opt-period-all-history">Вся доступная история рейсов (3 года)</option>
+                                            <option value="auto" data-translate="opt-period-auto" selected>Smart Waterfall (180 дн., α=0.3, сезонность)</option>
+                                            <option value="all_history" data-translate="opt-period-all-history">Вся история базы (3 года)</option>
                                             <option value="custom" data-translate="opt-period-custom">Произвольный диапазон дат</option>
-                                            <option value="seasonal" data-translate="opt-period-seasonal">Сезонный срез (выбранный месяц и год)</option>
+                                            <option value="seasonal" data-translate="opt-period-seasonal">Сезонный срез (месяц / год)</option>
                                         </select>
                                     </div>
 

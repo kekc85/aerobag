@@ -3012,9 +3012,18 @@ body.light-theme .footer-table tr.ttl-row td {
 }
 
 .analysis-settings-panel .form-control {
-    font-size: 0.8rem;
-    height: 34px;
-    padding: 4px 8px;
+    font-size: 0.78rem;
+    height: 36px;
+    padding: 4px 28px 4px 10px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.analysis-settings-panel select.form-control option {
+    font-size: 0.82rem;
+    padding: 6px 10px;
 }
 
 #btn-calculate {
