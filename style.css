@@ -1012,16 +1012,16 @@ body.light-theme .unit {
 }
 
 .sampled-flights-table th:nth-child(1),
-.sampled-flights-table td:nth-child(1) { width: 33%; }
+.sampled-flights-table td:nth-child(1) { width: 36%; }
 
 .sampled-flights-table th:nth-child(2),
-.sampled-flights-table td:nth-child(2) { width: 13%; }
+.sampled-flights-table td:nth-child(2) { width: 12%; }
 
 .sampled-flights-table th:nth-child(3),
-.sampled-flights-table td:nth-child(3) { width: 13%; }
+.sampled-flights-table td:nth-child(3) { width: 12%; }
 
 .sampled-flights-table th:nth-child(4),
-.sampled-flights-table td:nth-child(4) { width: 13%; }
+.sampled-flights-table td:nth-child(4) { width: 12%; }
 
 .sampled-flights-table th:nth-child(5),
 .sampled-flights-table td:nth-child(5) { width: 14%; }
@@ -2662,25 +2662,70 @@ body.light-theme .footer-table tr.ttl-row td {
         letter-spacing: 0.5px !important;
     }
 
-    /* Детализация отобранных рейсов */
+    /* Детализация отобранных рейсов на мобильных */
     .sampled-flights-container {
-        padding: 8px;
+        padding: 6px;
     }
 
     .sampled-flights-header {
         font-size: 0.68rem;
     }
 
-    .sampled-flights-table {
-        font-size: 0.65rem;
+    .sampled-flights-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        width: 100%;
     }
 
+    .sampled-flights-table {
+        font-size: 0.62rem;
+        min-width: 320px;
+    }
+
+    .sampled-flights-table th:nth-child(1),
+    .sampled-flights-table td:nth-child(1) { width: 38%; }
+
+    .sampled-flights-table th:nth-child(2),
+    .sampled-flights-table td:nth-child(2) { width: 12%; }
+
+    .sampled-flights-table th:nth-child(3),
+    .sampled-flights-table td:nth-child(3) { width: 12%; }
+
+    .sampled-flights-table th:nth-child(4),
+    .sampled-flights-table td:nth-child(4) { width: 12%; }
+
+    .sampled-flights-table th:nth-child(5),
+    .sampled-flights-table td:nth-child(5) { width: 13%; }
+
+    .sampled-flights-table th:nth-child(6),
+    .sampled-flights-table td:nth-child(6) { width: 13%; }
+
     .sampled-flights-table th {
-        padding: 4px 5px;
+        padding: 3px 4px;
+        font-size: 0.6rem;
     }
 
     .sampled-flights-table td {
-        padding: 3px 5px;
+        padding: 3px 4px;
+        font-size: 0.6rem;
+    }
+
+    .sample-date-cell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 3px;
+        width: 100%;
+    }
+
+    .weight-badge-pill {
+        min-width: 32px !important;
+        width: 32px !important;
+        height: 16px !important;
+        line-height: 14px !important;
+        font-size: 0.58rem !important;
+        padding: 0 1px !important;
+        border-radius: 3px !important;
     }
 
     /* Автоподсказки рейсов */
