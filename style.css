@@ -3121,6 +3121,31 @@ body.light-theme .pax-mode-option input[type="radio"]:checked + .pax-mode-btn {
     color: #94a3b8;
 }
 
+.weight-badge-pill {
+    background: rgba(0, 240, 255, 0.15);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: var(--accent-cyan);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-left: 6px;
+    display: inline-block;
+}
+
+.seasonality-pill {
+    background: rgba(255, 183, 0, 0.15);
+    border: 1px solid rgba(255, 183, 0, 0.4);
+    color: var(--accent-gold);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+
 
 /* Светлая тема */
 body.light-theme .btn-toggle-settings {

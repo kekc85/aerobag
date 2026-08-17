@@ -2075,6 +2075,13 @@ function setupEventListeners() {
         radio.addEventListener('change', () => calculateBaggageForecast(false));
     });
 
+    const inputPaxEl = document.getElementById('input-pax');
+    if (inputPaxEl) {
+        ['input', 'change'].forEach(evt => {
+            inputPaxEl.addEventListener(evt, () => calculateBaggageForecast(false));
+        });
+    }
+
     // Обработчик кнопки расчета (пишет в историю прогнозов)
     document.getElementById('btn-calculate').addEventListener('click', () => calculateBaggageForecast(true));
     document.getElementById('form-manual-flight').addEventListener('submit', handleManualFlightSubmit);
@@ -2515,7 +2522,7 @@ function renderSampledFlightsDetails(coefs) {
         const enShortDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
         let htmlBody = '';
-        flights.forEach((f) => {
+        flights.forEach((f, idx) => {
             const pax = getEffectivePaxCount(f);
             const pcs = parseInt(f.bag_pcs) || 0;
             const weight = parseFloat(f.bag_weight) || 0;
@@ -2528,9 +2535,15 @@ function renderSampledFlightsDetails(coefs) {
                 formattedDate += ` (${dayName})`;
             }
 
+            let weightBadge = '';
+            if (coefs.weights && coefs.weights[idx] !== undefined) {
+                const wPct = (coefs.weights[idx] * 100).toFixed(1).replace('.0', '');
+                weightBadge = `<span class="weight-badge-pill" title="Вес свежести">${wPct}%</span>`;
+            }
+
             htmlBody += `
                 <tr>
-                    <td>${formattedDate}</td>
+                    <td>${formattedDate} ${weightBadge}</td>
                     <td><strong>${f.flight_no || '-'}</strong></td>
                     <td class="cyan-val">${pax}</td>
                     <td class="gold-val">${pcs}</td>
@@ -2544,10 +2557,17 @@ function renderSampledFlightsDetails(coefs) {
         const totalsLabel = translations[currentLang]['sample-totals-label'] || 'ИТОГО (СУММЫ):';
         const unitKg = translations[currentLang]['unit-kg'] || 'кг';
 
-        const formulaTitle = '📐 <strong>Расчет коэффициентов (Взвешенное отношение сумм):</strong>';
-        const formulaDetails = `• <strong>PCS/PAX</strong> = ${coefs.totalBags} / ${coefs.totalPax} = <strong>${coefs.pcs_pax.toFixed(4)}</strong><br/>
-               • <strong>Weight/PC</strong> = ${coefs.totalBagWeight.toLocaleString('ru-RU')} / ${coefs.totalBags} = <strong>${coefs.wght_pc.toFixed(2)} ${unitKg}</strong><br/>
-               • <strong>HB/PAX</strong> = ${coefs.totalHbWeight.toLocaleString('ru-RU')} / ${coefs.totalPax} = <strong>${coefs.hb_pax.toFixed(2)} ${unitKg}</strong>`;
+        let seasonalNote = '';
+        if (coefs.seasonInfo && coefs.seasonInfo.hasSeasonality) {
+            const sign = coefs.seasonInfo.multiplier >= 1.0 ? '+' : '';
+            const pct = Math.round((coefs.seasonInfo.multiplier - 1.0) * 100);
+            seasonalNote = `<div class="seasonality-pill">🌸 Сезонная поправка (${coefs.seasonInfo.monthName}): x${coefs.seasonInfo.multiplier.toFixed(3)} (${sign}${pct}%)</div><br/>`;
+        }
+
+        const formulaTitle = '📐 <strong>Расчет коэффициентов (Экспоненциальное сглаживание &alpha; = 0.3):</strong>';
+        const formulaDetails = `${seasonalNote}• <strong>PCS/PAX</strong> = <strong>${coefs.pcs_pax.toFixed(4)}</strong> ${coefs.raw_pcs_pax ? `(базовый ${coefs.raw_pcs_pax.toFixed(4)} × ${coefs.seasonInfo.multiplier.toFixed(3)})` : ''}<br/>
+               • <strong>Weight/PC</strong> = <strong>${coefs.wght_pc.toFixed(2)} ${unitKg}</strong><br/>
+               • <strong>HB/PAX</strong> = <strong>${coefs.hb_pax.toFixed(2)} ${unitKg}</strong>`;
 
         let htmlFoot = `
             <tr class="sample-totals-row">
@@ -2637,6 +2657,18 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
 
     const routeFlights = userFlights.filter(f => ruToIata(f.from) === fromIata && ruToIata(f.to) === toIata);
 
+    const finalizeResult = (res) => {
+        if (!res) return null;
+        const seasonInfo = getRouteSeasonalityMultiplier(from, to, targetDateVal);
+        if (seasonInfo && seasonInfo.hasSeasonality) {
+            res.raw_pcs_pax = res.pcs_pax;
+            res.pcs_pax = res.pcs_pax * seasonInfo.multiplier;
+            res.seasonalMultiplier = seasonInfo.multiplier;
+            res.seasonInfo = seasonInfo;
+        }
+        return res;
+    };
+
     // 1. Если выбран явный кастомный диапазон дат
     if (periodType === 'custom') {
         const startMs = customStart ? Date.parse(customStart) : 0;
@@ -2652,7 +2684,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
             result.levelCode = 'level-3';
             result.levelName = `${currentLang === 'ru' ? 'Пользовательский период' : 'Custom Period'} (${filtered.length} выл.)`;
             result.matchedCount = filtered.length;
-            return result;
+            return finalizeResult(result);
         }
         return null;
     }
@@ -2673,7 +2705,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
             result.levelCode = 'level-3';
             result.levelName = `${currentLang === 'ru' ? 'Сезонный срез' : 'Seasonal Slice'} (${filtered.length} выл.)`;
             result.matchedCount = filtered.length;
-            return result;
+            return finalizeResult(result);
         }
         return null;
     }
@@ -2718,7 +2750,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
                     ? `🟢 Уровень 1: Рейс ${flightNo} (${dayNameRu}) • ${sample.length} выл.`
                     : `🟢 Level 1: Flight ${flightNo} (${dayNameEn}) • ${sample.length} flt.`;
                 res.matchedCount = sample.length;
-                return res;
+                return finalizeResult(res);
             }
         }
     }
@@ -2751,7 +2783,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
                     ? `🔵 Уровень 2: Маршрут ${fromIata}➔${toIata} (${dayNameRu}) • ${sample.length} выл.`
                     : `🔵 Level 2: Route ${fromIata}➔${toIata} (${dayNameEn}) • ${sample.length} flt.`;
                 res.matchedCount = sample.length;
-                return res;
+                return finalizeResult(res);
             }
         }
 
@@ -2780,7 +2812,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
                     ? `🟡 Уровень 3: Маршрут ${fromIata}➔${toIata} (все дни) • ${sample.length} выл.`
                     : `🟡 Level 3: Route ${fromIata}➔${toIata} (all days) • ${sample.length} flt.`;
                 res.matchedCount = sample.length;
-                return res;
+                return finalizeResult(res);
             }
         }
     }
@@ -2799,19 +2831,79 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
                 ? `⚪ Уровень 4: Аэропорт вылета ${fromIata} (все напр.) • ${sample.length} выл.`
                 : `⚪ Level 4: Departure Airport ${fromIata} (all routes) • ${sample.length} flt.`;
             res.matchedCount = sample.length;
-            return res;
+            return finalizeResult(res);
         }
     }
 
     return null;
 }
 
-// Расчет средних коэффициентов по переданному массиву рейсов (с поддержкой экспоненциального весового сглаживания)
-function calculateMeansFromFlights(flights, isWeighted = false) {
+// Автоматический расчет помесячного сезонного множителя на основе всей 3-летней истории базы
+function getRouteSeasonalityMultiplier(from, to, targetDateStr) {
+    if (!userFlights || userFlights.length < 10) return { multiplier: 1.0, hasSeasonality: false };
+
+    const fromIata = ruToIata(from) || from;
+    const toIata = ruToIata(to) || to;
+
+    const targetMonth = targetDateStr ? new Date(targetDateStr).getMonth() : new Date().getMonth();
+    const ruMonths = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+    const enMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthName = currentLang === 'ru' ? ruMonths[targetMonth] : enMonths[targetMonth];
+
+    // Ищем все исторические рейсы по маршруту
+    const rf = userFlights.filter(f => (ruToIata(f.from) || f.from) === fromIata && (ruToIata(f.to) || f.to) === toIata);
+    if (rf.length < 8) {
+        return { multiplier: 1.0, hasSeasonality: false, monthName };
+    }
+
+    let totPax = 0, totBags = 0;
+    let monthPax = 0, monthBags = 0, monthFlightCount = 0;
+
+    rf.forEach(f => {
+        const p = getEffectivePaxCount(f);
+        const b = parseInt(f.bag_pcs, 10) || 0;
+        totPax += p;
+        totBags += b;
+
+        if (f.date) {
+            const m = new Date(f.date).getMonth();
+            if (m === targetMonth) {
+                monthPax += p;
+                monthBags += b;
+                monthFlightCount++;
+            }
+        }
+    });
+
+    if (totPax === 0 || monthPax === 0 || monthFlightCount < 3) {
+        return { multiplier: 1.0, hasSeasonality: false, monthName };
+    }
+
+    const k_year = totBags / totPax;
+    const k_month = monthBags / monthPax;
+    const rawMultiplier = k_month / k_year;
+
+    // Ограничиваем разумным авиационным диапазоном [0.80, 1.25]
+    const multiplier = Math.max(0.80, Math.min(1.25, parseFloat(rawMultiplier.toFixed(3))));
+    const isSignificant = Math.abs(multiplier - 1.0) >= 0.02;
+
+    return {
+        multiplier: multiplier,
+        hasSeasonality: isSignificant,
+        k_year: k_year,
+        k_month: k_month,
+        monthFlightCount: monthFlightCount,
+        monthName: monthName
+    };
+}
+
+// Расчет средних коэффициентов по переданному массиву рейсов (Экспоненциальное сглаживание alpha = 0.3)
+function calculateMeansFromFlights(flights, alpha = 0.3) {
     if (!flights || flights.length === 0) return null;
 
     // Сортируем по дате в обратном порядке (самый свежий — индекс 0)
     const sortedFlights = [...flights].sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    const N = sortedFlights.length;
 
     let totalPax = 0;
     let totalBags = 0;
@@ -2832,37 +2924,41 @@ function calculateMeansFromFlights(flights, isWeighted = false) {
 
     if (totalPax === 0) return null;
 
+    let weights = [];
+    if (N === 1) {
+        weights = [1.0];
+    } else {
+        const rawWeights = [];
+        for (let k = 0; k < N; k++) {
+            if (k === N - 1) {
+                rawWeights.push(Math.pow(1 - alpha, N - 1));
+            } else {
+                rawWeights.push(alpha * Math.pow(1 - alpha, k));
+            }
+        }
+        const sumW = rawWeights.reduce((a, b) => a + b, 0);
+        weights = rawWeights.map(w => w / sumW);
+    }
+
     let pcs_pax = 0;
     let wght_pc = 0;
     let hb_pax = 0;
-    let weights = [];
 
-    if (isWeighted && sortedFlights.length > 0) {
-        // Базовые веса: 4-й самый свежий (индекс 0) = 40%, 3-й = 30%, 2-й = 20%, 1-й = 10%
-        const baseWeights = [0.40, 0.30, 0.20, 0.10].slice(0, sortedFlights.length);
-        const sumW = baseWeights.reduce((a, b) => a + b, 0);
-        weights = baseWeights.map(w => w / sumW);
+    sortedFlights.forEach((f, idx) => {
+        const pax = getEffectivePaxCount(f);
+        const pcs = parseInt(f.bag_pcs) || 0;
+        const bagWeight = parseFloat(f.bag_weight) || 0;
+        const hbWeight = parseFloat(f.hb_weight) || 0;
 
-        sortedFlights.forEach((f, idx) => {
-            const pax = getEffectivePaxCount(f);
-            const pcs = parseInt(f.bag_pcs) || 0;
-            const bagWeight = parseFloat(f.bag_weight) || 0;
-            const hbWeight = parseFloat(f.hb_weight) || 0;
+        const fl_pcs_pax = pax > 0 ? (pcs / pax) : 0;
+        const fl_wght_pc = pcs > 0 ? (bagWeight / pcs) : 0;
+        const fl_hb_pax = pax > 0 ? (hbWeight / pax) : 0;
 
-            const fl_pcs_pax = pax > 0 ? (pcs / pax) : 0;
-            const fl_wght_pc = pcs > 0 ? (bagWeight / pcs) : 0;
-            const fl_hb_pax = pax > 0 ? (hbWeight / pax) : 0;
-
-            const w = weights[idx];
-            pcs_pax += w * fl_pcs_pax;
-            wght_pc += w * fl_wght_pc;
-            hb_pax += w * fl_hb_pax;
-        });
-    } else {
-        pcs_pax = totalBags / totalPax;
-        wght_pc = totalBags > 0 ? (totalBagWeight / totalBags) : 0.0;
-        hb_pax = totalHbWeight / totalPax;
-    }
+        const w = weights[idx];
+        pcs_pax += w * fl_pcs_pax;
+        wght_pc += w * fl_wght_pc;
+        hb_pax += w * fl_hb_pax;
+    });
 
     return {
         pcs_pax: pcs_pax,
@@ -2870,7 +2966,8 @@ function calculateMeansFromFlights(flights, isWeighted = false) {
         hb_pax: hb_pax,
         usedFlights: sortedFlights,
         weights: weights,
-        isWeighted: isWeighted,
+        isWeighted: true,
+        alpha: alpha,
         totalPax: totalPax,
         totalBags: totalBags,
         totalBagWeight: totalBagWeight,
