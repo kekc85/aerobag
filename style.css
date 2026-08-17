@@ -1181,7 +1181,48 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.table-header-container .panel-title {
+    margin: 0;
+}
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.table-actions .aviation-checkbox-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-right: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--text-color, #fff);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.table-actions .aviation-checkbox-container input {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    accent-color: var(--primary);
+    margin: 0;
+}
+
+.table-actions .aviation-btn {
+    padding: 6px 12px;
+    font-size: 0.76rem;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
 }
 
 .table-responsive {
