@@ -2558,7 +2558,7 @@ function renderSampledFlightsDetails(coefs) {
 
             htmlBody += `
                 <tr>
-                    <td>${formattedDate} ${weightBadge}</td>
+                    <td><div class="sample-date-cell"><span>${formattedDate}</span>${weightBadge}</div></td>
                     <td><strong>${f.flight_no || '-'}</strong></td>
                     <td class="cyan-val">${pax}</td>
                     <td class="gold-val">${pcs}</td>

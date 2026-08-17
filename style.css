@@ -1012,22 +1012,22 @@ body.light-theme .unit {
 }
 
 .sampled-flights-table th:nth-child(1),
-.sampled-flights-table td:nth-child(1) { width: 28%; }
+.sampled-flights-table td:nth-child(1) { width: 33%; }
 
 .sampled-flights-table th:nth-child(2),
-.sampled-flights-table td:nth-child(2) { width: 12%; }
+.sampled-flights-table td:nth-child(2) { width: 13%; }
 
 .sampled-flights-table th:nth-child(3),
-.sampled-flights-table td:nth-child(3) { width: 14%; }
+.sampled-flights-table td:nth-child(3) { width: 13%; }
 
 .sampled-flights-table th:nth-child(4),
-.sampled-flights-table td:nth-child(4) { width: 14%; }
+.sampled-flights-table td:nth-child(4) { width: 13%; }
 
 .sampled-flights-table th:nth-child(5),
-.sampled-flights-table td:nth-child(5) { width: 16%; }
+.sampled-flights-table td:nth-child(5) { width: 14%; }
 
 .sampled-flights-table th:nth-child(6),
-.sampled-flights-table td:nth-child(6) { width: 16%; }
+.sampled-flights-table td:nth-child(6) { width: 14%; }
 
 .sampled-flights-table th {
     padding: 5px 6px;
@@ -3130,16 +3130,35 @@ body.light-theme .pax-mode-option input[type="radio"]:checked + .pax-mode-btn {
     color: #94a3b8;
 }
 
+.sample-date-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 .weight-badge-pill {
     background: rgba(0, 240, 255, 0.15);
-    border: 1px solid rgba(0, 240, 255, 0.4);
+    border: 1px solid rgba(0, 240, 255, 0.45);
     color: var(--accent-cyan);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    padding: 1px 5px;
+    font-variant-numeric: tabular-nums;
+    min-width: 44px;
+    width: 44px;
+    height: 19px;
+    line-height: 17px;
+    padding: 0 2px;
     border-radius: 4px;
-    margin-left: 6px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-sizing: border-box;
+    vertical-align: middle;
+    flex-shrink: 0;
 }
 
 .seasonality-pill {
