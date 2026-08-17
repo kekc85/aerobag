@@ -148,11 +148,11 @@ const translations = {
         // Аналитические параметры
         'analysis-settings-title': 'ПАРАМЕТРЫ АНАЛИЗА И СЕЗОННОСТИ',
         'label-analysis-scope': 'Область сопоставления (Matching Scope)',
-        'opt-scope-auto': 'Smart Waterfall (Авто-каскад)',
+        'opt-scope-auto': 'Умный каскад (Авто)',
         'opt-scope-flight': 'Только выбранный рейс',
         'opt-scope-route': 'Всё направление (Маршрут)',
         'label-period-type': 'Период анализа данных (Data Period)',
-        'opt-period-auto': 'Smart Waterfall (180 дн., α=0.3, сезонность)',
+        'opt-period-auto': 'Умный каскад (180 дн., α=0.3, сезонность)',
         'opt-period-all-history': 'Вся история базы (3 года)',
         'opt-period-custom': 'Произвольный диапазон дат',
         'opt-period-seasonal': 'Сезонный срез (месяц / год)',
