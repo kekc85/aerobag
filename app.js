@@ -731,9 +731,10 @@ function recalculateLoadPlanning() {
         prelimAvgPax.textContent = avgP.toFixed(2).replace('.', ',');
     }
 
-    // 1-й проход: Подсчет зафиксированных весов и мест
+    // 1-й проход: Подсчет зафиксированных весов и мест, а также сбор незафиксированных отсеков
     let lockedWeightSum = 0;
     let lockedPcsSum = 0;
+    const unlockedComps = [];
 
     for (let i = 1; i <= 12; i++) {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
@@ -741,11 +742,22 @@ function recalculateLoadPlanning() {
 
         if (pcsInput) {
             const pcs = parseInt(pcsInput.value, 10) || 0;
+            const isLocked = weightCell && weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
 
-            if (weightCell && weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true') {
+            if (isLocked) {
                 const w = parseFloat(weightCell.value) || 0;
                 lockedWeightSum += w;
                 lockedPcsSum += pcs;
+            } else {
+                if (pcs > 0) {
+                    unlockedComps.push({ index: i, pcs: pcs, weightCell: weightCell });
+                } else {
+                    // Если мест 0 и отсек не зафиксирован - сбрасываем вес в 0
+                    if (weightCell) {
+                        if (weightCell.tagName === 'INPUT') weightCell.value = '0';
+                        else weightCell.textContent = '0';
+                    }
+                }
             }
         }
     }
@@ -755,33 +767,48 @@ function recalculateLoadPlanning() {
     const remainingPcs = Math.max(1, targetPcs - lockedPcsSum);
     const dynamicAvgBagWeight = targetPcs > 0 ? (remainingWeight / remainingPcs) : 0;
 
-    // 2-й проход: Вычисление и распределение оставшегося веса по незафиксированным отсекам
-    let ttlBulkPcs = 0;
-    let ttlBulkWeight = 0;
+    // Суммарное количество мест, введенных в незафиксированные отсеки
+    const totalUnlockedEnteredPcs = unlockedComps.reduce((acc, c) => acc + c.pcs, 0);
+    // Проверка: распределены ли абсолютно все места (с учетом возможных зафиксированных)
+    const isAllPcsDistributed = (targetPcs > 0) && (totalUnlockedEnteredPcs === (targetPcs - lockedPcsSum));
+
+    // 2-й проход: Распределение веса по незафиксированным отсекам
+    let allocatedUnlockedWeight = 0;
+
+    unlockedComps.forEach((comp, idx) => {
+        const isLastComp = (idx === unlockedComps.length - 1);
+        let w = 0;
+
+        if (isAllPcsDistributed && isLastComp) {
+            // Последний отсек, закрывающий все оставшиеся места, забирает точный остаток веса!
+            w = Math.max(0, remainingWeight - allocatedUnlockedWeight);
+        } else {
+            w = Math.round(comp.pcs * dynamicAvgBagWeight);
+            allocatedUnlockedWeight += w;
+        }
+
+        if (comp.weightCell) {
+            if (comp.weightCell.tagName === 'INPUT') {
+                comp.weightCell.value = String(w);
+            } else {
+                comp.weightCell.textContent = String(w);
+            }
+        }
+    });
+
+    // 3-й проход: Подсчет итогов по всей таблице
+    let ttlBulkPcs = lockedPcsSum + totalUnlockedEnteredPcs;
+    let ttlBulkWeight = lockedWeightSum;
 
     for (let i = 1; i <= 12; i++) {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
         const weightCell = document.getElementById(`bulk-weight-${i}`);
-
-        if (pcsInput) {
-            const pcs = parseInt(pcsInput.value, 10) || 0;
-            let w = 0;
-
-            if (weightCell && weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true') {
-                w = parseFloat(weightCell.value) || 0;
-            } else {
-                w = Math.round(pcs * dynamicAvgBagWeight);
-                if (weightCell) {
-                    if (weightCell.tagName === 'INPUT') {
-                        weightCell.value = w;
-                    } else {
-                        weightCell.textContent = w;
-                    }
-                }
+        if (pcsInput && weightCell) {
+            const isLocked = weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
+            if (!isLocked) {
+                const w = parseFloat(weightCell.tagName === 'INPUT' ? weightCell.value : weightCell.textContent) || 0;
+                ttlBulkWeight += w;
             }
-
-            ttlBulkPcs += pcs;
-            ttlBulkWeight += w;
         }
     }
 
