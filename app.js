@@ -1,6 +1,6 @@
 // Версия сборки приложения
 const APP_VERSION = 'v12.0.0';
-const APP_BUILD = '76';
+const APP_BUILD = '77';
 const APP_BUILD_DATE = '17.08.2026';
 
 // Глобальное состояние
