@@ -1,5 +1,7 @@
 // Версия сборки приложения
-const APP_VERSION = 'v11.3.3';
+const APP_VERSION = 'v12.0.0';
+const APP_BUILD = '76';
+const APP_BUILD_DATE = '17.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -1024,6 +1026,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const versionTag = document.getElementById('app-version-tag');
     if (versionTag) versionTag.textContent = APP_VERSION;
+    const buildTag = document.getElementById('app-build-tag');
+    if (buildTag) buildTag.textContent = APP_BUILD;
+    const buildDateTag = document.getElementById('app-build-date');
+    if (buildDateTag) buildDateTag.textContent = APP_BUILD_DATE;
     
     // Инициализация даты в форме прогноза (сегодняшняя дата)
     const dateInput = document.getElementById('input-date');
