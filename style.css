@@ -4725,3 +4725,166 @@ body.light-theme .weekday-flights-count {
     color: var(--primary);
     line-height: 1;
 }
+
+/* --- СТИЛИ МОДУЛЯ БЭКТЕСТИНГА И ВЕРИФИКАЦИИ ТОЧНОСТИ (STAGE 3) --- */
+.backtest-modal-content {
+    background: rgba(4, 10, 24, 0.95);
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.25);
+}
+
+.backtest-controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 12px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 240, 255, 0.15);
+}
+
+.backtest-param-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.backtest-param-group label {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.backtest-progress-container {
+    margin-top: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+.backtest-progress-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--accent-cyan);
+    margin-bottom: 6px;
+}
+
+.backtest-progress-track {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.backtest-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00f2ff, #10b981);
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+    transition: width 0.15s ease-out;
+}
+
+.backtest-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 12px;
+}
+
+.backtest-kpi-card {
+    background: rgba(10, 20, 40, 0.6);
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 6px;
+    padding: 12px 14px;
+    position: relative;
+}
+
+.backtest-kpi-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.backtest-kpi-badge.old {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+}
+
+.backtest-kpi-badge.new {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.backtest-kpi-badge.gain {
+    background: rgba(255, 183, 0, 0.15);
+    border: 1px solid rgba(255, 183, 0, 0.4);
+    color: var(--accent-gold);
+}
+
+.backtest-metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.backtest-metric-row:last-child {
+    border-bottom: none;
+}
+
+.backtest-gain-row {
+    margin-bottom: 8px;
+}
+
+.gain-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    display: block;
+}
+
+.gain-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #34d399;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+}
+
+.backtest-table th {
+    font-size: 0.72rem;
+    padding: 6px 8px;
+}
+
+.backtest-table td {
+    font-size: 0.75rem;
+    padding: 5px 8px;
+}
+
+.highlight-green {
+    color: #34d399 !important;
+}
+
+body.light-theme .backtest-modal-content {
+    background: #ffffff;
+    border-color: #0284c7;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+body.light-theme .backtest-controls-bar {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+body.light-theme .backtest-kpi-card {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}

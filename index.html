@@ -782,6 +782,7 @@
                                 <span data-translate="chk-show-all-flights">Показать все рейсы</span>
                             </label>
                             <input type="file" id="backup-file-input" accept=".json" style="display: none;">
+                            <button type="button" id="btn-open-backtest" class="btn btn-secondary aviation-btn highlight-cyan-btn" data-translate="btn-open-backtest">🔬 Тест точности (Backtest)</button>
                             <button type="button" id="btn-export-db" class="btn btn-secondary aviation-btn" data-translate="btn-export-db">Экспорт базы (Backup)</button>
                             <button type="button" id="btn-import-db" class="btn btn-secondary aviation-btn" data-translate="btn-import-db">Импорт базы (Restore)</button>
                             <button type="button" id="btn-clear-db" class="btn btn-danger aviation-btn" data-translate="btn-clear-db" onclick="handleClearDb(event)">Очистить базу</button>
@@ -814,6 +815,136 @@
                 </section>
             </div>
         </main>
+    </div>
+
+    <!-- Авиационное модальное окно верификации точности (Backtesting) -->
+    <div id="backtest-modal" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel backtest-modal-content" style="max-width: 960px; width: 95%;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="warning-blink" style="color: var(--accent-cyan); animation: none;">🔬</span>
+                    <span class="modal-title-text" data-translate="backtest-modal-title">[ FORECAST ACCURACY VERIFICATION & BACKTESTING ]</span>
+                </div>
+                <button type="button" id="btn-close-backtest" class="btn-modal-close" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer; padding: 2px 8px;">✕</button>
+            </div>
+
+            <div class="modal-body" style="padding: 16px 20px; max-height: 78vh; overflow-y: auto;">
+                <!-- Панель управления тестированием -->
+                <div class="backtest-controls-bar">
+                    <div class="backtest-param-group">
+                        <label for="backtest-period-select" data-translate="backtest-label-period">Период выборки:</label>
+                        <select id="backtest-period-select" class="form-control">
+                            <option value="90" data-translate="backtest-opt-3m">Последние 3 месяца</option>
+                            <option value="180" data-translate="backtest-opt-6m" selected>Последние 6 месяцев (Рекомендуется)</option>
+                            <option value="365" data-translate="backtest-opt-1y">Последний 1 год</option>
+                            <option value="all" data-translate="backtest-opt-all">Вся доступная база рейсов</option>
+                        </select>
+                    </div>
+
+                    <div class="backtest-param-group">
+                        <label for="backtest-limit-select" data-translate="backtest-label-limit">Количество рейсов:</label>
+                        <select id="backtest-limit-select" class="form-control">
+                            <option value="50">50 рейсов (Экспресс-тест)</option>
+                            <option value="100">100 рейсов</option>
+                            <option value="250" selected>250 рейсов (Оптимально)</option>
+                            <option value="500">500 рейсов</option>
+                            <option value="1000">1000 рейсов (Глубокий)</option>
+                        </select>
+                    </div>
+
+                    <button type="button" id="btn-start-backtest" class="btn btn-primary aviation-btn" style="min-width: 180px;" data-translate="btn-start-backtest">▶ Запустить тест</button>
+                </div>
+
+                <!-- Индикатор прогресса -->
+                <div id="backtest-progress-container" class="backtest-progress-container hidden">
+                    <div class="backtest-progress-header">
+                        <span id="backtest-progress-status">Инициализация исторической симуляции...</span>
+                        <span id="backtest-progress-percent" class="monospace-val">0%</span>
+                    </div>
+                    <div class="backtest-progress-track">
+                        <div id="backtest-progress-fill" class="backtest-progress-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <!-- Контейнер результатов -->
+                <div id="backtest-results-container" class="backtest-results-container hidden" style="margin-top: 18px;">
+                    <!-- Сравнительные карточки KPI -->
+                    <div class="backtest-kpi-grid">
+                        <div class="backtest-kpi-card old-method">
+                            <div class="backtest-kpi-badge old">СТАРЫЙ МЕТОД (4 РЕЙСА)</div>
+                            <div class="backtest-metric-row">
+                                <span>Ср. ошибка веса (MAE):</span>
+                                <strong id="bt-old-weight-mae" class="monospace-val highlight-gold">0 кг</strong>
+                            </div>
+                            <div class="backtest-metric-row">
+                                <span>Ср. ошибка мест (MAE):</span>
+                                <strong id="bt-old-pcs-mae" class="monospace-val highlight-cyan">0 шт</strong>
+                            </div>
+                            <div class="backtest-metric-row">
+                                <span>В коридоре ±10%:</span>
+                                <strong id="bt-old-accuracy" class="monospace-val">0%</strong>
+                            </div>
+                        </div>
+
+                        <div class="backtest-kpi-card new-method">
+                            <div class="backtest-kpi-badge new">НОВЫЙ SMART WATERFALL (α=0.3)</div>
+                            <div class="backtest-metric-row">
+                                <span>Ср. ошибка веса (MAE):</span>
+                                <strong id="bt-new-weight-mae" class="monospace-val highlight-gold">0 кг</strong>
+                            </div>
+                            <div class="backtest-metric-row">
+                                <span>Ср. ошибка мест (MAE):</span>
+                                <strong id="bt-new-pcs-mae" class="monospace-val highlight-cyan">0 шт</strong>
+                            </div>
+                            <div class="backtest-metric-row">
+                                <span>В коридоре ±10%:</span>
+                                <strong id="bt-new-accuracy" class="monospace-val highlight-green">0%</strong>
+                            </div>
+                        </div>
+
+                        <div class="backtest-kpi-card improvement">
+                            <div class="backtest-kpi-badge gain">ПРИРОСТ ТОЧНОСТИ</div>
+                            <div class="backtest-gain-row">
+                                <span class="gain-label">Снижение ошибки веса:</span>
+                                <div id="bt-weight-gain" class="gain-value font-mono">-0.0%</div>
+                            </div>
+                            <div class="backtest-gain-row">
+                                <span class="gain-label">Снижение ошибки мест:</span>
+                                <div id="bt-pcs-gain" class="gain-value font-mono">-0.0%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Таблица выборки симуляции -->
+                    <div class="backtest-table-wrapper" style="margin-top: 16px;">
+                        <h4 class="backtest-table-title" data-translate="backtest-sample-table-title">Примеры прогнозов по реальным вылетам:</h4>
+                        <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                            <table class="flights-table aviation-table backtest-table">
+                                <thead>
+                                    <tr>
+                                        <th>Дата</th>
+                                        <th>Рейс</th>
+                                        <th>Маршрут</th>
+                                        <th>Пасс.</th>
+                                        <th>Факт вес</th>
+                                        <th>Старый (4 рейса)</th>
+                                        <th>Новый (Smart)</th>
+                                        <th>Точность нового</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="backtest-table-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Авиационное модальное окно подтверждения удаления -->
