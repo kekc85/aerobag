@@ -1,5 +1,6 @@
 {
-  "version": "12.0.0",
-  "build": 78,
-  "lastBuildTime": "2026-08-17 18:50:29"
+  "major": 12,
+  "minor": 0,
+  "patch": 80,
+  "lastBuildTime": "2026-08-17 18:54:07"
 }
