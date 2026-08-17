@@ -218,6 +218,9 @@ const translations = {
         'backtest-opt-all': 'Вся доступная база рейсов',
         'backtest-label-limit': 'Количество рейсов:',
         'btn-start-backtest': '▶ Запустить тест',
+        'backtest-badge-gain': 'ПРИРОСТ ТОЧНОСТИ',
+        'backtest-label-gain-weight': 'Прирост точности (вес):',
+        'backtest-label-gain-pcs': 'Прирост точности (места):',
         'backtest-sample-table-title': 'Примеры прогнозов по реальным вылетам:',
         'btn-export-db': 'Экспорт базы (Backup)',
         'btn-import-db': 'Импорт базы (Restore)',
@@ -419,6 +422,9 @@ const translations = {
         'backtest-opt-all': 'All Available Database Flights',
         'backtest-label-limit': 'Number of Flights:',
         'btn-start-backtest': '▶ Run Test',
+        'backtest-badge-gain': 'ACCURACY GAIN',
+        'backtest-label-gain-weight': 'Weight Accuracy Gain:',
+        'backtest-label-gain-pcs': 'Pieces Accuracy Gain:',
         'backtest-sample-table-title': 'Sample Forecasts for Real Flights:',
         'btn-export-db': 'Export Database (Backup)',
         'btn-import-db': 'Import Database (Restore)',
@@ -5013,7 +5019,8 @@ function runBacktestAccuracySimulation() {
                 const sampleSlice = newSample.slice(0, 20);
                 const means = calculateMeansFromFlights(sampleSlice, 0.3);
                 if (means && typeof means.pcs_pax === 'number' && typeof means.wght_pc === 'number' && !isNaN(means.pcs_pax) && !isNaN(means.wght_pc)) {
-                    const effectivePax = Math.max(1, Math.round(actualPax * 0.97));
+                    // При симуляции на исторических данных базы пассажиры уже являются 100% фактическими
+                    const effectivePax = Math.max(1, actualPax);
                     const seasonInfo = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
                     const seasonMultiplier = (seasonInfo && typeof seasonInfo.multiplier === 'number') ? seasonInfo.multiplier : 1.0;
                     const adjustedK = means.pcs_pax * seasonMultiplier;
@@ -5097,8 +5104,14 @@ function runBacktestAccuracySimulation() {
             if (elOldAcc) elOldAcc.textContent = `${oldAccPct}%`;
             if (elNewAcc) elNewAcc.textContent = `${newAccPct}%`;
 
-            if (elGainW) elGainW.textContent = `${gainWeightPct >= 0 ? '-' : '+'}${Math.abs(gainWeightPct).toFixed(1)}%`;
-            if (elGainP) elGainP.textContent = `${gainPcsPct >= 0 ? '-' : '+'}${Math.abs(gainPcsPct).toFixed(1)}%`;
+            if (elGainW) {
+                elGainW.textContent = `${gainWeightPct >= 0 ? '+' : '-'}${Math.abs(gainWeightPct).toFixed(1)}%`;
+                elGainW.style.color = gainWeightPct >= 0 ? '#34d399' : '#f87171';
+            }
+            if (elGainP) {
+                elGainP.textContent = `${gainPcsPct >= 0 ? '+' : '-'}${Math.abs(gainPcsPct).toFixed(1)}%`;
+                elGainP.style.color = gainPcsPct >= 0 ? '#34d399' : '#f87171';
+            }
 
             // Рендер таблицы примеров
             const tbody = document.getElementById('backtest-table-body');
