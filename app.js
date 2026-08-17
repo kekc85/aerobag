@@ -2748,7 +2748,7 @@ function getUploadedCoefficients(from, to, flightNo, scope = 'auto', periodType 
     // Окно анализа: 180 дней до даты вылета
     const window180Ms = 180 * 24 * 60 * 60 * 1000;
     const MAX_SAMPLE_SIZE = 20; // Оптимальный объем выборки (до 20 актуальных рейсов)
-    const MIN_SAMPLE_THRESHOLD = 3; // Порог минимального числа рейсов для надежной группы
+    const MIN_SAMPLE_THRESHOLD = 5; // Порог минимального числа рейсов для надежной группы (Уровень 1 и 2)
 
     const dayNameRu = getRuDayShort(targetDayOfWeek);
     const dayNameEn = getEnDayShort(targetDayOfWeek);
