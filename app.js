@@ -1,6 +1,6 @@
 // Версия сборки приложения
 const APP_VERSION = 'v12.0.0';
-const APP_BUILD = '77';
+const APP_BUILD = '78';
 const APP_BUILD_DATE = '17.08.2026';
 
 // Глобальное состояние
@@ -228,6 +228,7 @@ const translations = {
         'btn-import-db': 'Импорт базы (Restore)',
         'backup-import-success': 'База данных успешно восстановлена! Загружено {flights} рейсов и {predictions} прогнозов.',
         'backup-import-error': 'Ошибка чтения файла резервной копии. Убедитесь, что формат файла верен.',
+        'footer-build-label': 'Сборка',
         'btn-manual': 'Руководство'
     },
     en: {
@@ -432,6 +433,7 @@ const translations = {
         'btn-import-db': 'Import Database (Restore)',
         'backup-import-success': 'Database successfully restored! Loaded {flights} flights and {predictions} predictions.',
         'backup-import-error': 'Error reading backup file. Make sure file format is correct.',
+        'footer-build-label': 'Build',
         'btn-manual': 'Manual'
     }
 };
