@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.85';
+const APP_VERSION = 'v12.0.86';
 const APP_BUILD_DATE = '18.08.2026';
 
 // Глобальное состояние
@@ -624,7 +624,13 @@ function resetCompartments() {
 
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
-    if (!currentActivePredictionId) return;
+    if (!currentActivePredictionId) {
+        if (predictionsHistory && predictionsHistory.length > 0) {
+            currentActivePredictionId = predictionsHistory[0].id;
+        } else {
+            return;
+        }
+    }
     const p = predictionsHistory.find(item => item.id === currentActivePredictionId);
     if (!p) return;
 
@@ -646,9 +652,7 @@ function saveCompartmentsToPrediction() {
         compartments.push({ pcs, weight, locked });
     }
 
-    // Сохраняем только если хотя бы один отсек непустой
-    const hasData = compartments.some(c => c.pcs > 0 || c.weight > 0);
-    p.compartments = hasData ? compartments : null;
+    p.compartments = compartments;
     savePredictionsHistory();
 }
 
@@ -716,8 +720,17 @@ function transferToPreliminary() {
     if (lirPcs) lirPcs.value = pcsVal;
     if (lirWeight) lirWeight.value = weightVal;
 
+    // Связываем с самым свежим расчетом из истории
+    if (!currentActivePredictionId && predictionsHistory && predictionsHistory.length > 0) {
+        currentActivePredictionId = predictionsHistory[0].id;
+    }
+    if (currentActivePredictionId) {
+        highlightPredictionRow(currentActivePredictionId);
+    }
+
     resetCompartments();
     recalculateLoadPlanning();
+    saveCompartmentsToPrediction();
 }
 
 function transferPredictionToPreliminary(predId) {
@@ -2565,6 +2578,7 @@ function calculateBaggageForecast(logToHistory = false) {
             waterfall_level: coefs.level || 1
         };
         predictionsHistory.unshift(prediction);
+        currentActivePredictionId = prediction.id;
         savePredictionsHistory();
         renderPredictionsTable();
 
