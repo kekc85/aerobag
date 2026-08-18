@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.84';
-const APP_BUILD_DATE = '17.08.2026';
+const APP_VERSION = 'v12.0.85';
+const APP_BUILD_DATE = '18.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -686,7 +686,17 @@ function transferToPreliminary() {
     const resPcs = document.getElementById('res-pcs');
     const resWeight = document.getElementById('res-weight');
 
-    const paxVal = parseInt(paxInput ? paxInput.value : 0) || 0;
+    let paxVal = parseInt(paxInput ? paxInput.value : 0) || 0;
+
+    // Проверяем режим явки пассажиров (Факт 100% или Бронь 97%)
+    const paxModeRadio = document.querySelector('input[name="pax-mode"]:checked');
+    const paxModeFactor = paxModeRadio ? parseFloat(paxModeRadio.value) : 1.0;
+    const isBookingMode = paxModeFactor < 0.99;
+    if (isBookingMode && paxVal > 0) {
+        // Если переключатель на Брони (97%), переносим ожидаемое число пассажиров с учетом неявки
+        paxVal = Math.max(1, Math.round(paxVal * paxModeFactor));
+    }
+
     const pcsVal = parseInt(resPcs ? resPcs.textContent : 0) || 0;
     const weightVal = parseFloat(resWeight ? resWeight.textContent : 0) || 0;
 
@@ -2544,7 +2554,8 @@ function calculateBaggageForecast(logToHistory = false) {
             from: fromVal,
             to: toVal,
             flight_no: flightVal || translations[currentLang]['select-all-flights-placeholder'],
-            pax: paxVal,
+            pax: effectivePaxVal,
+            raw_pax: paxVal,
             bag_pcs: expectedPcs,
             bag_weight: expectedWeight,
             hb_weight: expectedHb,
