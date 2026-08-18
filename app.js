@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.86';
+const APP_VERSION = 'v12.0.87';
 const APP_BUILD_DATE = '18.08.2026';
 
 // Глобальное состояние
@@ -1611,11 +1611,88 @@ function applyRouteSelection(route) {
             }
         }
         isAutoSelectingRoute = false;
+        updateDefaultPaxForSelectedFlight();
         return toOptionFound;
     }
 
     isAutoSelectingRoute = false;
     return false;
+}
+
+// Расчет среднего количества пассажиров по рейсу или направлению из базы данных
+function getAveragePaxForFlight(flightNo = '', fromVal = '', toVal = '') {
+    const allFlights = (userFlights && Array.isArray(userFlights)) ? userFlights : [];
+    if (!allFlights || allFlights.length === 0) return 150;
+
+    const cleanFlt = flightNo ? String(flightNo).replace(/\D/g, '') : '';
+    const normFrom = fromVal ? (ruToIata(fromVal) || fromVal).trim().toUpperCase() : '';
+    const normTo = toVal ? (ruToIata(toVal) || toVal).trim().toUpperCase() : '';
+
+    // 1. Поиск по точному номеру рейса и направлению (from + to)
+    if (cleanFlt && normFrom && normTo) {
+        const matches = allFlights.filter(f => {
+            const fClean = (f.flight_no || '').replace(/\D/g, '');
+            const fFrom = (ruToIata(f.from) || f.from || '').trim().toUpperCase();
+            const fTo = (ruToIata(f.to) || f.to || '').trim().toUpperCase();
+            const pax = getEffectivePaxCount(f);
+            return fClean === cleanFlt && (fFrom === normFrom || fFrom.includes(normFrom)) && (fTo === normTo || fTo.includes(normTo)) && pax > 0;
+        });
+        if (matches.length > 0) {
+            const sumPax = matches.reduce((acc, f) => acc + getEffectivePaxCount(f), 0);
+            return Math.max(1, Math.round(sumPax / matches.length));
+        }
+    }
+
+    // 2. Поиск только по номеру рейса
+    if (cleanFlt) {
+        const matches = allFlights.filter(f => {
+            const fClean = (f.flight_no || '').replace(/\D/g, '');
+            const pax = getEffectivePaxCount(f);
+            return fClean === cleanFlt && pax > 0;
+        });
+        if (matches.length > 0) {
+            const sumPax = matches.reduce((acc, f) => acc + getEffectivePaxCount(f), 0);
+            return Math.max(1, Math.round(sumPax / matches.length));
+        }
+    }
+
+    // 3. Поиск по направлению (from + to)
+    if (normFrom && normTo) {
+        const matches = allFlights.filter(f => {
+            const fFrom = (ruToIata(f.from) || f.from || '').trim().toUpperCase();
+            const fTo = (ruToIata(f.to) || f.to || '').trim().toUpperCase();
+            const pax = getEffectivePaxCount(f);
+            return (fFrom === normFrom || fFrom.includes(normFrom)) && (fTo === normTo || fTo.includes(normTo)) && pax > 0;
+        });
+        if (matches.length > 0) {
+            const sumPax = matches.reduce((acc, f) => acc + getEffectivePaxCount(f), 0);
+            return Math.max(1, Math.round(sumPax / matches.length));
+        }
+    }
+
+    return 150;
+}
+
+// Автоподстановка среднего числа пассажиров в поле input-pax
+function updateDefaultPaxForSelectedFlight() {
+    const inputPax = document.getElementById('input-pax');
+    const selectFlight = document.getElementById('select-flight');
+    const selectFrom = document.getElementById('select-from');
+    const selectTo = document.getElementById('select-to');
+
+    if (!inputPax) return;
+
+    const flightVal = selectFlight ? selectFlight.value.trim() : '';
+    const fromVal = selectFrom ? selectFrom.value : '';
+    const toVal = selectTo ? selectTo.value : '';
+
+    if (!flightVal && !fromVal && !toVal) return;
+
+    const avgPax = getAveragePaxForFlight(flightVal, fromVal, toVal);
+    if (avgPax > 0) {
+        inputPax.value = avgPax;
+        updatePaxExpectedHint();
+    }
 }
 
 // Индекс выделенного элемента клавиатурной навигацией
@@ -1750,6 +1827,8 @@ function selectFlightOption(flightNo) {
     const route = findRouteByFlightNo(flightNo);
     if (route) {
         applyRouteSelection(route);
+    } else {
+        updateDefaultPaxForSelectedFlight();
     }
 
     hideCustomFlightSuggestions();
@@ -1998,6 +2077,7 @@ function setupEventListeners() {
     selectTo.addEventListener('change', () => {
         if (!isAutoSelectingRoute) {
             populateAllFlightsDropdown(selectFrom.value, selectTo.value);
+            updateDefaultPaxForSelectedFlight();
         }
     });
 
@@ -2023,11 +2103,21 @@ function setupEventListeners() {
         const route = findRouteByFlightNo(flightVal);
         if (route) {
             applyRouteSelection(route);
+        } else {
+            updateDefaultPaxForSelectedFlight();
         }
     };
 
     if (selectFlight) {
         selectFlight.addEventListener('input', handleFlightInput);
+
+        selectFlight.addEventListener('change', () => {
+            updateDefaultPaxForSelectedFlight();
+        });
+
+        selectFlight.addEventListener('blur', () => {
+            updateDefaultPaxForSelectedFlight();
+        });
 
         selectFlight.addEventListener('focus', () => {
             if (selectFlight.value.trim() !== '') {
