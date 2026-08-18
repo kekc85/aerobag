@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.87';
+const APP_VERSION = 'v12.0.88';
 const APP_BUILD_DATE = '18.08.2026';
 
 // Глобальное состояние
@@ -5078,8 +5078,11 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date)).slice(0, 4);
             }
 
-            let oldPredWeight = actualWeight;
-            let oldPredPcs = actualPcs;
+            const defaultFallbackK = 0.45;
+            const defaultFallbackV = 14.5;
+
+            let oldPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
+            let oldPredWeight = Math.round(oldPredPcs * defaultFallbackV);
             if (oldSample.length > 0) {
                 let sumK = 0, sumV = 0;
                 oldSample.forEach(f => {
@@ -5133,8 +5136,8 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            let newPredWeight = actualWeight;
-            let newPredPcs = actualPcs;
+            let newPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
+            let newPredWeight = Math.round(newPredPcs * defaultFallbackV);
             if (newSample.length > 0) {
                 const sampleSlice = newSample.slice(0, 20);
                 const means = calculateMeansFromFlights(sampleSlice, 0.3);
@@ -5164,7 +5167,9 @@ function runBacktestAccuracySimulation() {
                 if (newErrW / actualWeight <= 0.10) newAccurateCount++;
             }
 
-            if (sampleRowsData.length < 15) {
+            // Отбираем 15 репрезентативных примеров (приоритет рейсам с историей выборки)
+            const sampleInterval = Math.max(1, Math.floor(testSample.length / 15));
+            if ((i % sampleInterval === 0 || newSample.length >= 3) && sampleRowsData.length < 15) {
                 sampleRowsData.push({
                     date: targetFlight.date ? formatDateStr(targetFlight.date) : '-',
                     flight: targetFlight.flight_no || '-',
