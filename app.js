@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.88';
-const APP_BUILD_DATE = '18.08.2026';
+const APP_VERSION = 'v12.0.89';
+const APP_BUILD_DATE = '20.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -504,6 +504,14 @@ function iataToRu(iataCode) {
     }
     const ap = Object.values(baggageDb.airports).find(a => a.iata === iataCode);
     return ap ? ap.ru : iataCode;
+}
+
+// Автоматическая нормализация кодов аэропортов рейса к стандарту ИАТА
+function normalizeFlightRecord(f) {
+    if (!f) return f;
+    if (f.from) f.from = ruToIata(f.from) || String(f.from).trim().toUpperCase();
+    if (f.to) f.to = ruToIata(f.to) || String(f.to).trim().toUpperCase();
+    return f;
 }
 
 // Вспомогательная функция для получения количества пассажиров без учета младенцев (ВЗ + РБ, без РМ)
@@ -1181,7 +1189,8 @@ function loadFlightsFromLocalStorage() {
     try {
         const saved = localStorage.getItem('averago_user_flights_local');
         if (saved) {
-            userFlights = JSON.parse(saved);
+            const parsed = JSON.parse(saved);
+            userFlights = Array.isArray(parsed) ? parsed.map(normalizeFlightRecord) : [];
         } else {
             userFlights = [];
         }
@@ -1226,7 +1235,7 @@ async function loadUserFlights() {
             isOfflineMode = true;
             loadFlightsFromLocalStorage();
         } else if (data.success) {
-            userFlights = data.flights;
+            userFlights = Array.isArray(data.flights) ? data.flights.map(normalizeFlightRecord) : [];
             isOfflineMode = false;
         } else {
             console.error("Ошибка загрузки рейсов с сервера:", data.error);
@@ -1267,7 +1276,7 @@ async function loadUserFlightsSilent() {
         if (contentType && contentType.includes('application/json')) {
             const data = await response.json();
             if (data.success) {
-                userFlights = data.flights;
+                userFlights = Array.isArray(data.flights) ? data.flights.map(normalizeFlightRecord) : [];
             }
         }
     } catch (e) {
@@ -3382,8 +3391,8 @@ function handleManualFlightSubmit(e) {
         airline: airline,
         flight_no: flightNo,
         date: dateIso,
-        from: iataToRu(fromIata) || fromCode,
-        to: iataToRu(toIata) || toCode,
+        from: fromIata,
+        to: toIata,
         men: men,
         women: women,
         rb: rb,
@@ -3493,8 +3502,8 @@ function handleImportDatabase(file) {
                 throw new Error("Неверный формат JSON");
             }
 
-            // Записываем данные в глобальное состояние
-            userFlights = importedFlights;
+            // Записываем данные в глобальное состояние с нормализацией кодов аэропортов в стандарт ИАТА
+            userFlights = importedFlights.map(normalizeFlightRecord);
             predictionsHistory = importedPredictions;
 
             // Сохраняем в зависимости от оффлайн/онлайн режима
