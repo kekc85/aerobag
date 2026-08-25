@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.89';
-const APP_BUILD_DATE = '20.08.2026';
+const APP_VERSION = 'v12.0.90';
+const APP_BUILD_DATE = '25.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;

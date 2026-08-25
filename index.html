@@ -100,15 +100,15 @@
                                     <input type="number" id="input-pax" class="form-control" tabindex="4" min="1" max="1000" value="150">
                                     <div class="pax-mode-toggle-group">
                                         <label class="pax-mode-option">
-                                            <input type="radio" name="pax-mode" id="pax-mode-fact" value="1.0">
+                                            <input type="radio" name="pax-mode" id="pax-mode-fact" value="1.0" checked>
                                             <span class="pax-mode-btn" data-translate="pax-mode-fact">Факт (100%)</span>
                                         </label>
                                         <label class="pax-mode-option">
-                                            <input type="radio" name="pax-mode" id="pax-mode-booking" value="0.97" checked>
+                                            <input type="radio" name="pax-mode" id="pax-mode-booking" value="0.97">
                                             <span class="pax-mode-btn" data-translate="pax-mode-booking">Бронь (97% явка)</span>
                                         </label>
                                     </div>
-                                    <div id="pax-expected-hint" class="pax-expected-hint"></div>
+                                    <div id="pax-expected-hint" class="pax-expected-hint hidden"></div>
                                 </div>
                                 <div class="form-group col-6">
                                     <label for="input-date" data-translate="label-flight-date">Дата рейса</label>
@@ -1008,11 +1008,11 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.6; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px;">
-        AeroBag Predictor <span id="app-version-tag">v12.0.89</span> (<span id="app-build-date">20.08.2026</span>)
+        AeroBag Predictor <span id="app-version-tag">v12.0.90</span> (<span id="app-build-date">25.08.2026</span>)
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.89"></script>
+    <script src="app.js?v=v12.0.90"></script>
 </body>
 </html>
