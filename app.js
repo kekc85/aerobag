@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.90';
-const APP_BUILD_DATE = '25.08.2026';
+const APP_VERSION = 'v12.0.92';
+const APP_BUILD_DATE = '28.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -8,6 +8,7 @@ let userFlights = [];
 let predictionsHistory = [];
 let currentLang = 'ru';
 let currentTheme = 'dark';
+let currentUser = null; // { id, username, full_name, role }
 let isAdminAuthenticated = false;
 let isOfflineMode = false;
 let isAutoSelectingRoute = false;
@@ -156,12 +157,34 @@ const translations = {
         'th-cpt-sec': 'ОТСЕК',
         'row-rest': 'ОСТАТОК',
         'row-ttl': 'ИТОГО',
-        'admin-auth-title': '[ ОГРАНИЧЕННЫЙ ДОСТУП: АВТОРИЗАЦИЯ ]',
-        'admin-auth-desc': 'Внимание! Для доступа к разделу "Администрирование" требуется ввод пароля диспетчера:',
-        'admin-auth-label': 'ПАРОЛЬ ДОСТУПА',
-        'admin-auth-error': '❌ Неверный пароль доступа!',
-        'admin-auth-cancel': '[ ОТМЕНА ]',
-        'admin-auth-submit': '[ ВОЙТИ ]',
+        'auth-modal-title': '[ АВТОРИЗАЦИЯ В СИСТЕМЕ AEROBAG ]',
+        'label-auth-username': 'ЛОГИН / ПОЗЫВНОЙ',
+        'label-auth-password': 'ПАРОЛЬ ДОСТУПА',
+        'btn-login-submit': '[ ВОЙТИ В СИСТЕМУ ]',
+        'btn-logout': 'Выход',
+        'rbac-title': '[ УПРАВЛЕНИЕ УЧЕТНЫМИ ЗАПИСЯМИ (RBAC) ]',
+        'rbac-subtext': 'Управление диспетчерами, администраторами и разграничение прав доступа',
+        'btn-add-user': 'Добавить пользователя',
+        'th-user-login': 'Логин',
+        'th-user-name': 'ФИО / Позывной',
+        'th-user-role': 'Роль',
+        'th-user-status': 'Статус',
+        'th-user-last-login': 'Последний вход',
+        'th-user-actions': 'Действия',
+        'autobackup-title': '[ АВТОМАТИЧЕСКИЕ РЕЗЕРВНЫЕ КОПИИ (30 ДНЕЙ) ]',
+        'autobackup-subtext': 'Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.',
+        'btn-create-server-backup': 'Создать бэкап сейчас',
+        'th-backup-file': 'Имя файла архива',
+        'th-backup-date': 'Дата создания',
+        'th-backup-size': 'Размер',
+        'th-backup-actions': 'Действия',
+        'label-user-login': 'Логин',
+        'label-user-fullname': 'ФИО / Позывной',
+        'label-user-role': 'Роль в системе',
+        'label-user-password': 'Пароль доступа',
+        'label-user-active': 'Активная учетная запись (Разрешить вход)',
+        'label-new-password': 'Новый пароль',
+        'label-confirm-password': 'Повторите пароль',
         
         // Аналитические параметры
         'analysis-settings-title': 'ПАРАМЕТРЫ АНАЛИЗА И СЕЗОННОСТИ',
@@ -359,14 +382,34 @@ const translations = {
         'th-cpt-sec': 'CPT/SEC',
         'row-rest': 'REST',
         'row-ttl': 'TTL',
-        
-        // Admin Auth translations in EN
-        'admin-auth-title': '[ RESTRICTED ACCESS: AUTHORIZATION ]',
-        'admin-auth-desc': 'Attention! Dispatcher password is required to access "Administration":',
-        'admin-auth-label': 'ACCESS PASSWORD',
-        'admin-auth-error': '❌ Incorrect access password!',
-        'admin-auth-cancel': '[ CANCEL ]',
-        'admin-auth-submit': '[ ENTER ]',
+        'auth-modal-title': '[ AEROBAG ACCESS CONTROL ]',
+        'label-auth-username': 'LOGIN / CALLSIGN',
+        'label-auth-password': 'ACCESS PASSWORD',
+        'btn-login-submit': '[ ENTER SYSTEM ]',
+        'btn-logout': 'Logout',
+        'rbac-title': '[ ACCESS CONTROL & USER MANAGEMENT ]',
+        'rbac-subtext': 'Manage dispatchers, administrators, and role-based permissions',
+        'btn-add-user': 'Add User',
+        'th-user-login': 'Login',
+        'th-user-name': 'Full Name / Callsign',
+        'th-user-role': 'Role',
+        'th-user-status': 'Status',
+        'th-user-last-login': 'Last Login',
+        'th-user-actions': 'Actions',
+        'autobackup-title': '[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]',
+        'autobackup-subtext': 'Daily database snapshots on server. 30-day rotation and retention.',
+        'btn-create-server-backup': 'Create Backup Now',
+        'th-backup-file': 'Backup Filename',
+        'th-backup-date': 'Created Date',
+        'th-backup-size': 'Size',
+        'th-backup-actions': 'Actions',
+        'label-user-login': 'Login',
+        'label-user-fullname': 'Full Name / Callsign',
+        'label-user-role': 'System Role',
+        'label-user-password': 'Password',
+        'label-user-active': 'Active Account (Allow Login)',
+        'label-new-password': 'New Password',
+        'label-confirm-password': 'Confirm Password',
         
         // Analytical settings
         'analysis-settings-title': 'ANALYSIS & SEASONALITY SETTINGS',
@@ -1072,13 +1115,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadBaggageDb();
-    await loadUserFlights();
     loadPredictionsHistory();
     
-    // Автоматическая тихая фоновая подгрузка системного файла статистики
-    await loadSystemStats(true);
+    // Автоматическая аутентификация пользователя и разграничение прав
+    await checkAuthStatus();
 
     setupEventListeners();
+    setupTabs();
     setupNumericInputValidation();
     setupDatePickerTrigger();
     initAviationModal();
@@ -2288,6 +2331,54 @@ function setupEventListeners() {
     initBacktestModule();
     setupDragAndDrop();
 
+    // Слушатели авторизации и профиля
+    const authForm = document.getElementById('app-auth-form');
+    if (authForm) authForm.addEventListener('submit', handleLoginSubmit);
+
+    const btnToggleAuthPass = document.getElementById('btn-toggle-auth-pass');
+    const authPassInput = document.getElementById('auth-password');
+    if (btnToggleAuthPass && authPassInput) {
+        btnToggleAuthPass.addEventListener('click', () => {
+            if (authPassInput.type === 'password') {
+                authPassInput.type = 'text';
+                btnToggleAuthPass.textContent = '🙈';
+            } else {
+                authPassInput.type = 'password';
+                btnToggleAuthPass.textContent = '👁️';
+            }
+        });
+    }
+
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) btnLogout.addEventListener('click', handleLogout);
+
+    // Слушатели управления пользователями (RBAC)
+    const btnAddUser = document.getElementById('btn-add-user');
+    if (btnAddUser) btnAddUser.addEventListener('click', openCreateUserModal);
+
+    const btnCloseUserModal = document.getElementById('btn-close-user-modal');
+    const btnCancelUserModal = document.getElementById('btn-cancel-user-modal');
+    const userModal = document.getElementById('modal-user-edit');
+    [btnCloseUserModal, btnCancelUserModal].forEach(btn => {
+        if (btn && userModal) btn.addEventListener('click', () => userModal.classList.add('hidden'));
+    });
+
+    const formUserEdit = document.getElementById('form-user-edit');
+    if (formUserEdit) formUserEdit.addEventListener('submit', handleSaveUser);
+
+    const btnClosePassModal = document.getElementById('btn-close-pass-modal');
+    const btnCancelPassModal = document.getElementById('btn-cancel-pass-modal');
+    const passModal = document.getElementById('modal-change-user-pass');
+    [btnClosePassModal, btnCancelPassModal].forEach(btn => {
+        if (btn && passModal) btn.addEventListener('click', () => passModal.classList.add('hidden'));
+    });
+
+    const formChangePass = document.getElementById('form-change-password');
+    if (formChangePass) formChangePass.addEventListener('submit', handleSaveNewPassword);
+
+    // Слушатели автоматических бэкапов
+    const btnCreateServerBackup = document.getElementById('btn-create-server-backup');
+    if (btnCreateServerBackup) btnCreateServerBackup.addEventListener('click', createServerBackupNow);
 }
 
 // Автоматическая/ручная загрузка системной статистики stats_july.xls
@@ -2313,7 +2404,197 @@ async function loadSystemStats(isSilent = true) {
     }
 }
 
-// Настройка вкладок (Tabs) и авторизация по паролю NW2026
+// ==========================================================================
+// СИСТЕМА АУТЕНТИФИКАЦИИ, РАЗГРАНИЧЕНИЯ РОЛЕЙ (RBAC) И АВТОМАТИЧЕСКИХ БЭКАПОВ
+// ==========================================================================
+
+// Проверка текущей сессии пользователя
+async function checkAuthStatus() {
+    try {
+        const response = await fetch('api.php?action=check_auth');
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            if (data.success && data.authenticated && data.user) {
+                currentUser = data.user;
+                isAdminAuthenticated = (currentUser.role === 'admin');
+                
+                const authModal = document.getElementById('app-auth-modal');
+                if (authModal) authModal.classList.add('hidden');
+
+                updateUserHeaderUI();
+                updateTabsRoleAccess();
+                
+                if (currentUser.role === 'admin') {
+                    loadUsersList();
+                    loadServerBackupsList();
+                }
+                return true;
+            }
+        }
+    } catch (e) {
+        console.warn("Ошибка проверки авторизации на сервере:", e);
+    }
+
+    // Если не авторизован - показываем окно логина
+    currentUser = null;
+    isAdminAuthenticated = false;
+    const authModal = document.getElementById('app-auth-modal');
+    if (authModal) {
+        authModal.classList.remove('hidden');
+        const userInp = document.getElementById('auth-username');
+        if (userInp) setTimeout(() => userInp.focus(), 100);
+    }
+    updateUserHeaderUI();
+    updateTabsRoleAccess();
+    return false;
+}
+
+// Обработка отправки формы входа
+async function handleLoginSubmit(e) {
+    if (e) e.preventDefault();
+    const usernameInput = document.getElementById('auth-username');
+    const passwordInput = document.getElementById('auth-password');
+    const errorEl = document.getElementById('auth-error-msg');
+    const submitBtn = document.getElementById('btn-submit-login');
+
+    const username = usernameInput ? usernameInput.value.trim() : '';
+    const password = passwordInput ? passwordInput.value : '';
+
+    if (!username || !password) {
+        if (errorEl) {
+            errorEl.textContent = (currentLang === 'ru' ? 'Введите логин и пароль.' : 'Enter username and password.');
+            errorEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (errorEl) errorEl.classList.add('hidden');
+
+    try {
+        const response = await fetch('api.php?action=login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username, password: password })
+        });
+        const data = await response.json();
+
+        if (data.success && data.user) {
+            currentUser = data.user;
+            isAdminAuthenticated = (currentUser.role === 'admin');
+
+            const authModal = document.getElementById('app-auth-modal');
+            if (authModal) authModal.classList.add('hidden');
+
+            if (passwordInput) passwordInput.value = '';
+            
+            updateUserHeaderUI();
+            updateTabsRoleAccess();
+
+            // Загружаем рейсы и базу
+            await loadUserFlights();
+
+            if (currentUser.role === 'admin') {
+                loadUsersList();
+                loadServerBackupsList();
+            }
+
+            const welcomeMsg = (currentLang === 'ru' ? 'Добро пожаловать в систему, ' : 'Welcome to system, ') + currentUser.full_name;
+            showAviationAlert(welcomeMsg, false);
+        } else {
+            if (errorEl) {
+                errorEl.textContent = data.error || (currentLang === 'ru' ? 'Неверный логин или пароль.' : 'Invalid login or password.');
+                errorEl.classList.remove('hidden');
+            }
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.focus();
+            }
+        }
+    } catch (err) {
+        console.error("Ошибка при авторизации:", err);
+        if (errorEl) {
+            errorEl.textContent = (currentLang === 'ru' ? 'Ошибка соединения с сервером.' : 'Server connection error.');
+            errorEl.classList.remove('hidden');
+        }
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+
+// Завершение сессии (Выход)
+async function handleLogout() {
+    try {
+        await fetch('api.php?action=logout');
+    } catch (e) {
+        console.warn("Ошибка логаута:", e);
+    }
+    currentUser = null;
+    isAdminAuthenticated = false;
+    
+    // Переключаем на вкладку прогнозирования
+    const tabPredictBtn = document.getElementById('tab-btn-predict');
+    if (tabPredictBtn) tabPredictBtn.click();
+
+    updateUserHeaderUI();
+    updateTabsRoleAccess();
+
+    const authModal = document.getElementById('app-auth-modal');
+    if (authModal) {
+        authModal.classList.remove('hidden');
+        const userInp = document.getElementById('auth-username');
+        const passInp = document.getElementById('auth-password');
+        const errorEl = document.getElementById('auth-error-msg');
+        if (userInp) userInp.value = '';
+        if (passInp) passInp.value = '';
+        if (errorEl) errorEl.classList.add('hidden');
+        if (userInp) setTimeout(() => userInp.focus(), 100);
+    }
+}
+
+// Обновление профиля пользователя в шапке
+function updateUserHeaderUI() {
+    const profileContainer = document.getElementById('header-user-profile');
+    const roleBadge = document.getElementById('user-role-badge');
+    const fullnameEl = document.getElementById('user-fullname');
+
+    if (!profileContainer) return;
+
+    if (currentUser) {
+        profileContainer.classList.remove('hidden');
+        if (roleBadge) {
+            const isAdmin = (currentUser.role === 'admin');
+            roleBadge.className = 'badge-role ' + (isAdmin ? 'badge-role-admin' : 'badge-role-dispatcher');
+            roleBadge.textContent = isAdmin ? 'ADMIN' : 'DISPATCHER';
+        }
+        if (fullnameEl) {
+            fullnameEl.textContent = currentUser.full_name || currentUser.username;
+        }
+    } else {
+        profileContainer.classList.add('hidden');
+    }
+}
+
+// Разграничение видимости вкладок в зависимости от роли
+function updateTabsRoleAccess() {
+    const tabAdminBtn = document.getElementById('tab-btn-admin');
+    if (!tabAdminBtn) return;
+
+    if (currentUser && currentUser.role === 'admin') {
+        tabAdminBtn.style.display = '';
+    } else {
+        tabAdminBtn.style.display = 'none';
+        // Если открыта вкладка админа, переключаем на прогнозирование
+        const adminContent = document.getElementById('tab-content-admin');
+        if (adminContent && !adminContent.classList.contains('hidden')) {
+            const tabPredictBtn = document.getElementById('tab-btn-predict');
+            if (tabPredictBtn) tabPredictBtn.click();
+        }
+    }
+}
+
+// Настройка переключения вкладок
 function setupTabs() {
     const tabPredictBtn = document.getElementById('tab-btn-predict');
     const tabDashboardBtn = document.getElementById('tab-btn-dashboard');
@@ -2323,14 +2604,13 @@ function setupTabs() {
     const dashboardContent = document.getElementById('tab-content-dashboard');
     const adminContent = document.getElementById('tab-content-admin');
 
-    const authModal = document.getElementById('admin-auth-modal');
-    const authForm = document.getElementById('admin-auth-form');
-    const passwordInput = document.getElementById('admin-password-input');
-    const authError = document.getElementById('admin-auth-error');
-    const authCancelBtn = document.getElementById('admin-auth-cancel');
-    const togglePassBtn = document.getElementById('btn-toggle-show-pass');
-
     function switchTab(tabKey) {
+        // Защита доступа к разделу Администрирование
+        if (tabKey === 'admin' && (!currentUser || currentUser.role !== 'admin')) {
+            showAviationAlert((currentLang === 'ru' ? 'Доступ запрещен. Требуются права Администратора.' : 'Access denied. Administrator privileges required.'), true);
+            return;
+        }
+
         if (tabPredictBtn) tabPredictBtn.classList.toggle('active', tabKey === 'predict');
         if (tabDashboardBtn) tabDashboardBtn.classList.toggle('active', tabKey === 'dashboard');
         if (tabAdminBtn) tabAdminBtn.classList.toggle('active', tabKey === 'admin');
@@ -2343,46 +2623,14 @@ function setupTabs() {
             renderDashboardAnalytics();
         } else if (tabKey === 'admin') {
             populateAirportDropdowns();
+            loadUsersList();
+            loadServerBackupsList();
         }
     }
 
-    if (togglePassBtn && passwordInput) {
-        togglePassBtn.addEventListener('click', () => {
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                togglePassBtn.textContent = '🙈';
-            } else {
-                passwordInput.type = 'password';
-                togglePassBtn.textContent = '👁️';
-            }
-        });
-    }
-
-    if (tabPredictBtn) {
-        tabPredictBtn.addEventListener('click', () => switchTab('predict'));
-    }
-
-    if (tabDashboardBtn) {
-        tabDashboardBtn.addEventListener('click', () => switchTab('dashboard'));
-    }
-
-    if (tabAdminBtn) {
-        tabAdminBtn.addEventListener('click', () => {
-            if (isAdminAuthenticated) {
-                switchTab('admin');
-            } else {
-                // Запрос ввода пароля NW2026 через стильное авиационное модальное окно
-                if (authModal) {
-                    if (passwordInput) passwordInput.value = '';
-                    if (authError) authError.classList.add('hidden');
-                    authModal.classList.remove('hidden');
-                    setTimeout(() => {
-                        if (passwordInput) passwordInput.focus();
-                    }, 100);
-                }
-            }
-        });
-    }
+    if (tabPredictBtn) tabPredictBtn.addEventListener('click', () => switchTab('predict'));
+    if (tabDashboardBtn) tabDashboardBtn.addEventListener('click', () => switchTab('dashboard'));
+    if (tabAdminBtn) tabAdminBtn.addEventListener('click', () => switchTab('admin'));
 
     // Слушатели фильтров Дашборда
     const filterRoute = document.getElementById('dash-filter-route');
@@ -2404,30 +2652,466 @@ function setupTabs() {
     }
     if (dateFrom) dateFrom.addEventListener('change', renderDashboardAnalytics);
     if (dateTo) dateTo.addEventListener('change', renderDashboardAnalytics);
+}
 
-    if (authCancelBtn) {
-        authCancelBtn.addEventListener('click', () => {
-            if (authModal) authModal.classList.add('hidden');
-        });
+// --------------------------------------------------------------------------
+// МОДУЛЬ УПРАВЛЕНИЯ ПОЛЬЗОВАТЕЛЯМИ (RBAC)
+// --------------------------------------------------------------------------
+
+let systemUsersList = [];
+
+// Загрузка списка пользователей с сервера
+async function loadUsersList() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    try {
+        const response = await fetch('api.php?action=get_users');
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.users)) {
+            systemUsersList = data.users;
+            renderUsersTable();
+        } else {
+            tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">${data.error || 'Ошибка загрузки пользователей'}</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Ошибка при загрузке пользователей:", err);
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">Не удалось подключиться к серверу</td></tr>`;
+    }
+}
+
+// Отрисовка таблицы пользователей
+function renderUsersTable() {
+    const tbody = document.getElementById('users-table-body');
+    if (!tbody) return;
+
+    if (systemUsersList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text">Пользователи не найдены.</td></tr>`;
+        return;
     }
 
-    if (authForm) {
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const entered = passwordInput ? passwordInput.value.trim() : '';
-            if (entered === 'NW2026') {
-                isAdminAuthenticated = true;
-                if (authModal) authModal.classList.add('hidden');
-                switchTab('admin');
-            } else {
-                if (authError) authError.classList.remove('hidden');
-                if (passwordInput) {
-                    passwordInput.value = '';
-                    passwordInput.focus();
-                }
+    let html = '';
+    systemUsersList.forEach(u => {
+        const isAdmin = (u.role === 'admin');
+        const isActive = (parseInt(u.is_active, 10) === 1);
+        const isSelf = (currentUser && u.id === currentUser.id);
+
+        const roleBadge = isAdmin
+            ? `<span class="badge-role badge-role-admin">ADMIN</span>`
+            : `<span class="badge-role badge-role-dispatcher">DISPATCHER</span>`;
+
+        const statusBadge = isActive
+            ? `<span class="status-pill active">${currentLang === 'ru' ? 'Активен' : 'Active'}</span>`
+            : `<span class="status-pill blocked">${currentLang === 'ru' ? 'Заблокирован' : 'Blocked'}</span>`;
+
+        const lastLoginText = u.last_login ? u.last_login : (currentLang === 'ru' ? 'Не входил' : 'Never');
+
+        html += `
+            <tr>
+                <td><strong>${escapeHtml(u.username)}</strong> ${isSelf ? '<span class="highlight-cyan font-mono" style="font-size:0.75rem;">(Вы)</span>' : ''}</td>
+                <td>${escapeHtml(u.full_name)}</td>
+                <td>${roleBadge}</td>
+                <td>${statusBadge}</td>
+                <td class="monospace-val" style="font-size:0.75rem;">${lastLoginText}</td>
+                <td style="text-align: right;">
+                    <div class="table-action-btns">
+                        <button type="button" class="btn-table-action gold" onclick="openChangePasswordModal('${u.id}', '${escapeHtml(u.username)}')" title="Сменить пароль">🔑 Пароль</button>
+                        <button type="button" class="btn-table-action" onclick="openEditUserModal('${u.id}')" title="Редактировать">✏️</button>
+                        ${!isSelf ? `<button type="button" class="btn-table-action danger" onclick="handleDeleteUser('${u.id}', '${escapeHtml(u.username)}')" title="Удалить">🗑️</button>` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Открытие модалки создания нового пользователя
+function openCreateUserModal() {
+    const modal = document.getElementById('modal-user-edit');
+    const title = document.getElementById('user-modal-title');
+    const form = document.getElementById('form-user-edit');
+    const errEl = document.getElementById('user-modal-error');
+    const idInp = document.getElementById('edit-user-id');
+    const usernameInp = document.getElementById('edit-username');
+    const fullnameInp = document.getElementById('edit-fullname');
+    const roleSelect = document.getElementById('edit-user-role');
+    const passGroup = document.getElementById('user-pass-group');
+    const passInp = document.getElementById('edit-user-pass');
+    const activeGroup = document.getElementById('user-active-group');
+
+    if (!modal) return;
+    if (form) form.reset();
+    if (errEl) errEl.classList.add('hidden');
+
+    if (idInp) idInp.value = '';
+    if (usernameInp) { usernameInp.disabled = false; usernameInp.value = ''; }
+    if (fullnameInp) fullnameInp.value = '';
+    if (roleSelect) roleSelect.value = 'dispatcher';
+    if (passGroup) passGroup.style.display = '';
+    if (passInp) passInp.required = true;
+    if (activeGroup) activeGroup.style.display = 'none';
+
+    if (title) title.textContent = (currentLang === 'ru' ? '[ СОЗДАНИЕ УЧЕТНОЙ ЗАПИСИ ]' : '[ CREATE USER ACCOUNT ]');
+    modal.classList.remove('hidden');
+    if (usernameInp) setTimeout(() => usernameInp.focus(), 100);
+}
+
+// Открытие модалки редактирования пользователя
+function openEditUserModal(userId) {
+    const user = systemUsersList.find(u => u.id === userId);
+    if (!user) return;
+
+    const modal = document.getElementById('modal-user-edit');
+    const title = document.getElementById('user-modal-title');
+    const errEl = document.getElementById('user-modal-error');
+    const idInp = document.getElementById('edit-user-id');
+    const usernameInp = document.getElementById('edit-username');
+    const fullnameInp = document.getElementById('edit-fullname');
+    const roleSelect = document.getElementById('edit-user-role');
+    const passGroup = document.getElementById('user-pass-group');
+    const passInp = document.getElementById('edit-user-pass');
+    const activeGroup = document.getElementById('user-active-group');
+    const activeInp = document.getElementById('edit-user-active');
+
+    if (!modal) return;
+    if (errEl) errEl.classList.add('hidden');
+
+    if (idInp) idInp.value = user.id;
+    if (usernameInp) { usernameInp.value = user.username; usernameInp.disabled = true; }
+    if (fullnameInp) fullnameInp.value = user.full_name;
+    if (roleSelect) roleSelect.value = user.role;
+    if (passGroup) passGroup.style.display = 'none';
+    if (passInp) passInp.required = false;
+    if (activeGroup) activeGroup.style.display = '';
+    if (activeInp) activeInp.checked = (parseInt(user.is_active, 10) === 1);
+
+    if (title) title.textContent = (currentLang === 'ru' ? '[ РЕДАКТИРОВАНИЕ ПОЛЬЗОВАТЕЛЯ ]' : '[ EDIT USER ACCOUNT ]');
+    modal.classList.remove('hidden');
+}
+
+// Сохранение пользователя (Создание или Обновление)
+async function handleSaveUser(e) {
+    if (e) e.preventDefault();
+    const idInp = document.getElementById('edit-user-id');
+    const usernameInp = document.getElementById('edit-username');
+    const fullnameInp = document.getElementById('edit-fullname');
+    const roleSelect = document.getElementById('edit-user-role');
+    const passInp = document.getElementById('edit-user-pass');
+    const activeInp = document.getElementById('edit-user-active');
+    const errEl = document.getElementById('user-modal-error');
+
+    const id = idInp ? idInp.value : '';
+    const isNew = !id;
+    const username = usernameInp ? usernameInp.value.trim().toUpperCase() : '';
+    const fullName = fullnameInp ? fullnameInp.value.trim() : '';
+    const role = roleSelect ? roleSelect.value : 'dispatcher';
+    const password = passInp ? passInp.value : '';
+    const isActive = activeInp && activeInp.checked ? 1 : 0;
+
+    if (!fullName || (isNew && (!username || !password))) {
+        if (errEl) {
+            errEl.textContent = (currentLang === 'ru' ? 'Заполните все обязательные поля.' : 'Fill in all required fields.');
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    try {
+        const action = isNew ? 'create_user' : 'update_user';
+        const payload = isNew 
+            ? { username, full_name: fullName, role, password }
+            : { id, full_name: fullName, role, is_active: isActive };
+
+        const response = await fetch(`api.php?action=${action}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const modal = document.getElementById('modal-user-edit');
+            if (modal) modal.classList.add('hidden');
+            await loadUsersList();
+            showAviationAlert(data.message || 'Пользователь сохранен.', false);
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || 'Ошибка при сохранении пользователя.';
+                errEl.classList.remove('hidden');
             }
-        });
+        }
+    } catch (err) {
+        console.error("Ошибка сохранения пользователя:", err);
+        if (errEl) {
+            errEl.textContent = 'Ошибка соединения с сервером.';
+            errEl.classList.remove('hidden');
+        }
     }
+}
+
+// Открытие модалки смены пароля
+function openChangePasswordModal(userId, userName) {
+    const modal = document.getElementById('modal-change-user-pass');
+    const idInp = document.getElementById('pass-user-id');
+    const nameEl = document.getElementById('pass-user-name');
+    const newPassInp = document.getElementById('new-password-input');
+    const confPassInp = document.getElementById('confirm-password-input');
+    const errEl = document.getElementById('pass-modal-error');
+
+    if (!modal) return;
+    if (idInp) idInp.value = userId;
+    if (nameEl) nameEl.textContent = userName;
+    if (newPassInp) newPassInp.value = '';
+    if (confPassInp) confPassInp.value = '';
+    if (errEl) errEl.classList.add('hidden');
+
+    modal.classList.remove('hidden');
+    if (newPassInp) setTimeout(() => newPassInp.focus(), 100);
+}
+
+// Сохранение нового пароля
+async function handleSaveNewPassword(e) {
+    if (e) e.preventDefault();
+    const idInp = document.getElementById('pass-user-id');
+    const newPassInp = document.getElementById('new-password-input');
+    const confPassInp = document.getElementById('confirm-password-input');
+    const errEl = document.getElementById('pass-modal-error');
+
+    const userId = idInp ? idInp.value : '';
+    const newPass = newPassInp ? newPassInp.value : '';
+    const confPass = confPassInp ? confPassInp.value : '';
+
+    if (!newPass || newPass.length < 4) {
+        if (errEl) {
+            errEl.textContent = (currentLang === 'ru' ? 'Пароль должен содержать минимум 4 символа.' : 'Password must be at least 4 chars.');
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    if (newPass !== confPass) {
+        if (errEl) {
+            errEl.textContent = (currentLang === 'ru' ? 'Введенные пароли не совпадают!' : 'Passwords do not match!');
+            errEl.classList.remove('hidden');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('api.php?action=change_password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: userId, new_password: newPass })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const modal = document.getElementById('modal-change-user-pass');
+            if (modal) modal.classList.add('hidden');
+            showAviationAlert(data.message || 'Пароль успешно изменен.', false);
+        } else {
+            if (errEl) {
+                errEl.textContent = data.error || 'Ошибка смены пароля.';
+                errEl.classList.remove('hidden');
+            }
+        }
+    } catch (err) {
+        console.error("Ошибка смены пароля:", err);
+        if (errEl) {
+            errEl.textContent = 'Ошибка связи с сервером.';
+            errEl.classList.remove('hidden');
+        }
+    }
+}
+
+// Удаление пользователя
+async function handleDeleteUser(userId, userName) {
+    const confirmModal = document.getElementById('aviation-confirm-modal');
+    const msgEl = document.getElementById('aviation-confirm-message');
+    const btnConfirm = document.getElementById('modal-btn-confirm');
+    const btnCancel = document.getElementById('modal-btn-cancel');
+
+    if (!confirmModal || !msgEl || !btnConfirm) return;
+
+    msgEl.textContent = (currentLang === 'ru' 
+        ? `Вы уверены, что хотите удалить пользователя "${userName}"? Это действие необратимо.`
+        : `Are you sure you want to delete user "${userName}"? This action cannot be undone.`);
+
+    confirmModal.classList.remove('hidden');
+
+    const handleConfirm = async () => {
+        confirmModal.classList.add('hidden');
+        btnConfirm.removeEventListener('click', handleConfirm);
+        try {
+            const response = await fetch(`api.php?action=delete_user&id=${encodeURIComponent(userId)}`);
+            const data = await response.json();
+            if (data.success) {
+                await loadUsersList();
+                showAviationAlert(data.message || 'Пользователь удален.', false);
+            } else {
+                showAviationAlert(data.error || 'Ошибка удаления пользователя.', true);
+            }
+        } catch (err) {
+            showAviationAlert('Ошибка соединения с сервером: ' + err.message, true);
+        }
+    };
+
+    btnConfirm.addEventListener('click', handleConfirm);
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            confirmModal.classList.add('hidden');
+            btnConfirm.removeEventListener('click', handleConfirm);
+        }, { once: true });
+    }
+}
+
+// --------------------------------------------------------------------------
+// МОДУЛЬ АВТОМАТИЧЕСКИХ РЕЗЕРВНЫХ КОПИЙ (30 ДНЕЙ)
+// --------------------------------------------------------------------------
+
+let serverBackupsList = [];
+
+// Загрузка списка серверных автобэкапов
+async function loadServerBackupsList() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    const tbody = document.getElementById('backups-table-body');
+    if (!tbody) return;
+
+    try {
+        const response = await fetch('api.php?action=list_backups');
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.backups)) {
+            serverBackupsList = data.backups;
+            renderServerBackupsTable();
+        } else {
+            tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">${data.error || 'Ошибка загрузки списка бэкапов'}</td></tr>`;
+        }
+    } catch (err) {
+        console.error("Ошибка при загрузке бэкапов:", err);
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">Не удалось получить список бэкапов с сервера</td></tr>`;
+    }
+}
+
+// Отрисовка таблицы серверных автобэкапов
+function renderServerBackupsTable() {
+    const tbody = document.getElementById('backups-table-body');
+    if (!tbody) return;
+
+    if (serverBackupsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text">Автоматические бэкапы пока отсутствуют. Нажмите кнопку "Создать бэкап сейчас".</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    serverBackupsList.forEach(b => {
+        const sizeKb = (b.size / 1024).toFixed(1);
+        const sizeMb = (b.size / (1024 * 1024)).toFixed(2);
+        const sizeDisplay = b.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
+
+        html += `
+            <tr>
+                <td><strong class="font-mono">${escapeHtml(b.filename)}</strong></td>
+                <td class="monospace-val" style="font-size: 0.8rem;">${b.created_at}</td>
+                <td class="monospace-val highlight-cyan">${sizeDisplay}</td>
+                <td style="text-align: right;">
+                    <div class="table-action-btns">
+                        <button type="button" class="btn-table-action" onclick="downloadServerBackup('${escapeHtml(b.filename)}')" title="Скачать архив">📥 Скачать</button>
+                        <button type="button" class="btn-table-action danger" onclick="restoreServerBackup('${escapeHtml(b.filename)}')" title="Восстановить базу">🔄 Восстановить</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Создание мгновенного серверного бэкапа
+async function createServerBackupNow() {
+    const btn = document.getElementById('btn-create-server-backup');
+    if (btn) btn.disabled = true;
+
+    try {
+        const response = await fetch('api.php?action=create_backup');
+        const data = await response.json();
+
+        if (data.success) {
+            await loadServerBackupsList();
+            showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
+        } else {
+            showAviationAlert(data.error || 'Ошибка создания бэкапа.', true);
+        }
+    } catch (err) {
+        showAviationAlert('Ошибка соединения с сервером: ' + err.message, true);
+    } finally {
+        if (btn) btn.disabled = false;
+    }
+}
+
+// Скачивание файла бэкапа
+function downloadServerBackup(filename) {
+    window.location.href = `api.php?action=download_backup&file=${encodeURIComponent(filename)}`;
+}
+
+// Восстановление базы из серверного бэкапа
+async function restoreServerBackup(filename) {
+    const confirmModal = document.getElementById('aviation-confirm-modal');
+    const msgEl = document.getElementById('aviation-confirm-message');
+    const btnConfirm = document.getElementById('modal-btn-confirm');
+    const btnCancel = document.getElementById('modal-btn-cancel');
+
+    if (!confirmModal || !msgEl || !btnConfirm) return;
+
+    msgEl.textContent = `Внимание! Восстановление из архива "${filename}" полностью перезапишет текущую базу рейсов. Продолжить?`;
+    confirmModal.classList.remove('hidden');
+
+    const handleConfirm = async () => {
+        confirmModal.classList.add('hidden');
+        btnConfirm.removeEventListener('click', handleConfirm);
+
+        try {
+            const response = await fetch('api.php?action=restore_backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                await loadUserFlights();
+                showAviationAlert(`База успешно восстановлена! Загружено ${data.restored_count} рейсов.`, false);
+            } else {
+                showAviationAlert(data.error || 'Ошибка при восстановлении базы.', true);
+            }
+        } catch (err) {
+            showAviationAlert('Ошибка при восстановлении: ' + err.message, true);
+        }
+    };
+
+    btnConfirm.addEventListener('click', handleConfirm);
+    if (btnCancel) {
+        btnCancel.addEventListener('click', () => {
+            confirmModal.classList.add('hidden');
+            btnConfirm.removeEventListener('click', handleConfirm);
+        }, { once: true });
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 // --- ФУНКЦИИ ФИЛЬТРАЦИИ И ВРЕМЕННЫХ ДИАПАЗОНОВ (30 ДНЕЙ) ---
 

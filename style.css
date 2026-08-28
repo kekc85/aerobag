@@ -4981,3 +4981,161 @@ body.light-theme .backtest-kpi-card {
     background: #f1f5f9;
     border-color: #cbd5e1;
 }
+
+/* ==========================================================================
+   АВТОРИЗАЦИЯ, RBAC И АВТОМАТИЧЕСКИЕ БЭКАПЫ (HUD СТИЛЬ)
+   ========================================================================== */
+
+/* Профиль в шапке */
+.header-user-profile {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+
+.badge-role {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.badge-role-admin {
+    background: rgba(255, 183, 0, 0.15);
+    border: 1px solid rgba(255, 183, 0, 0.4);
+    color: var(--accent-gold);
+}
+
+.badge-role-dispatcher {
+    background: rgba(0, 240, 255, 0.15);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: var(--accent-cyan);
+}
+
+.user-fullname {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-logout {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+    padding: 2px 8px !important;
+    font-size: 0.75rem !important;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-logout:hover {
+    background: rgba(239, 68, 68, 0.3) !important;
+    border-color: #ef4444 !important;
+    color: #fff !important;
+}
+
+/* Статусы пользователей */
+.status-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.status-pill.active {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #34d399;
+}
+
+.status-pill.blocked {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #f87171;
+}
+
+/* Действия над пользователями и бэкапами */
+.table-action-btns {
+    display: inline-flex;
+    gap: 6px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.btn-table-action {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    transition: all 0.2s ease;
+}
+
+.btn-table-action:hover {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--accent-cyan);
+    color: #fff;
+}
+
+.btn-table-action.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    color: #f87171;
+}
+
+.btn-table-action.gold:hover {
+    background: rgba(255, 183, 0, 0.2);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+/* Модальное окно авторизации */
+#app-auth-modal {
+    backdrop-filter: blur(12px);
+    background: rgba(3, 7, 18, 0.88);
+}
+
+#app-auth-modal .modal-content {
+    animation: authModalFadeIn 0.3s ease-out;
+}
+
+@keyframes authModalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+body.light-theme .header-user-profile {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+body.light-theme .btn-table-action {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+}
+

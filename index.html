@@ -28,6 +28,16 @@
             </div>
 
             <div class="header-actions">
+                <!-- Профиль авторизованного пользователя -->
+                <div id="header-user-profile" class="header-user-profile hidden">
+                    <span id="user-role-badge" class="badge-role badge-role-admin">ADMIN</span>
+                    <span id="user-fullname" class="user-fullname">Администратор</span>
+                    <button type="button" id="btn-logout" class="btn btn-secondary btn-logout" title="Выйти из системы">
+                        <span>🚪</span>
+                        <span data-translate="btn-logout">Выход</span>
+                    </button>
+                </div>
+
                 <!-- Селектор языка -->
                 <div class="lang-selector">
                     <button id="btn-lang-ru" class="btn btn-lang active">RU</button>
@@ -648,8 +658,86 @@
                 </div>
             </div>
 
-            <!-- ВКЛАДКА 2: АДМИНИСТРИРОВАНИЕ -->
+            <!-- ВКЛАДКА 3: АДМИНИСТРИРОВАНИЕ -->
             <div id="tab-content-admin" class="tab-content hidden">
+                <!-- Секция 1: Управление учетными записями и доступом (RBAC) -->
+                <section class="panel glass aviation-panel rbac-section" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <div>
+                            <h2 class="panel-title" data-translate="rbac-title">[ ACCESS CONTROL & USER MANAGEMENT ]</h2>
+                            <p class="dash-subtext" data-translate="rbac-subtext">Управление учетными записями, назначение ролей и выдача паролей</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" id="btn-add-user" class="btn btn-primary aviation-btn">
+                                <span>➕</span> <span data-translate="btn-add-user">Добавить пользователя</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="margin-top: 10px;">
+                        <table id="users-table" class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-user-login">Логин</th>
+                                    <th data-translate="th-user-name">ФИО / Диспетчер</th>
+                                    <th data-translate="th-user-role">Роль</th>
+                                    <th data-translate="th-user-status">Статус</th>
+                                    <th data-translate="th-user-last-login">Последний вход</th>
+                                    <th data-translate="th-user-actions" style="text-align: right;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="6" class="empty-table-text">Загрузка списка пользователей...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Секция 2: Автоматические резервные копии (Хранение 30 дней) -->
+                <section class="panel glass aviation-panel auto-backups-section" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <div>
+                            <h2 class="panel-title" data-translate="autobackup-title">[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]</h2>
+                            <p class="dash-subtext" data-translate="autobackup-subtext">Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" id="btn-create-server-backup" class="btn btn-secondary aviation-btn highlight-cyan-btn">
+                                <span>⚡</span> <span data-translate="btn-create-server-backup">Создать бэкап сейчас</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="margin-top: 10px; max-height: 220px; overflow-y: auto;">
+                        <table id="backups-table" class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-backup-file">Имя файла архива</th>
+                                    <th data-translate="th-backup-date">Дата создания</th>
+                                    <th data-translate="th-backup-size">Размер</th>
+                                    <th data-translate="th-backup-actions" style="text-align: right;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backups-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-table-text">Загрузка списка бэкапов...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
                 <div class="workspace-grid">
                     <!-- Левая панель: Ручной ввод рейса -->
                     <div class="left-column">
@@ -971,48 +1059,152 @@
         </div>
     </div>
 
-    <!-- Авиационное модальное окно авторизации Администратора -->
-    <div id="admin-auth-modal" class="modal-overlay hidden">
-        <div class="modal-content glass aviation-panel" style="max-width: 440px;">
+    <!-- Авиационное модальное окно авторизации в системе AeroBag (HUD) -->
+    <div id="app-auth-modal" class="modal-overlay">
+        <div class="modal-content glass aviation-panel" style="max-width: 420px; width: 90%;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header" style="text-align: center; justify-content: center; flex-direction: column; gap: 6px;">
+                <div style="font-size: 2rem;">✈️</div>
+                <div class="modal-title-text" data-translate="auth-modal-title" style="font-size: 1rem; color: var(--accent-cyan);">[ AEROBAG ACCESS CONTROL ]</div>
+                <span style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">FLIGHT OPERATIONS AUTHORIZATION</span>
+            </div>
+            
+            <form id="app-auth-form">
+                <div class="modal-body" style="padding: 16px 20px;">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="auth-username" data-translate="label-auth-username" style="font-family: var(--font-mono); font-size: 0.8rem;">ЛОГИН / ПОЗЫВНОЙ</label>
+                        <input type="text" id="auth-username" class="form-control text-uppercase" placeholder="Введите логин..." autocomplete="username" required style="font-family: var(--font-mono); font-size: 1.05rem;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="auth-password" data-translate="label-auth-password" style="font-family: var(--font-mono); font-size: 0.8rem;">ПАРОЛЬ ДОСТУПА</label>
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="auth-password" class="form-control" placeholder="••••••••" autocomplete="current-password" required style="font-family: var(--font-mono); font-size: 1.1rem; padding-right: 42px; width: 100%;">
+                            <button type="button" id="btn-toggle-auth-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
+                        </div>
+                    </div>
+
+                    <div id="auth-error-msg" class="hidden" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.8rem; text-align: center; font-weight: bold; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); padding: 6px; border-radius: 4px; margin-top: 8px;">
+                    </div>
+                </div>
+                
+                <div class="modal-footer" style="padding: 0 20px 20px 20px;">
+                    <button type="submit" id="btn-submit-login" class="btn btn-primary btn-block aviation-btn" style="width: 100%; padding: 10px;" data-translate="btn-login-submit">[ ВОЙТИ В СИСТЕМУ ]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно создания / редактирования пользователя -->
+    <div id="modal-user-edit" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel" style="max-width: 460px; width: 90%;">
             <div class="hud-corner top-left"></div>
             <div class="hud-corner top-right"></div>
             <div class="hud-corner bottom-left"></div>
             <div class="hud-corner bottom-right"></div>
             
             <div class="modal-header">
-                <span class="warning-blink">🔒</span>
-                <span class="modal-title-text" data-translate="admin-auth-title">[ RESTRICTED ACCESS: ADMIN AUTH ]</span>
+                <span class="warning-blink" style="color: var(--accent-cyan); animation: none;">👤</span>
+                <span id="user-modal-title" class="modal-title-text">[ СОЗДАНИЕ УЧЕТНОЙ ЗАПИСИ ]</span>
+                <button type="button" id="btn-close-user-modal" class="btn-modal-close" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
             </div>
             
-            <form id="admin-auth-form">
-                <div class="modal-body">
-                    <p data-translate="admin-auth-desc" style="margin-bottom: 14px; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.4;">Внимание! Для доступа к разделу "Администрирование" требуется ввод пароля диспетчера:</p>
-                    <div class="form-group" style="margin-bottom: 10px;">
-                        <label for="admin-password-input" data-translate="admin-auth-label" style="font-family: var(--font-mono); font-size: 0.85rem;">ПАРОЛЬ ДОСТУПА</label>
-                        <div style="position: relative; display: flex; align-items: center;">
-                            <input type="password" id="admin-password-input" class="form-control" placeholder="Пароль..." autocomplete="off" required style="font-family: var(--font-mono); font-size: 1.2rem; text-align: center; letter-spacing: 3px; padding-right: 44px; width: 100%;">
-                            <button type="button" id="btn-toggle-show-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.2rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
-                        </div>
+            <form id="form-user-edit">
+                <input type="hidden" id="edit-user-id" value="">
+                <div class="modal-body" style="padding: 16px 20px;">
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="edit-username" data-translate="label-user-login">Логин (System Login)</label>
+                        <input type="text" id="edit-username" class="form-control text-uppercase" placeholder="Напр. DISP_SVO" required>
                     </div>
-                    <div id="admin-auth-error" class="hidden" data-translate="admin-auth-error" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.85rem; margin-top: 8px; text-align: center; font-weight: bold;">
-                        ❌ Неверный пароль доступа!
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="edit-fullname" data-translate="label-user-fullname">ФИО / Позывной</label>
+                        <input type="text" id="edit-fullname" class="form-control" placeholder="Иванов И.И." required>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="edit-user-role" data-translate="label-user-role">Роль в системе</label>
+                        <select id="edit-user-role" class="form-control">
+                            <option value="dispatcher">Диспетчер (Только Прогнозирование и Дашборд)</option>
+                            <option value="admin">Администратор (Полный доступ + Управление пользователями)</option>
+                        </select>
+                    </div>
+
+                    <div id="user-pass-group" class="form-group" style="margin-bottom: 12px;">
+                        <label for="edit-user-pass" data-translate="label-user-password">Пароль доступа</label>
+                        <input type="password" id="edit-user-pass" class="form-control" placeholder="Минимум 4 символа">
+                    </div>
+
+                    <div class="form-group" id="user-active-group" style="margin-bottom: 12px;">
+                        <label class="aviation-checkbox-container" style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="edit-user-active" checked>
+                            <span data-translate="label-user-active">Активная учетная запись (Разрешить вход)</span>
+                        </label>
+                    </div>
+
+                    <div id="user-modal-error" class="hidden" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.8rem; margin-top: 8px; text-align: center;"></div>
                 </div>
                 
-                <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px;">
-                    <button type="button" id="admin-auth-cancel" class="btn btn-secondary" data-translate="admin-auth-cancel">[ CANCEL ]</button>
-                    <button type="submit" id="admin-auth-submit" class="btn btn-primary" data-translate="admin-auth-submit">[ ENTER ]</button>
+                <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 10px 20px 20px 20px;">
+                    <button type="button" id="btn-cancel-user-modal" class="btn btn-secondary">[ ОТМЕНА ]</button>
+                    <button type="submit" id="btn-save-user" class="btn btn-primary">[ СОХРАНИТЬ ]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно смены пароля пользователя -->
+    <div id="modal-change-user-pass" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel" style="max-width: 400px; width: 90%;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header">
+                <span class="warning-blink" style="color: var(--accent-gold); animation: none;">🔑</span>
+                <span class="modal-title-text">[ СМЕНА ПАРОЛЯ ]</span>
+                <button type="button" id="btn-close-pass-modal" class="btn-modal-close" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            
+            <form id="form-change-password">
+                <input type="hidden" id="pass-user-id" value="">
+                <div class="modal-body" style="padding: 16px 20px;">
+                    <p id="pass-user-label" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px; font-family: var(--font-mono);">
+                        Пользователь: <strong id="pass-user-name" class="highlight-cyan">-</strong>
+                    </p>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="new-password-input" data-translate="label-new-password">Новый пароль</label>
+                        <input type="password" id="new-password-input" class="form-control" placeholder="Новый пароль..." required minlength="4">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label for="confirm-password-input" data-translate="label-confirm-password">Повторите пароль</label>
+                        <input type="password" id="confirm-password-input" class="form-control" placeholder="Повторите пароль..." required minlength="4">
+                    </div>
+
+                    <div id="pass-modal-error" class="hidden" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.8rem; margin-top: 8px; text-align: center;"></div>
+                </div>
+                
+                <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end; padding: 10px 20px 20px 20px;">
+                    <button type="button" id="btn-cancel-pass-modal" class="btn btn-secondary">[ ОТМЕНА ]</button>
+                    <button type="submit" id="btn-save-new-password" class="btn btn-primary">[ ОБНОВИТЬ ПАРОЛЬ ]</button>
                 </div>
             </form>
         </div>
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.6; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px;">
-        AeroBag Predictor <span id="app-version-tag">v12.0.90</span> (<span id="app-build-date">25.08.2026</span>)
+        AeroBag Predictor <span id="app-version-tag">v12.0.92</span> (<span id="app-build-date">28.08.2026</span>)
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.90"></script>
+    <script src="app.js?v=v12.0.92"></script>
 </body>
 </html>
