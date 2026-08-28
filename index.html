@@ -16,15 +16,16 @@
     <div class="app-container">
         <!-- Шапка в стиле Airline Ops Dispatcher -->
         <header class="app-header glass aviation-header">
-            <div class="header-logo">
-                <span class="logo-plane">✈️</span>
-                <span class="logo-accent">AeroBag</span> Predictor
+            <div class="header-left">
+                <div class="header-logo">
+                    <span class="logo-plane">✈️</span>
+                    <span class="logo-accent">AeroBag</span> Predictor
+                </div>
                 <span class="logo-sub" data-translate="logo-sub">FLIGHT OPS CONTROL</span>
-            </div>
-            
-            <div class="header-status-indicator">
-                <span class="status-pulse"></span>
-                <span class="status-text" data-translate="status-dispatch">ДИСПЕТЧЕР ОНЛАЙН</span>
+                <div class="header-status-indicator">
+                    <span class="status-pulse"></span>
+                    <span class="status-text" data-translate="status-dispatch">ДИСПЕТЧЕР ОНЛАЙН</span>
+                </div>
             </div>
 
             <div class="header-actions">
@@ -660,84 +661,6 @@
 
             <!-- ВКЛАДКА 3: АДМИНИСТРИРОВАНИЕ -->
             <div id="tab-content-admin" class="tab-content hidden">
-                <!-- Секция 1: Управление учетными записями и доступом (RBAC) -->
-                <section class="panel glass aviation-panel rbac-section" style="margin-bottom: 20px;">
-                    <div class="hud-corner top-left"></div>
-                    <div class="hud-corner top-right"></div>
-                    <div class="hud-corner bottom-left"></div>
-                    <div class="hud-corner bottom-right"></div>
-                    
-                    <div class="table-header-container">
-                        <div>
-                            <h2 class="panel-title" data-translate="rbac-title">[ ACCESS CONTROL & USER MANAGEMENT ]</h2>
-                            <p class="dash-subtext" data-translate="rbac-subtext">Управление учетными записями, назначение ролей и выдача паролей</p>
-                        </div>
-                        <div class="table-actions">
-                            <button type="button" id="btn-add-user" class="btn btn-primary aviation-btn">
-                                <span>➕</span> <span data-translate="btn-add-user">Добавить пользователя</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="table-responsive" style="margin-top: 10px;">
-                        <table id="users-table" class="flights-table aviation-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="th-user-login">Логин</th>
-                                    <th data-translate="th-user-name">ФИО / Диспетчер</th>
-                                    <th data-translate="th-user-role">Роль</th>
-                                    <th data-translate="th-user-status">Статус</th>
-                                    <th data-translate="th-user-last-login">Последний вход</th>
-                                    <th data-translate="th-user-actions" style="text-align: right;">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="users-table-body">
-                                <tr>
-                                    <td colspan="6" class="empty-table-text">Загрузка списка пользователей...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
-                <!-- Секция 2: Автоматические резервные копии (Хранение 30 дней) -->
-                <section class="panel glass aviation-panel auto-backups-section" style="margin-bottom: 20px;">
-                    <div class="hud-corner top-left"></div>
-                    <div class="hud-corner top-right"></div>
-                    <div class="hud-corner bottom-left"></div>
-                    <div class="hud-corner bottom-right"></div>
-                    
-                    <div class="table-header-container">
-                        <div>
-                            <h2 class="panel-title" data-translate="autobackup-title">[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]</h2>
-                            <p class="dash-subtext" data-translate="autobackup-subtext">Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.</p>
-                        </div>
-                        <div class="table-actions">
-                            <button type="button" id="btn-create-server-backup" class="btn btn-secondary aviation-btn highlight-cyan-btn">
-                                <span>⚡</span> <span data-translate="btn-create-server-backup">Создать бэкап сейчас</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="table-responsive" style="margin-top: 10px; max-height: 220px; overflow-y: auto;">
-                        <table id="backups-table" class="flights-table aviation-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="th-backup-file">Имя файла архива</th>
-                                    <th data-translate="th-backup-date">Дата создания</th>
-                                    <th data-translate="th-backup-size">Размер</th>
-                                    <th data-translate="th-backup-actions" style="text-align: right;">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="backups-table-body">
-                                <tr>
-                                    <td colspan="4" class="empty-table-text">Загрузка списка бэкапов...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
-
                 <div class="workspace-grid">
                     <!-- Левая панель: Ручной ввод рейса -->
                     <div class="left-column">
@@ -854,6 +777,84 @@
                         </section>
                     </div>
                 </div>
+
+                <!-- Секция 1: Управление учетными записями и доступом (RBAC) -->
+                <section class="panel glass aviation-panel rbac-section" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <div>
+                            <h2 class="panel-title" data-translate="rbac-title">[ ACCESS CONTROL & USER MANAGEMENT ]</h2>
+                            <p class="dash-subtext" data-translate="rbac-subtext">Управление учетными записями, назначение ролей и выдача паролей</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" id="btn-add-user" class="btn btn-primary aviation-btn">
+                                <span>➕</span> <span data-translate="btn-add-user">Добавить пользователя</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="margin-top: 10px;">
+                        <table id="users-table" class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-user-login">Логин</th>
+                                    <th data-translate="th-user-name">ФИО / Диспетчер</th>
+                                    <th data-translate="th-user-role">Роль</th>
+                                    <th data-translate="th-user-status">Статус</th>
+                                    <th data-translate="th-user-last-login">Последний вход</th>
+                                    <th data-translate="th-user-actions" style="text-align: right;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body">
+                                <tr>
+                                    <td colspan="6" class="empty-table-text">Загрузка списка пользователей...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Секция 2: Автоматические резервные копии (Хранение 30 дней) -->
+                <section class="panel glass aviation-panel auto-backups-section" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <div>
+                            <h2 class="panel-title" data-translate="autobackup-title">[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]</h2>
+                            <p class="dash-subtext" data-translate="autobackup-subtext">Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" id="btn-create-server-backup" class="btn btn-secondary aviation-btn highlight-cyan-btn">
+                                <span>⚡</span> <span data-translate="btn-create-server-backup">Создать бэкап сейчас</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive" style="margin-top: 10px; max-height: 220px; overflow-y: auto;">
+                        <table id="backups-table" class="flights-table aviation-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="th-backup-file">Имя файла архива</th>
+                                    <th data-translate="th-backup-date">Дата создания</th>
+                                    <th data-translate="th-backup-size">Размер</th>
+                                    <th data-translate="th-backup-actions" style="text-align: right;">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backups-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-table-text">Загрузка списка бэкапов...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
 
                 <!-- Нижняя секция: Таблица рейсов в базе -->
                 <section class="panel glass table-section aviation-panel">
@@ -1200,11 +1201,11 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.6; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px;">
-        AeroBag Predictor <span id="app-version-tag">v12.0.94</span> (<span id="app-build-date">28.08.2026</span>)
+        AeroBag Predictor <span id="app-version-tag">v12.0.95</span> (<span id="app-build-date">28.08.2026</span>)
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.94"></script>
+    <script src="app.js?v=v12.0.95"></script>
 </body>
 </html>
