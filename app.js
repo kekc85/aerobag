@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.95';
-const APP_BUILD_DATE = '28.08.2026';
+const APP_VERSION = 'v12.0.97';
+const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -251,6 +251,7 @@ const translations = {
         'backup-import-success': 'База данных успешно восстановлена! Загружено {flights} рейсов и {predictions} прогнозов.',
         'backup-import-error': 'Ошибка чтения файла резервной копии. Убедитесь, что формат файла верен.',
         'footer-build-label': 'Сборка',
+        'footer-developer': 'Разработчик: Andrey Zubkov',
         'btn-manual': 'Руководство'
     },
     en: {
@@ -476,6 +477,7 @@ const translations = {
         'backup-import-success': 'Database successfully restored! Loaded {flights} flights and {predictions} predictions.',
         'backup-import-error': 'Error reading backup file. Make sure file format is correct.',
         'footer-build-label': 'Build',
+        'footer-developer': 'Developer: Andrey Zubkov',
         'btn-manual': 'Manual'
     }
 };
