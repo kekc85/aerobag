@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.107';
+const APP_VERSION = 'v12.0.108';
 const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
@@ -1157,6 +1157,17 @@ function loadSettings() {
         document.body.classList.remove('light-theme');
     }
     updateThemeButtonUI();
+
+    // Мгновенный синхронный рендер профиля пользователя и доступных вкладок (исключает любое мелькание!)
+    const cachedUser = localStorage.getItem('averago_current_user_profile') || localStorage.getItem('averago_local_auth_user');
+    if (cachedUser) {
+        try {
+            currentUser = JSON.parse(cachedUser);
+            isAdminAuthenticated = (currentUser && currentUser.role === 'admin');
+            updateUserHeaderUI();
+            updateTabsRoleAccess();
+        } catch (e) {}
+    }
 }
 
 // Установка языка интерфейса
@@ -2434,6 +2445,7 @@ async function checkAuthStatus() {
                 currentUser = data.user;
                 isAdminAuthenticated = (currentUser.role === 'admin');
                 isOfflineMode = false;
+                localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
                 
                 const authModal = document.getElementById('app-auth-modal');
                 if (authModal) authModal.classList.add('hidden');
@@ -2464,6 +2476,7 @@ async function checkAuthStatus() {
             try {
                 currentUser = JSON.parse(savedLocalUser);
                 isAdminAuthenticated = (currentUser.role === 'admin');
+                localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
                 const authModal = document.getElementById('app-auth-modal');
                 if (authModal) authModal.classList.add('hidden');
                 updateUserHeaderUI();
@@ -2474,7 +2487,9 @@ async function checkAuthStatus() {
         }
     }
 
-    // Если не авторизован - показываем окно логина
+    // Если не авторизован - сбрасываем кэш и показываем окно логина
+    localStorage.removeItem('averago_current_user_profile');
+    localStorage.removeItem('averago_local_auth_user');
     currentUser = null;
     isAdminAuthenticated = false;
     const authModal = document.getElementById('app-auth-modal');
@@ -2527,6 +2542,7 @@ async function handleLoginSubmit(e) {
         }
 
         localStorage.setItem('averago_local_auth_user', JSON.stringify(currentUser));
+        localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
         isAdminAuthenticated = (currentUser.role === 'admin');
 
         const authModal = document.getElementById('app-auth-modal');
@@ -2559,6 +2575,7 @@ async function handleLoginSubmit(e) {
         if (data.success && data.user) {
             currentUser = data.user;
             isAdminAuthenticated = (currentUser.role === 'admin');
+            localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
 
             const authModal = document.getElementById('app-auth-modal');
             if (authModal) authModal.classList.add('hidden');
@@ -2605,6 +2622,7 @@ async function handleLogout() {
         console.warn("Ошибка логаута:", e);
     }
     localStorage.removeItem('averago_local_auth_user');
+    localStorage.removeItem('averago_current_user_profile');
     currentUser = null;
     isAdminAuthenticated = false;
     
