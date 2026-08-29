@@ -135,35 +135,36 @@ body.light-theme .glass {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 16px;
+    padding: 6px 14px;
     margin-bottom: 12px;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
     gap: 10px;
-    min-height: 50px;
+    min-height: 48px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex-shrink: 1;
-    min-width: 0;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .header-logo {
     font-family: var(--font-accent);
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 800;
     letter-spacing: 0.5px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 .logo-plane {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     filter: drop-shadow(0 0 8px var(--primary));
 }
 
@@ -174,7 +175,7 @@ body.light-theme .glass {
 }
 
 .logo-sub {
-    font-size: 0.65rem;
+    font-size: 0.62rem;
     font-family: var(--font-mono);
     color: var(--text-secondary);
     border-left: 2px solid var(--primary-glow);
@@ -186,7 +187,7 @@ body.light-theme .glass {
 }
 
 /* Автоматическое скрытие подзаголовка при недостатке места на узких экранах */
-@media (max-width: 1280px) {
+@media (max-width: 1440px) {
     .logo-sub {
         display: none;
     }
@@ -196,18 +197,18 @@ body.light-theme .glass {
 .header-status-indicator {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background-color: rgba(0, 255, 102, 0.05);
     border: 1px solid rgba(0, 255, 102, 0.2);
-    padding: 4px 9px;
-    border-radius: 16px;
+    padding: 3px 8px;
+    border-radius: 14px;
     white-space: nowrap;
     flex-shrink: 0;
 }
 
 .status-pulse {
-    width: 7px;
-    height: 7px;
+    width: 6px;
+    height: 6px;
     background-color: var(--success);
     border-radius: 50%;
     box-shadow: 0 0 8px var(--success);
@@ -221,7 +222,7 @@ body.light-theme .glass {
 
 .status-text {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.65rem;
     font-weight: bold;
     color: var(--success);
     letter-spacing: 0.5px;
@@ -301,15 +302,18 @@ body.light-theme .btn-lang.active {
 }
 
 .btn-theme {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 14px;
+    gap: 4px;
+    padding: 4px 8px !important;
+    font-size: 0.72rem !important;
+    border-radius: 6px;
+    white-space: nowrap;
 }
 
 .theme-text {
-    font-size: 0.8rem;
-    font-weight: bold;
+    font-size: 0.72rem;
+    font-weight: 600;
 }
 
 /* Вкладки (Tabs) в авиационном HUD стиле */
@@ -2192,7 +2196,7 @@ body.light-theme .footer-table tr.ttl-row td {
    ========================================================================== */
 
 /* --- Промежуточный брейкпоинт: планшеты и небольшие ноутбуки --- */
-@media (max-width: 1024px) {
+@media (max-width: 1150px) {
     /* Шапка: перестраиваем в вертикальный стек */
     .app-header {
         flex-wrap: wrap;
@@ -5020,6 +5024,8 @@ body.light-theme .backtest-kpi-card {
     border: 1px solid rgba(0, 240, 255, 0.25);
     border-radius: 6px;
     padding: 2px 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .badge-role {
