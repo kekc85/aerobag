@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.108';
+const APP_VERSION = 'v12.0.109';
 const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
@@ -1383,9 +1383,21 @@ async function saveUserFlights() {
     }
 }
 
-// Загрузка истории прогнозов из LocalStorage
+// Получение ключа истории прогнозов для текущего авторизованного пользователя
+function getUserHistoryStorageKey() {
+    if (currentUser && currentUser.username) {
+        return `averago_predictions_history_${currentUser.username.toLowerCase().trim()}`;
+    }
+    if (currentUser && currentUser.id) {
+        return `averago_predictions_history_${currentUser.id}`;
+    }
+    return 'averago_predictions_history_guest';
+}
+
+// Загрузка истории прогнозов из LocalStorage для конкретного пользователя
 function loadPredictionsHistory() {
-    const saved = localStorage.getItem('averago_predictions_history');
+    const storageKey = getUserHistoryStorageKey();
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
         try {
             predictionsHistory = JSON.parse(saved);
@@ -1393,13 +1405,61 @@ function loadPredictionsHistory() {
             console.error("Ошибка парсинга истории прогнозов из LocalStorage:", e);
             predictionsHistory = [];
         }
+    } else {
+        predictionsHistory = [];
     }
     renderPredictionsTable();
 }
 
-// Сохранение истории прогнозов в LocalStorage
+// Сохранение истории прогнозов в LocalStorage для конкретного пользователя
 function savePredictionsHistory() {
-    localStorage.setItem('averago_predictions_history', JSON.stringify(predictionsHistory));
+    const storageKey = getUserHistoryStorageKey();
+    localStorage.setItem(storageKey, JSON.stringify(predictionsHistory));
+}
+
+// Умное извлечение только имени для приветствия (без фамилии, напр. "Самарина Наталья" -> "Наталья")
+function getGreetingName(user) {
+    if (!user) return currentLang === 'ru' ? 'Диспетчер' : 'Dispatcher';
+    const fullName = (user.full_name || user.username || '').trim();
+    if (!fullName) return currentLang === 'ru' ? 'Диспетчер' : 'Dispatcher';
+
+    const lower = fullName.toLowerCase();
+    if (lower.includes('администратор') || lower === 'admin') {
+        return currentLang === 'ru' ? 'Администратор' : 'Administrator';
+    }
+
+    // Если строка вида "Диспетчер (SAMARINA)"
+    if (fullName.startsWith('Диспетчер (') && fullName.endsWith(')')) {
+        return fullName.slice(11, -1);
+    }
+
+    const parts = fullName.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+        return parts[0];
+    }
+
+    if (parts.length >= 2) {
+        const w1 = parts[0];
+        const w2 = parts[1];
+
+        // Типичные окончания русских фамилий
+        const surnameRegex = /(ов|ова|ев|ева|ин|ина|ын|ына|ский|ская|цкий|цкая|их|ых|ко|ук|юк)$/i;
+        
+        const w1IsSurname = surnameRegex.test(w1);
+        const w2IsSurname = surnameRegex.test(w2);
+
+        if (w1IsSurname && !w2IsSurname) {
+            // Например: "Самарина Наталья" -> "Наталья"
+            return w2;
+        }
+        if (!w1IsSurname && w2IsSurname) {
+            // Например: "Андрей Зубков" -> "Андрей"
+            return w1;
+        }
+        return w1;
+    }
+
+    return fullName;
 }
 
 // Заполнение выпадающего списка годов для сезонного фильтра на основе базы рейсов
@@ -2551,10 +2611,12 @@ async function handleLoginSubmit(e) {
         if (passwordInput) passwordInput.value = '';
         updateUserHeaderUI();
         updateTabsRoleAccess();
+        loadPredictionsHistory();
         await loadUserFlights();
 
         if (submitBtn) submitBtn.disabled = false;
-        const welcomeMsg = (currentLang === 'ru' ? 'Локальный режим: Добро пожаловать, ' : 'Offline mode: Welcome, ') + currentUser.full_name;
+        const greetingName = getGreetingName(currentUser);
+        const welcomeMsg = (currentLang === 'ru' ? 'Локальный режим: Добро пожаловать, ' : 'Offline mode: Welcome, ') + greetingName;
         showAviationAlert(welcomeMsg, false);
         return;
     }
@@ -2584,6 +2646,7 @@ async function handleLoginSubmit(e) {
             
             updateUserHeaderUI();
             updateTabsRoleAccess();
+            loadPredictionsHistory();
 
             // Загружаем рейсы и базу
             await loadUserFlights();
@@ -2593,7 +2656,8 @@ async function handleLoginSubmit(e) {
                 loadServerBackupsList();
             }
 
-            const welcomeMsg = (currentLang === 'ru' ? 'Добро пожаловать в систему, ' : 'Welcome to system, ') + currentUser.full_name;
+            const greetingName = getGreetingName(currentUser);
+            const welcomeMsg = (currentLang === 'ru' ? 'Добро пожаловать в систему, ' : 'Welcome to system, ') + greetingName;
             showAviationAlert(welcomeMsg, false);
         } else {
             if (errorEl) {
@@ -2625,6 +2689,8 @@ async function handleLogout() {
     localStorage.removeItem('averago_current_user_profile');
     currentUser = null;
     isAdminAuthenticated = false;
+    predictionsHistory = [];
+    renderPredictionsTable();
     
     // Переключаем на вкладку прогнозирования
     const tabPredictBtn = document.getElementById('tab-btn-predict');
