@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.106';
+const APP_VERSION = 'v12.0.107';
 const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
@@ -2657,8 +2657,10 @@ function updateTabsRoleAccess() {
     if (!tabAdminBtn) return;
 
     if (currentUser && currentUser.role === 'admin') {
+        tabAdminBtn.classList.remove('hidden');
         tabAdminBtn.style.display = '';
     } else {
+        tabAdminBtn.classList.add('hidden');
         tabAdminBtn.style.display = 'none';
         // Если открыта вкладка админа, переключаем на прогнозирование
         const adminContent = document.getElementById('tab-content-admin');
