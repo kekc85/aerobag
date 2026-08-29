@@ -1,6 +1,14 @@
 <?php
 // AeroBag Predictor - Backend API for MySQL Synchronization, RBAC & Automated Backups
 if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => '/',
+        'domain' => '',
+        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
     session_start();
 }
 
@@ -234,9 +242,8 @@ function initDatabase($pdo) {
         @mkdir($backupDir, 0755, true);
     }
     $htaccessPath = $backupDir . '/.htaccess';
-    if (!file_exists($htaccessPath)) {
-        @file_put_contents($htaccessPath, "Order Deny,Allow\nDeny from all\n");
-    }
+    $htaccessContent = "# Защита папки резервных копий от прямого HTTP-доступа (Apache 2.2 / 2.4)\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
+    @file_put_contents($htaccessPath, $htaccessContent);
 }
 
 /**
@@ -255,17 +262,31 @@ function handleLogin($pdo) {
         return;
     }
 
+    // Защита от перебора паролей (Rate limiting / Brute-force delay)
+    if (!isset($_SESSION['login_failed_attempts'])) {
+        $_SESSION['login_failed_attempts'] = 0;
+    }
+    if ($_SESSION['login_failed_attempts'] >= 5) {
+        // Если более 5 неудачных попыток подряд - задержка 1 секунда
+        sleep(1);
+    }
+
     $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ? LIMIT 1");
     $stmt->execute([$username]);
     $user = $stmt->fetch();
 
     if (!$user || !password_verify($password, $user['password_hash'])) {
+        $_SESSION['login_failed_attempts']++;
+        usleep(300000); // 300ms искусственная задержка от тайминг-атак
         echo json_encode([
             'success' => false,
             'error' => 'Неверный логин или пароль.'
         ], JSON_UNESCAPED_UNICODE);
         return;
     }
+
+    // Сброс счетчика неудачных попыток при успешном входе
+    $_SESSION['login_failed_attempts'] = 0;
 
     if ((int)$user['is_active'] !== 1) {
         echo json_encode([

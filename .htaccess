@@ -15,3 +15,14 @@
         Header set Cache-Control "max-age=31536000, public"
     </IfModule>
 </FilesMatch>
+
+# Защита чувствительных конфигурационных файлов и фоновых скриптов от прямого чтения
+<FilesMatch "^(db_config\.php|db_config\.example\.php|cron_backup\.php|\.env|\.git)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order Deny,Allow
+        Deny from all
+    </IfModule>
+</FilesMatch>

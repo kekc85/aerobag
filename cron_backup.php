@@ -3,6 +3,12 @@
 // На хостинге Beget в разделе Cron запускается командой:
 // /usr/bin/php /home/b/username/site/public_html/aerobag/cron_backup.php
 
+// Защита от прямого HTTP-вызова (разрешен запуск только через CLI/Cron или с секретным токеном)
+if (php_sapi_name() !== 'cli' && (!isset($_GET['key']) || $_GET['key'] !== 'AeroBag_Cron_Secret_Key_2026')) {
+    header('HTTP/1.0 403 Forbidden');
+    die("Access Denied: CLI execution only.\n");
+}
+
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
@@ -65,9 +71,8 @@ try {
     }
 
     $htaccessPath = $backupDir . '/.htaccess';
-    if (!file_exists($htaccessPath)) {
-        @file_put_contents($htaccessPath, "Order Deny,Allow\nDeny from all\n");
-    }
+    $htaccessContent = "# Защита папки резервных копий от прямого HTTP-доступа (Apache 2.2 / 2.4)\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
+    @file_put_contents($htaccessPath, $htaccessContent);
 
     $filename = 'aerobag_auto_' . date('Y_m_d_His') . '.json';
     $fullPath = $backupDir . '/' . $filename;
