@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.105';
+const APP_VERSION = 'v12.0.106';
 const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
@@ -1121,6 +1121,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Автоматическая аутентификация пользователя и разграничение прав
     await checkAuthStatus();
+    
+    // Гарантированная начальная загрузка базы рейсов
+    if (!userFlights || userFlights.length === 0) {
+        await loadUserFlights();
+    }
 
     setupEventListeners();
     setupTabs();
@@ -2440,6 +2445,7 @@ async function checkAuthStatus() {
                     loadUsersList();
                     loadServerBackupsList();
                 }
+                await loadUserFlights();
                 return true;
             }
         } else {
