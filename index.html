@@ -1137,7 +1137,10 @@
 
                     <div id="user-pass-group" class="form-group" style="margin-bottom: 12px;">
                         <label for="edit-user-pass" data-translate="label-user-password">Пароль доступа</label>
-                        <input type="password" id="edit-user-pass" class="form-control" placeholder="Минимум 4 символа">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="edit-user-pass" class="form-control" placeholder="Минимум 4 символа" style="padding-right: 42px; width: 100%;">
+                            <button type="button" id="btn-toggle-edit-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
+                        </div>
                     </div>
 
                     <div class="form-group" id="user-active-group" style="margin-bottom: 12px;">
@@ -1181,12 +1184,18 @@
 
                     <div class="form-group" style="margin-bottom: 12px;">
                         <label for="new-password-input" data-translate="label-new-password">Новый пароль</label>
-                        <input type="password" id="new-password-input" class="form-control" placeholder="Новый пароль..." required minlength="4">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="new-password-input" class="form-control" placeholder="Новый пароль..." required minlength="4" style="padding-right: 42px; width: 100%;">
+                            <button type="button" id="btn-toggle-new-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
+                        </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 12px;">
                         <label for="confirm-password-input" data-translate="label-confirm-password">Повторите пароль</label>
-                        <input type="password" id="confirm-password-input" class="form-control" placeholder="Повторите пароль..." required minlength="4">
+                        <div style="position: relative; display: flex; align-items: center;">
+                            <input type="password" id="confirm-password-input" class="form-control" placeholder="Повторите пароль..." required minlength="4" style="padding-right: 42px; width: 100%;">
+                            <button type="button" id="btn-toggle-confirm-pass" style="position: absolute; right: 8px; background: transparent; border: none; font-size: 1.1rem; cursor: pointer; padding: 4px; border-radius: 4px; z-index: 10;" title="Показать/скрыть пароль">👁️</button>
+                        </div>
                     </div>
 
                     <div id="pass-modal-error" class="hidden" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.8rem; margin-top: 8px; text-align: center;"></div>
@@ -1201,13 +1210,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.98</span> (<span id="app-build-date">29.08.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.100</span> (<span id="app-build-date">29.08.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.98"></script>
+    <script src="app.js?v=v12.0.100"></script>
 </body>
 </html>

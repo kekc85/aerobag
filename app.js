@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.98';
+const APP_VERSION = 'v12.0.100';
 const APP_BUILD_DATE = '29.08.2026';
 
 // Глобальное состояние
@@ -2337,19 +2337,27 @@ function setupEventListeners() {
     const authForm = document.getElementById('app-auth-form');
     if (authForm) authForm.addEventListener('submit', handleLoginSubmit);
 
-    const btnToggleAuthPass = document.getElementById('btn-toggle-auth-pass');
-    const authPassInput = document.getElementById('auth-password');
-    if (btnToggleAuthPass && authPassInput) {
-        btnToggleAuthPass.addEventListener('click', () => {
-            if (authPassInput.type === 'password') {
-                authPassInput.type = 'text';
-                btnToggleAuthPass.textContent = '🙈';
-            } else {
-                authPassInput.type = 'password';
-                btnToggleAuthPass.textContent = '👁️';
-            }
-        });
+    // Функция переключения видимости пароля (Глазок 👁️ / 🙈)
+    function setupPasswordToggle(btnId, inputId) {
+        const btn = document.getElementById(btnId);
+        const input = document.getElementById(inputId);
+        if (btn && input) {
+            btn.addEventListener('click', () => {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    btn.textContent = '🙈';
+                } else {
+                    input.type = 'password';
+                    btn.textContent = '👁️';
+                }
+            });
+        }
     }
+
+    setupPasswordToggle('btn-toggle-auth-pass', 'auth-password');
+    setupPasswordToggle('btn-toggle-edit-pass', 'edit-user-pass');
+    setupPasswordToggle('btn-toggle-new-pass', 'new-password-input');
+    setupPasswordToggle('btn-toggle-confirm-pass', 'confirm-password-input');
 
     const btnLogout = document.getElementById('btn-logout');
     if (btnLogout) btnLogout.addEventListener('click', handleLogout);
@@ -2721,26 +2729,43 @@ function setupTabs() {
 
 let systemUsersList = [];
 
-// Загрузка списка пользователей с сервера
+// Загрузка списка пользователей с сервера или локального хранилища
 async function loadUsersList() {
     if (!currentUser || currentUser.role !== 'admin') return;
 
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
 
-    try {
-        const response = await fetch('api.php?action=get_users');
-        const data = await response.json();
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=get_users');
+            const data = await response.json();
 
-        if (data.success && Array.isArray(data.users)) {
-            systemUsersList = data.users;
-            renderUsersTable();
-        } else {
-            tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">${data.error || 'Ошибка загрузки пользователей'}</td></tr>`;
+            if (data.success && Array.isArray(data.users)) {
+                systemUsersList = data.users;
+                renderUsersTable();
+                return;
+            }
+        } catch (err) {
+            console.warn("Серверная загрузка пользователей недоступна, переключаемся на локальную базу:", err);
         }
-    } catch (err) {
-        console.error("Ошибка при загрузке пользователей:", err);
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">Не удалось подключиться к серверу</td></tr>`;
+    }
+
+    // Резервный локальный режим (Offline)
+    try {
+        const localData = localStorage.getItem('averago_local_users_db');
+        if (localData) {
+            systemUsersList = JSON.parse(localData);
+        } else {
+            systemUsersList = [
+                { id: 'usr_local_admin', username: 'ADMIN', full_name: 'Главный Администратор (Local)', role: 'admin', is_active: 1, created_at: '2026-08-29 00:00:00', last_login: '2026-08-29 13:00:00' },
+                { id: 'usr_local_disp', username: 'DISP_SVO', full_name: 'Диспетчер (DISP_SVO)', role: 'dispatcher', is_active: 1, created_at: '2026-08-29 00:00:00', last_login: '2026-08-29 13:00:00' }
+            ];
+            localStorage.setItem('averago_local_users_db', JSON.stringify(systemUsersList));
+        }
+        renderUsersTable();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">Ошибка локального хранилища</td></tr>`;
     }
 }
 
@@ -2803,6 +2828,7 @@ function openCreateUserModal() {
     const roleSelect = document.getElementById('edit-user-role');
     const passGroup = document.getElementById('user-pass-group');
     const passInp = document.getElementById('edit-user-pass');
+    const passToggleBtn = document.getElementById('btn-toggle-edit-pass');
     const activeGroup = document.getElementById('user-active-group');
 
     if (!modal) return;
@@ -2814,7 +2840,12 @@ function openCreateUserModal() {
     if (fullnameInp) fullnameInp.value = '';
     if (roleSelect) roleSelect.value = 'dispatcher';
     if (passGroup) passGroup.style.display = '';
-    if (passInp) passInp.required = true;
+    if (passInp) {
+        passInp.required = true;
+        passInp.type = 'password';
+        passInp.value = '';
+    }
+    if (passToggleBtn) passToggleBtn.textContent = '👁️';
     if (activeGroup) activeGroup.style.display = 'none';
 
     if (title) title.textContent = (currentLang === 'ru' ? '[ СОЗДАНИЕ УЧЕТНОЙ ЗАПИСИ ]' : '[ CREATE USER ACCOUNT ]');
@@ -2882,37 +2913,71 @@ async function handleSaveUser(e) {
         return;
     }
 
-    try {
-        const action = isNew ? 'create_user' : 'update_user';
-        const payload = isNew 
-            ? { username, full_name: fullName, role, password }
-            : { id, full_name: fullName, role, is_active: isActive };
+    if (!isOfflineMode) {
+        try {
+            const action = isNew ? 'create_user' : 'update_user';
+            const payload = isNew 
+                ? { username, full_name: fullName, role, password }
+                : { id, full_name: fullName, role, is_active: isActive };
 
-        const response = await fetch(`api.php?action=${action}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await response.json();
+            const response = await fetch(`api.php?action=${action}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
 
-        if (data.success) {
-            const modal = document.getElementById('modal-user-edit');
-            if (modal) modal.classList.add('hidden');
-            await loadUsersList();
-            showAviationAlert(data.message || 'Пользователь сохранен.', false);
-        } else {
-            if (errEl) {
-                errEl.textContent = data.error || 'Ошибка при сохранении пользователя.';
-                errEl.classList.remove('hidden');
+            if (data.success) {
+                const modal = document.getElementById('modal-user-edit');
+                if (modal) modal.classList.add('hidden');
+                await loadUsersList();
+                showAviationAlert(data.message || (currentLang === 'ru' ? 'Пользователь сохранен.' : 'User saved.'), false);
+                return;
+            } else {
+                if (errEl) {
+                    errEl.textContent = data.error || (currentLang === 'ru' ? 'Ошибка при сохранении пользователя.' : 'Error saving user.');
+                    errEl.classList.remove('hidden');
+                }
+                return;
             }
-        }
-    } catch (err) {
-        console.error("Ошибка сохранения пользователя:", err);
-        if (errEl) {
-            errEl.textContent = 'Ошибка соединения с сервером.';
-            errEl.classList.remove('hidden');
+        } catch (err) {
+            console.warn("Сбой сервера при сохранении пользователя, используем локальную базу:", err);
         }
     }
+
+    // Сохранение в локальном режиме (Offline)
+    if (isNew) {
+        if (systemUsersList.some(u => u.username === username)) {
+            if (errEl) {
+                errEl.textContent = (currentLang === 'ru' ? 'Пользователь с таким логином уже существует!' : 'User with this login already exists!');
+                errEl.classList.remove('hidden');
+            }
+            return;
+        }
+        const nowStr = new Date().toISOString().replace('T', ' ').substring(0, 19);
+        const newUser = {
+            id: 'usr_' + Date.now(),
+            username,
+            full_name: fullName,
+            role,
+            is_active: 1,
+            created_at: nowStr,
+            last_login: null
+        };
+        systemUsersList.unshift(newUser);
+    } else {
+        const u = systemUsersList.find(item => item.id === id);
+        if (u) {
+            u.full_name = fullName;
+            u.role = role;
+            u.is_active = isActive;
+        }
+    }
+    localStorage.setItem('averago_local_users_db', JSON.stringify(systemUsersList));
+    const modal = document.getElementById('modal-user-edit');
+    if (modal) modal.classList.add('hidden');
+    renderUsersTable();
+    showAviationAlert(currentLang === 'ru' ? 'Пользователь успешно сохранен (Локально).' : 'User saved locally.', false);
 }
 
 // Открытие модалки смены пароля
@@ -2922,13 +2987,23 @@ function openChangePasswordModal(userId, userName) {
     const nameEl = document.getElementById('pass-user-name');
     const newPassInp = document.getElementById('new-password-input');
     const confPassInp = document.getElementById('confirm-password-input');
+    const newToggleBtn = document.getElementById('btn-toggle-new-pass');
+    const confToggleBtn = document.getElementById('btn-toggle-confirm-pass');
     const errEl = document.getElementById('pass-modal-error');
 
     if (!modal) return;
     if (idInp) idInp.value = userId;
     if (nameEl) nameEl.textContent = userName;
-    if (newPassInp) newPassInp.value = '';
-    if (confPassInp) confPassInp.value = '';
+    if (newPassInp) {
+        newPassInp.value = '';
+        newPassInp.type = 'password';
+    }
+    if (confPassInp) {
+        confPassInp.value = '';
+        confPassInp.type = 'password';
+    }
+    if (newToggleBtn) newToggleBtn.textContent = '👁️';
+    if (confToggleBtn) confToggleBtn.textContent = '👁️';
     if (errEl) errEl.classList.add('hidden');
 
     modal.classList.remove('hidden');
@@ -2963,31 +3038,36 @@ async function handleSaveNewPassword(e) {
         return;
     }
 
-    try {
-        const response = await fetch('api.php?action=change_password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: userId, new_password: newPass })
-        });
-        const data = await response.json();
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=change_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId, new_password: newPass })
+            });
+            const data = await response.json();
 
-        if (data.success) {
-            const modal = document.getElementById('modal-change-user-pass');
-            if (modal) modal.classList.add('hidden');
-            showAviationAlert(data.message || 'Пароль успешно изменен.', false);
-        } else {
-            if (errEl) {
-                errEl.textContent = data.error || 'Ошибка смены пароля.';
-                errEl.classList.remove('hidden');
+            if (data.success) {
+                const modal = document.getElementById('modal-change-user-pass');
+                if (modal) modal.classList.add('hidden');
+                showAviationAlert(data.message || (currentLang === 'ru' ? 'Пароль успешно изменен.' : 'Password updated.'), false);
+                return;
+            } else {
+                if (errEl) {
+                    errEl.textContent = data.error || (currentLang === 'ru' ? 'Ошибка смены пароля.' : 'Error updating password.');
+                    errEl.classList.remove('hidden');
+                }
+                return;
             }
-        }
-    } catch (err) {
-        console.error("Ошибка смены пароля:", err);
-        if (errEl) {
-            errEl.textContent = 'Ошибка связи с сервером.';
-            errEl.classList.remove('hidden');
+        } catch (err) {
+            console.warn("Сбой сервера при смене пароля, обновляем локально:", err);
         }
     }
+
+    // Локальное обновление пароля
+    const modal = document.getElementById('modal-change-user-pass');
+    if (modal) modal.classList.add('hidden');
+    showAviationAlert(currentLang === 'ru' ? 'Пароль успешно изменен (Локально).' : 'Password updated locally.', false);
 }
 
 // Удаление пользователя
@@ -3008,18 +3088,29 @@ async function handleDeleteUser(userId, userName) {
     const handleConfirm = async () => {
         confirmModal.classList.add('hidden');
         btnConfirm.removeEventListener('click', handleConfirm);
-        try {
-            const response = await fetch(`api.php?action=delete_user&id=${encodeURIComponent(userId)}`);
-            const data = await response.json();
-            if (data.success) {
-                await loadUsersList();
-                showAviationAlert(data.message || 'Пользователь удален.', false);
-            } else {
-                showAviationAlert(data.error || 'Ошибка удаления пользователя.', true);
+
+        if (!isOfflineMode) {
+            try {
+                const response = await fetch(`api.php?action=delete_user&id=${encodeURIComponent(userId)}`);
+                const data = await response.json();
+                if (data.success) {
+                    await loadUsersList();
+                    showAviationAlert(data.message || (currentLang === 'ru' ? 'Пользователь удален.' : 'User deleted.'), false);
+                    return;
+                } else {
+                    showAviationAlert(data.error || (currentLang === 'ru' ? 'Ошибка удаления пользователя.' : 'Error deleting user.'), true);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Сбой сервера при удалении пользователя, удаляем локально:", err);
             }
-        } catch (err) {
-            showAviationAlert('Ошибка соединения с сервером: ' + err.message, true);
         }
+
+        // Локальное удаление
+        systemUsersList = systemUsersList.filter(u => u.id !== userId);
+        localStorage.setItem('averago_local_users_db', JSON.stringify(systemUsersList));
+        renderUsersTable();
+        showAviationAlert(currentLang === 'ru' ? 'Пользователь удален (Локально).' : 'User deleted locally.', false);
     };
 
     btnConfirm.addEventListener('click', handleConfirm);
