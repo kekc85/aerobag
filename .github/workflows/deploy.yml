@@ -62,6 +62,9 @@ jobs:
             **/.gemini/**
             **/db_config.php
             **/backups/**
+            **/backups/*
+            backups/**
+            backups/*
             **/*.docx
             **/USER_MANUAL.docx
             **/rebuild_zip_temp.py
