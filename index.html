@@ -810,7 +810,7 @@
                             <button type="button" id="btn-reset-filters-default" class="btn btn-secondary aviation-btn" data-translate="btn-reset-filters-default" title="Сбросить фильтры к исходным заводским настройкам" onclick="handleResetAirportFilters(event)">
                                 <span>↺</span> <span data-translate="btn-reset-filters">Сбросить по умолчанию</span>
                             </button>
-                            <button type="button" id="btn-toggle-filters-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель" onclick="toggleAirportFiltersAccordion(event)">
+                            <button type="button" id="btn-toggle-filters-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
                                 <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
                             </button>
                         </div>
@@ -841,9 +841,9 @@
                                     </button>
                                 </form>
 
-                                <!-- Контейнер чипсов/тегов вылета -->
-                                <div id="departures-chips-container" class="chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px;">
-                                    <!-- Заполняется динамически -->
+                                <!-- Контейнер строк вылета (вертикальный список в столбец) -->
+                                <div id="departures-chips-container" class="chips-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding: 4px; padding-right: 6px;">
+                                    <!-- Заполняется динамически строками -->
                                 </div>
                             </div>
 
@@ -875,9 +875,9 @@
                                     </button>
                                 </form>
 
-                                <!-- Контейнер чипсов/тегов прилета -->
-                                <div id="arrivals-chips-container" class="chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 220px; overflow-y: auto; padding: 4px;">
-                                    <!-- Заполняется динамически -->
+                                <!-- Контейнер строк прилета (вертикальный список в столбец) -->
+                                <div id="arrivals-chips-container" class="chips-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding: 4px; padding-right: 6px;">
+                                    <!-- Заполняется динамически строками -->
                                 </div>
                             </div>
                         </div>
@@ -1320,13 +1320,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.112</span> (<span id="app-build-date">30.08.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.113</span> (<span id="app-build-date">30.08.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.112"></script>
+    <script src="app.js?v=v12.0.113"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.112';
+const APP_VERSION = 'v12.0.113';
 const APP_BUILD_DATE = '30.08.2026';
 
 // Глобальное состояние
@@ -2894,8 +2894,11 @@ function getCanonicalAirportItems(codesList) {
 
 // Переключение раскрытия/складывания панели фильтров
 function toggleAirportFiltersAccordion(e) {
-    if (e && e.target && (e.target.closest('#btn-reset-filters-default') || e.target.closest('input') || e.target.closest('form') || e.target.closest('button.btn-chip-remove') || e.target.closest('label'))) {
-        return;
+    if (e) {
+        if (e.target && e.target.closest('#btn-reset-filters-default')) {
+            return;
+        }
+        e.stopPropagation();
     }
     const panel = document.getElementById('airport-filters-panel');
     const toggleBtn = document.getElementById('btn-toggle-filters-collapse');
@@ -2918,7 +2921,7 @@ function toggleAirportFiltersAccordion(e) {
     }
 }
 
-// Отрисовка интерактивной панели фильтров (чипсы + автодополнение + счетчики)
+// Отрисовка интерактивной панели фильтров (строчный вид в столбец + автодополнение + счетчики)
 function renderAirportFiltersUI() {
     const depContainer = document.getElementById('departures-chips-container');
     const arrContainer = document.getElementById('arrivals-chips-container');
@@ -2968,7 +2971,7 @@ function renderAirportFiltersUI() {
         summaryArrs.textContent = `🛬 ${sortedArrs.length} ${word}${strictLabel}`;
     }
 
-    // 1. Отрисовка чипсов вылетов (Departures)
+    // 1. Отрисовка строк вылетов (Departures - вертикальный список в столбец)
     depContainer.innerHTML = '';
     if (depBadge) {
         const itemWord = currentLang === 'ru' ? 'городов' : 'cities';
@@ -2976,22 +2979,24 @@ function renderAirportFiltersUI() {
     }
 
     if (sortedDeps.length === 0) {
-        depContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все вылеты разрешены)' : 'No filters (all departures allowed)'}</span>`;
+        depContainer.innerHTML = `<span class="dash-subtext" style="padding: 6px;">${currentLang === 'ru' ? 'Нет фильтров (все вылеты разрешены)' : 'No filters (all departures allowed)'}</span>`;
     } else {
         sortedDeps.forEach(item => {
-            const chip = document.createElement('div');
-            chip.className = 'airport-filter-chip';
+            const row = document.createElement('div');
+            row.className = 'airport-filter-row';
             const codesText = (item.ru && item.ru !== item.iata) ? `${item.iata} / ${item.ru}` : item.iata;
-            chip.innerHTML = `
-                <span class="chip-code">${codesText}</span>
-                <span class="chip-name">${item.name || ''}</span>
-                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('departures', '${item.key}')">✕</button>
+            row.innerHTML = `
+                <div class="row-info">
+                    <span class="row-city-name">${item.name || item.iata}</span>
+                    <span class="row-airport-codes">${codesText}</span>
+                </div>
+                <button type="button" class="btn-row-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('departures', '${item.key}')">✕</button>
             `;
-            depContainer.appendChild(chip);
+            depContainer.appendChild(row);
         });
     }
 
-    // 2. Отрисовка чипсов прилетов (Arrivals)
+    // 2. Отрисовка строк прилетов (Arrivals - вертикальный список в столбец)
     arrContainer.innerHTML = '';
     if (arrBadge) {
         const itemWord = currentLang === 'ru' ? 'городов' : 'cities';
@@ -2999,18 +3004,20 @@ function renderAirportFiltersUI() {
     }
 
     if (sortedArrs.length === 0) {
-        arrContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все прилеты разрешены)' : 'No filters (all arrivals allowed)'}</span>`;
+        arrContainer.innerHTML = `<span class="dash-subtext" style="padding: 6px;">${currentLang === 'ru' ? 'Нет фильтров (все прилеты разрешены)' : 'No filters (all arrivals allowed)'}</span>`;
     } else {
         sortedArrs.forEach(item => {
-            const chip = document.createElement('div');
-            chip.className = 'airport-filter-chip chip-arrival';
+            const row = document.createElement('div');
+            row.className = 'airport-filter-row row-arrival';
             const codesText = (item.ru && item.ru !== item.iata) ? `${item.ru} / ${item.iata}` : item.ru;
-            chip.innerHTML = `
-                <span class="chip-code">${codesText}</span>
-                <span class="chip-name">${item.name || ''}</span>
-                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('arrivals', '${item.key}')">✕</button>
+            row.innerHTML = `
+                <div class="row-info">
+                    <span class="row-city-name">${item.name || item.ru}</span>
+                    <span class="row-airport-codes">${codesText}</span>
+                </div>
+                <button type="button" class="btn-row-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('arrivals', '${item.key}')">✕</button>
             `;
-            arrContainer.appendChild(chip);
+            arrContainer.appendChild(row);
         });
     }
 }

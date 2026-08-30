@@ -5243,6 +5243,104 @@ body.light-theme .airport-filter-chip.chip-arrival {
     border-color: rgba(217, 119, 6, 0.3);
 }
 
+/* --- Строчный вид городов (Columnar Row Layout) --- */
+.airport-filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 12px;
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    border-radius: 6px;
+    font-size: 0.84rem;
+    transition: all 0.15s ease;
+}
+
+.airport-filter-row:hover {
+    background: rgba(0, 240, 255, 0.12);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.15);
+}
+
+.airport-filter-row.row-arrival {
+    background: rgba(255, 183, 0, 0.04);
+    border-color: rgba(255, 183, 0, 0.18);
+}
+
+.airport-filter-row.row-arrival:hover {
+    background: rgba(255, 183, 0, 0.12);
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 8px rgba(255, 183, 0, 0.15);
+}
+
+.airport-filter-row .row-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    overflow: hidden;
+}
+
+.airport-filter-row .row-city-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.airport-filter-row .row-airport-codes {
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    padding: 2px 7px;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.airport-filter-row.row-arrival .row-airport-codes {
+    color: var(--accent-gold);
+    background: rgba(255, 183, 0, 0.12);
+    border-color: rgba(255, 183, 0, 0.3);
+}
+
+.airport-filter-row .btn-row-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+    transition: all 0.15s ease;
+}
+
+.airport-filter-row .btn-row-remove:hover {
+    color: #fff;
+    background: #ef4444;
+}
+
+body.light-theme .airport-filter-row {
+    background: rgba(2, 132, 199, 0.05);
+    border-color: rgba(2, 132, 199, 0.2);
+}
+body.light-theme .airport-filter-row:hover {
+    background: rgba(2, 132, 199, 0.12);
+    border-color: var(--accent-cyan);
+}
+body.light-theme .airport-filter-row.row-arrival {
+    background: rgba(217, 119, 6, 0.05);
+    border-color: rgba(217, 119, 6, 0.2);
+}
+body.light-theme .airport-filter-row.row-arrival:hover {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: var(--accent-gold);
+}
+
 /* --- Складываемая панель фильтров (Accordion Panel) --- */
 .airport-filters-section {
     transition: all 0.3s ease;
@@ -5273,6 +5371,7 @@ body.light-theme .airport-filter-chip.chip-arrival {
     gap: 6px;
     padding: 6px 14px;
     font-size: 0.8rem;
+    cursor: pointer;
 }
 
 .airport-filters-section.collapsed .collapse-icon {
