@@ -19,16 +19,32 @@ jobs:
       - name: 🧹 Auto-clean server address and directory
         run: |
           RAW_SERVER="${{ secrets.BEGET_FTP_SERVER }}"
+          if [ -z "$RAW_SERVER" ]; then
+            echo "::error::Секрет BEGET_FTP_SERVER пустой или не задан в GitHub Secrets!"
+            exit 1
+          fi
           # Удаляем протоколы ftp://, http://, https://
           CLEAN_SERVER=$(echo "$RAW_SERVER" | sed -e 's|^[^/]*://||' -e 's|/.*$||' | tr -d '[:space:]')
           
           RAW_DIR="${{ secrets.BEGET_REMOTE_DIR }}"
-          CLEAN_DIR=$(echo "$RAW_DIR" | tr -d '\r\n' | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||')
-          # Гарантируем слэш на конце
-          [[ "$CLEAN_DIR" != */ ]] && CLEAN_DIR="${CLEAN_DIR}/"
+          if [ -z "$RAW_DIR" ]; then
+            CLEAN_DIR="./"
+          else
+            CLEAN_DIR=$(echo "$RAW_DIR" | tr -d '\r\n' | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||')
+            [[ "$CLEAN_DIR" != */ ]] && CLEAN_DIR="${CLEAN_DIR}/"
+          fi
+          
+          RAW_USER="${{ secrets.BEGET_FTP_USERNAME }}"
+          if [ -z "$RAW_USER" ]; then
+            echo "::error::Секрет BEGET_FTP_USERNAME пустой или не задан в GitHub Secrets!"
+            exit 1
+          fi
           
           echo "CLEAN_SERVER=${CLEAN_SERVER}" >> $GITHUB_ENV
           echo "CLEAN_DIR=${CLEAN_DIR}" >> $GITHUB_ENV
+          echo "Target Server: ${CLEAN_SERVER}"
+          echo "Target Directory: ${CLEAN_DIR}"
+          echo "Target User: ${RAW_USER}"
 
       - name: 📂 Sync files to Beget
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
