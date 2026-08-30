@@ -791,6 +791,92 @@
                     </div>
                 </div>
 
+                <!-- Секция: Управление фильтрами импорта рейсов (Departures / Arrivals Filters) -->
+                <section class="panel glass aviation-panel airport-filters-section" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container">
+                        <div>
+                            <h2 class="panel-title" data-translate="filters-title">[ INGESTION ROUTE & CITY FILTERS ]</h2>
+                            <p class="dash-subtext" data-translate="filters-subtext">Настройка разрешенных направлений для импорта из отчетов регистрации (Astra DCS / Excel). Поддерживаются коды IATA, коды РФ и названия городов.</p>
+                        </div>
+                        <div class="table-actions">
+                            <button type="button" id="btn-reset-filters-default" class="btn btn-secondary aviation-btn" data-translate="btn-reset-filters-default" title="Сбросить фильтры к исходным заводским настройкам" onclick="handleResetAirportFilters(event)">
+                                <span>↺</span> <span data-translate="btn-reset-filters">Сбросить по умолчанию</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="airport-filters-grid" style="margin-top: 15px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px;">
+                        <!-- Колонка 1: Фильтр пунктов вылета (Departures) -->
+                        <div class="filter-card glass aviation-subpanel" style="padding: 14px; border-radius: 8px; background: rgba(10, 20, 40, 0.4); border: 1px solid rgba(0, 240, 255, 0.2);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 1.1rem;">🛫</span>
+                                    <strong style="color: var(--accent-cyan); font-family: var(--font-mono); font-size: 0.9rem;" data-translate="filter-departures-title">АЭРОПОРТЫ ВЫЛЕТА (FROM)</strong>
+                                </div>
+                                <span id="departures-count-badge" class="badge-role badge-role-dispatcher" style="font-size: 0.7rem;">0 пунктов</span>
+                            </div>
+                            
+                            <!-- Форма добавления пункта вылета -->
+                            <form id="form-add-departure" style="display: flex; gap: 6px; margin-bottom: 12px;" onsubmit="handleAddAirportFilter(event, 'departures')">
+                                <div style="position: relative; flex: 1;">
+                                    <input type="text" id="input-add-departure" class="form-control text-uppercase" placeholder="Код IATA / РФ / Город..." list="airports-datalist" style="font-size: 0.85rem; padding: 6px 10px;" autocomplete="off">
+                                </div>
+                                <button type="submit" class="btn btn-primary aviation-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                                    <span>➕</span> <span data-translate="btn-add">Добавить</span>
+                                </button>
+                            </form>
+
+                            <!-- Контейнер чипсов/тегов вылета -->
+                            <div id="departures-chips-container" class="chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px;">
+                                <!-- Заполняется динамически -->
+                            </div>
+                        </div>
+
+                        <!-- Колонка 2: Фильтр пунктов прилета (Arrivals) -->
+                        <div class="filter-card glass aviation-subpanel" style="padding: 14px; border-radius: 8px; background: rgba(10, 20, 40, 0.4); border: 1px solid rgba(0, 240, 255, 0.2);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-size: 1.1rem;">🛬</span>
+                                    <strong style="color: var(--accent-gold); font-family: var(--font-mono); font-size: 0.9rem;" data-translate="filter-arrivals-title">АЭРОПОРТЫ ПРИЛЕТА (TO)</strong>
+                                </div>
+                                <span id="arrivals-count-badge" class="badge-role badge-role-admin" style="font-size: 0.7rem;">0 пунктов</span>
+                            </div>
+
+                            <!-- Чекбокс строгого фильтра по прилетам (Вариант А) -->
+                            <div style="margin-bottom: 10px;">
+                                <label class="aviation-checkbox-container" style="font-size: 0.78rem; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="checkbox" id="chk-strict-arrivals" onchange="handleToggleStrictArrivals(this.checked)">
+                                    <span data-translate="chk-strict-arrivals" style="color: var(--text-secondary);">Включить строгий фильтр по прилетам</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Форма добавления пункта прилета -->
+                            <form id="form-add-arrival" style="display: flex; gap: 6px; margin-bottom: 12px;" onsubmit="handleAddAirportFilter(event, 'arrivals')">
+                                <div style="position: relative; flex: 1;">
+                                    <input type="text" id="input-add-arrival" class="form-control text-uppercase" placeholder="Код IATA / РФ / Город..." list="airports-datalist" style="font-size: 0.85rem; padding: 6px 10px;" autocomplete="off">
+                                </div>
+                                <button type="submit" class="btn btn-primary aviation-btn" style="padding: 6px 12px; font-size: 0.8rem;">
+                                    <span>➕</span> <span data-translate="btn-add">Добавить</span>
+                                </button>
+                            </form>
+
+                            <!-- Контейнер чипсов/тегов прилета -->
+                            <div id="arrivals-chips-container" class="chips-container" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 200px; overflow-y: auto; padding: 4px;">
+                                <!-- Заполняется динамически -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Datalist со всеми доступными городами и кодами для автодополнения -->
+                    <datalist id="airports-datalist">
+                    </datalist>
+                </section>
+
                 <!-- Секция 1: Управление учетными записями и доступом (RBAC) -->
                 <section class="panel glass aviation-panel rbac-section" style="margin-bottom: 20px;">
                     <div class="hud-corner top-left"></div>
@@ -1223,13 +1309,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.109</span> (<span id="app-build-date">29.08.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.110</span> (<span id="app-build-date">30.08.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.109"></script>
+    <script src="app.js?v=v12.0.110"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.109';
-const APP_BUILD_DATE = '29.08.2026';
+const APP_VERSION = 'v12.0.110';
+const APP_BUILD_DATE = '30.08.2026';
 
 // Глобальное состояние
 let baggageDb = null;
@@ -250,6 +250,14 @@ const translations = {
         'btn-import-db': 'Импорт базы (Restore)',
         'backup-import-success': 'База данных успешно восстановлена! Загружено {flights} рейсов и {predictions} прогнозов.',
         'backup-import-error': 'Ошибка чтения файла резервной копии. Убедитесь, что формат файла верен.',
+        'filters-title': '[ ФИЛЬТРЫ НАПРАВЛЕНИЙ И ГОРОДОВ ДЛЯ ЗАГРУЗКИ ]',
+        'filters-subtext': 'Настройка разрешенных направлений для импорта из отчетов регистрации (Astra DCS / Excel). Поддерживаются коды IATA, коды РФ и названия городов.',
+        'filter-departures-title': 'АЭРОПОРТЫ ВЫЛЕТА (FROM)',
+        'filter-arrivals-title': 'АЭРОПОРТЫ ПРИЛЕТА (TO)',
+        'btn-reset-filters-default': 'Сбросить по умолчанию',
+        'btn-reset-filters': 'Сбросить по умолчанию',
+        'btn-add': 'Добавить',
+        'chk-strict-arrivals': 'Включить строгий фильтр по прилетам',
         'footer-build-label': 'Сборка',
         'footer-developer': 'Разработчик: Andrey Zubkov',
         'btn-manual': 'Руководство'
@@ -476,6 +484,14 @@ const translations = {
         'btn-import-db': 'Import Database (Restore)',
         'backup-import-success': 'Database successfully restored! Loaded {flights} flights and {predictions} predictions.',
         'backup-import-error': 'Error reading backup file. Make sure file format is correct.',
+        'filters-title': '[ INGESTION ROUTE & CITY FILTERS ]',
+        'filters-subtext': 'Configure allowed destinations for ingestion from registration reports (Astra DCS / Excel). Supports IATA codes, Russian codes, and city names.',
+        'filter-departures-title': 'DEPARTURE AIRPORTS (FROM)',
+        'filter-arrivals-title': 'ARRIVAL AIRPORTS (TO)',
+        'btn-reset-filters-default': 'Reset to Default',
+        'btn-reset-filters': 'Reset to Default',
+        'btn-add': 'Add',
+        'chk-strict-arrivals': 'Enable strict arrivals filter',
         'footer-build-label': 'Build',
         'footer-developer': 'Developer: Andrey Zubkov',
         'btn-manual': 'Manual'
@@ -549,6 +565,54 @@ function iataToRu(iataCode) {
     }
     const ap = Object.values(baggageDb.airports).find(a => a.iata === iataCode);
     return ap ? ap.ru : iataCode;
+}
+
+// Интеллектуальный поиск и сопоставление аэропорта/города по любому формату (IATA, РФ-код, Название города на русском)
+function resolveAirportInfo(query) {
+    if (!query) return null;
+    const clean = String(query).trim().toUpperCase();
+    const cleanLower = String(query).trim().toLowerCase();
+
+    if (baggageDb && baggageDb.airports) {
+        // 1. Прямой поиск по ключу
+        if (baggageDb.airports[clean]) {
+            const ap = baggageDb.airports[clean];
+            return { iata: ap.iata || clean, ru: ap.ru || clean, name: ap.name || ap.iata || clean };
+        }
+
+        // 2. Поиск по IATA или RU коду
+        for (const ap of Object.values(baggageDb.airports)) {
+            if (ap.iata && ap.iata.toUpperCase() === clean) {
+                return { iata: ap.iata, ru: ap.ru || ap.iata, name: ap.name || ap.iata };
+            }
+            if (ap.ru && ap.ru.toUpperCase() === clean) {
+                return { iata: ap.iata || ap.ru, ru: ap.ru, name: ap.name || ap.ru };
+            }
+        }
+
+        // 3. Поиск по точному совпадению названия города или его вхождению
+        for (const ap of Object.values(baggageDb.airports)) {
+            if (ap.name) {
+                const nameLower = ap.name.toLowerCase();
+                if (nameLower === cleanLower || nameLower.includes(cleanLower) || (cleanLower.length >= 3 && cleanLower.includes(nameLower))) {
+                    return { iata: ap.iata || ap.ru, ru: ap.ru || ap.iata, name: ap.name };
+                }
+            }
+        }
+    }
+
+    // Если в справочнике нет, но это 3 буквы латиницы
+    if (/^[A-Z]{3}$/.test(clean)) {
+        const ru = iataToRu(clean);
+        return { iata: clean, ru: (ru && ru !== clean ? ru : clean), name: clean };
+    }
+    // Если 3 буквы кириллицы
+    if (/^[А-ЯЁ]{3}$/.test(clean)) {
+        const iata = ruToIata(clean);
+        return { iata: (iata && iata !== clean ? iata : clean), ru: clean, name: clean };
+    }
+
+    return { iata: clean, ru: clean, name: String(query).trim() };
 }
 
 // Автоматическая нормализация кодов аэропортов рейса к стандарту ИАТА
@@ -1201,6 +1265,7 @@ function setLanguage(lang) {
         updateActiveDateRangeAndCounts();
         renderFlightsTable();
         renderPredictionsTable();
+        renderAirportFiltersUI();
     }
     renderDashboardAnalytics();
 }
@@ -1239,11 +1304,296 @@ async function loadBaggageDb() {
         renderFlightsTable();
         renderPredictionsTable();
         renderUploadedFilesList();
+        renderAirportFiltersUI();
+        initAirportFiltersFromServer();
     } catch (e) {
         console.error("Ошибка загрузки baggage_db.json:", e);
         baggageDb = { airports: {}, departures_filter: [], arrivals_filter: [], rules: [] };
+        renderAirportFiltersUI();
     }
 }
+
+// ==========================================================================
+// УПРАВЛЕНИЕ ФИЛЬТРАМИ ИМПОРТА РЕЙСОВ (DEPARTURES & ARRIVALS ROUTE FILTERS)
+// ==========================================================================
+
+// Получение текущих активных фильтров аэропортов (из LocalStorage, БД или дефолтные)
+function getCustomAirportFilters() {
+    const saved = localStorage.getItem('averago_custom_airport_filters');
+    if (saved) {
+        try {
+            const parsed = JSON.parse(saved);
+            if (parsed && Array.isArray(parsed.departures) && Array.isArray(parsed.arrivals)) {
+                return {
+                    departures: Array.from(new Set(parsed.departures)),
+                    arrivals: Array.from(new Set(parsed.arrivals)),
+                    strict_arrivals: !!parsed.strict_arrivals
+                };
+            }
+        } catch (e) {
+            console.error("Ошибка парсинга averago_custom_airport_filters:", e);
+        }
+    }
+
+    // Исходные предустановленные списки
+    const defaultDeps = (baggageDb && Array.isArray(baggageDb.departures_filter) && baggageDb.departures_filter.length > 0)
+        ? baggageDb.departures_filter
+        : ['AER', 'СОЧ', 'CCC', 'DYU', 'ДШБ', 'GOX', 'HOG', 'HRG', 'KQT', 'КГТ', 'LBD', 'ХДТ', 'OSS', 'ОШШ', 'PMV', 'REN', 'ОНГ', 'SSH', 'SUI', 'СУИ', 'TAS', 'ТАС', 'UTP', 'VRA'];
+
+    const defaultArrs = (baggageDb && Array.isArray(baggageDb.arrivals_filter) && baggageDb.arrivals_filter.length > 0)
+        ? baggageDb.arrivals_filter
+        : ['СОЧ', 'AYT', 'БАН', 'ЧЛБ', 'ЧБЕ', 'ДШБ', 'НЖС', 'ИВВ', 'КРВ', 'КЛД', 'ЕМВ', 'КГН', 'СКЧ', 'КИО', 'КЗН', 'ХДТ', 'ПЛК', 'МХЛ', 'МГС', 'МРВ', 'НЖК', 'НЖВ', 'НВК', 'ОМС', 'ОСК', 'ТЛЧ', 'ПРЬ', 'ОНГ', 'ГОР', 'СЫВ', 'СУР', 'SKV', 'ШРМ', 'ТАМ', 'УФА', 'УЛВ', 'ЯРЛ', 'ЭГВ', 'ПВХ', 'ВАВ', 'АБА', 'БАХ', 'ИКТ', 'КРС', 'ГРН', 'БЛГ', 'БКС', 'БРН', 'ВРН', 'КУР', 'ПЗМ', 'СВХ', 'ИЖВ', 'МРМ', 'КПА'];
+
+    return {
+        departures: Array.from(new Set(defaultDeps)),
+        arrivals: Array.from(new Set(defaultArrs)),
+        strict_arrivals: false
+    };
+}
+
+// Сохранение фильтров аэропортов (в LocalStorage и в MySQL через API)
+async function saveCustomAirportFilters(filters) {
+    if (!filters) return;
+    try {
+        localStorage.setItem('averago_custom_airport_filters', JSON.stringify(filters));
+    } catch (e) {
+        console.error("Ошибка сохранения averago_custom_airport_filters:", e);
+    }
+
+    if (!isOfflineMode) {
+        try {
+            await fetch('api.php?action=save_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_key: 'airport_filters',
+                    setting_value: filters
+                })
+            });
+        } catch (e) {
+            console.warn("Ошибка синхронизации фильтров с сервером:", e);
+        }
+    }
+}
+
+// Загрузка сохраненных фильтров аэропортов с сервера
+async function initAirportFiltersFromServer() {
+    if (!isOfflineMode) {
+        try {
+            const res = await fetch('api.php?action=get_settings&key=airport_filters');
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await res.json();
+                if (data.success && data.value && Array.isArray(data.value.departures) && Array.isArray(data.value.arrivals)) {
+                    localStorage.setItem('averago_custom_airport_filters', JSON.stringify(data.value));
+                }
+            }
+        } catch (e) {
+            console.warn("Не удалось подгрузить фильтры аэропортов с сервера:", e);
+        }
+    }
+    renderAirportFiltersUI();
+    populateAirportDropdowns();
+}
+
+// Отрисовка интерактивной панели фильтров (чипсы + автодополнение + счетчики)
+function renderAirportFiltersUI() {
+    const depContainer = document.getElementById('departures-chips-container');
+    const arrContainer = document.getElementById('arrivals-chips-container');
+    const depBadge = document.getElementById('departures-count-badge');
+    const arrBadge = document.getElementById('arrivals-count-badge');
+    const datalist = document.getElementById('airports-datalist');
+    const chkStrict = document.getElementById('chk-strict-arrivals');
+
+    if (!depContainer || !arrContainer) return;
+
+    const filters = getCustomAirportFilters();
+
+    if (chkStrict) {
+        chkStrict.checked = !!filters.strict_arrivals;
+    }
+
+    // Заполнение datalist для автодополнения (поиск по коду или названию)
+    if (datalist && baggageDb && baggageDb.airports) {
+        const addedSet = new Set();
+        datalist.innerHTML = '';
+        Object.values(baggageDb.airports).forEach(ap => {
+            if (!ap) return;
+            const primaryKey = ap.iata || ap.ru;
+            if (primaryKey && !addedSet.has(primaryKey)) {
+                addedSet.add(primaryKey);
+                const opt = document.createElement('option');
+                opt.value = `${ap.iata || ap.ru} - ${ap.name || ''} (${ap.ru || ap.iata || ''})`;
+                datalist.appendChild(opt);
+            }
+        });
+    }
+
+    // 1. Отрисовка чипсов вылетов (Departures)
+    depContainer.innerHTML = '';
+    const uniqueDeps = Array.from(new Set(filters.departures || []));
+    if (depBadge) {
+        const itemWord = currentLang === 'ru' ? 'пунктов' : 'items';
+        depBadge.textContent = `${uniqueDeps.length} ${itemWord}`;
+    }
+
+    if (uniqueDeps.length === 0) {
+        depContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все вылеты разрешены)' : 'No filters (all departures allowed)'}</span>`;
+    } else {
+        uniqueDeps.forEach(code => {
+            const info = resolveAirportInfo(code);
+            const chip = document.createElement('div');
+            chip.className = 'airport-filter-chip';
+            chip.innerHTML = `
+                <span class="chip-code">${info ? info.iata : code}</span>
+                ${info && info.ru && info.ru !== info.iata ? `<span style="opacity: 0.6; font-size: 0.7rem;">/ ${info.ru}</span>` : ''}
+                <span class="chip-name">${info && info.name && info.name !== info.iata ? info.name : ''}</span>
+                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('departures', '${code}')">✕</button>
+            `;
+            depContainer.appendChild(chip);
+        });
+    }
+
+    // 2. Отрисовка чипсов прилетов (Arrivals)
+    arrContainer.innerHTML = '';
+    const uniqueArrs = Array.from(new Set(filters.arrivals || []));
+    if (arrBadge) {
+        const itemWord = currentLang === 'ru' ? 'пунктов' : 'items';
+        arrBadge.textContent = `${uniqueArrs.length} ${itemWord}`;
+    }
+
+    if (uniqueArrs.length === 0) {
+        arrContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все прилеты разрешены)' : 'No filters (all arrivals allowed)'}</span>`;
+    } else {
+        uniqueArrs.forEach(code => {
+            const info = resolveAirportInfo(code);
+            const chip = document.createElement('div');
+            chip.className = 'airport-filter-chip chip-arrival';
+            chip.innerHTML = `
+                <span class="chip-code">${info ? (info.ru || info.iata) : code}</span>
+                ${info && info.iata && info.iata !== info.ru ? `<span style="opacity: 0.6; font-size: 0.7rem;">/ ${info.iata}</span>` : ''}
+                <span class="chip-name">${info && info.name && info.name !== info.iata ? info.name : ''}</span>
+                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('arrivals', '${code}')">✕</button>
+            `;
+            arrContainer.appendChild(chip);
+        });
+    }
+}
+
+// Обработка добавления аэропорта/города в фильтр
+function handleAddAirportFilter(e, type) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const inputId = type === 'departures' ? 'input-add-departure' : 'input-add-arrival';
+    const inputEl = document.getElementById(inputId);
+    if (!inputEl) return;
+
+    let rawVal = inputEl.value.trim();
+    if (!rawVal) return;
+
+    if (rawVal.includes('-')) {
+        rawVal = rawVal.split('-')[0].trim();
+    }
+
+    const info = resolveAirportInfo(rawVal);
+    if (!info) {
+        showAviationAlert((currentLang === 'ru' ? 'Не удалось распознать аэропорт или город: ' : 'Unknown airport or city: ') + rawVal, true);
+        return;
+    }
+
+    const filters = getCustomAirportFilters();
+    const list = type === 'departures' ? filters.departures : filters.arrivals;
+
+    const primaryCode = type === 'departures' ? (info.iata || info.ru) : (info.ru || info.iata);
+    const primaryUpper = primaryCode.toUpperCase();
+
+    // Проверяем, есть ли уже этот пункт в фильтре
+    const alreadyExists = list.some(c => {
+        const u = String(c).trim().toUpperCase();
+        return u === primaryUpper || (info.iata && u === info.iata.toUpperCase()) || (info.ru && u === info.ru.toUpperCase()) || (info.name && u === info.name.toUpperCase());
+    });
+
+    if (alreadyExists) {
+        showAviationAlert((currentLang === 'ru' ? 'Этот пункт уже добавлен в фильтр: ' : 'Already in filter: ') + `${info.iata} / ${info.ru} (${info.name})`, true);
+        return;
+    }
+
+    list.push(primaryCode);
+    if (info.iata && !list.includes(info.iata)) list.push(info.iata);
+    if (info.ru && !list.includes(info.ru)) list.push(info.ru);
+
+    saveCustomAirportFilters(filters);
+    renderAirportFiltersUI();
+    populateAirportDropdowns();
+    inputEl.value = '';
+
+    const label = type === 'departures' ? (currentLang === 'ru' ? 'вылета' : 'departure') : (currentLang === 'ru' ? 'прилета' : 'arrival');
+    showAviationAlert((currentLang === 'ru' ? `Добавлен в фильтр ${label}: ` : `Added to ${label} filter: `) + `${info.iata} / ${info.ru} (${info.name})`, false);
+}
+
+// Обработка удаления аэропорта/города из фильтра
+function handleRemoveAirportFilter(type, code) {
+    const filters = getCustomAirportFilters();
+    const list = type === 'departures' ? filters.departures : filters.arrivals;
+
+    const info = resolveAirportInfo(code);
+    const codesToRemove = new Set([String(code).trim().toUpperCase()]);
+    if (info) {
+        if (info.iata) codesToRemove.add(info.iata.toUpperCase());
+        if (info.ru) codesToRemove.add(info.ru.toUpperCase());
+        if (info.name) codesToRemove.add(info.name.toUpperCase());
+    }
+
+    const updated = list.filter(c => !codesToRemove.has(String(c).trim().toUpperCase()));
+    if (type === 'departures') {
+        filters.departures = updated;
+    } else {
+        filters.arrivals = updated;
+    }
+
+    saveCustomAirportFilters(filters);
+    renderAirportFiltersUI();
+    populateAirportDropdowns();
+}
+
+// Сброс фильтров к исходным заводским настройкам
+function handleResetAirportFilters(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const msg = currentLang === 'ru'
+        ? 'Сбросить фильтры аэропортов вылета и прилета к исходным заводским настройкам?'
+        : 'Reset departure and arrival airport filters to default factory settings?';
+
+    showAviationConfirm(msg, () => {
+        localStorage.removeItem('averago_custom_airport_filters');
+        const filters = getCustomAirportFilters();
+        saveCustomAirportFilters(filters);
+        renderAirportFiltersUI();
+        populateAirportDropdowns();
+        showAviationAlert(currentLang === 'ru' ? 'Фильтры успешно сброшены по умолчанию' : 'Filters reset to default', false);
+    });
+}
+
+// Переключение строгого режима фильтрации прилетов (Вариант А)
+function handleToggleStrictArrivals(isChecked) {
+    const filters = getCustomAirportFilters();
+    filters.strict_arrivals = !!isChecked;
+    saveCustomAirportFilters(filters);
+    const msg = isChecked
+        ? (currentLang === 'ru' ? 'Включен строгий фильтр: будут загружаться только рейсы в разрешенные аэропорты прилета.' : 'Strict arrivals filter enabled.')
+        : (currentLang === 'ru' ? 'Строгий фильтр по прилетам отключен: разрешены все прилеты из хабов вылета.' : 'Strict arrivals filter disabled.');
+    showAviationAlert(msg, false);
+}
+
+// Экспортируем в window для инлайновых вызовов в HTML
+window.handleAddAirportFilter = handleAddAirportFilter;
+window.handleRemoveAirportFilter = handleRemoveAirportFilter;
+window.handleResetAirportFilters = handleResetAirportFilters;
+window.handleToggleStrictArrivals = handleToggleStrictArrivals;
 
 // Загрузка рейсов из локального хранилища (localStorage)
 function loadFlightsFromLocalStorage() {
@@ -1568,16 +1918,12 @@ function populateAirportDropdowns() {
         manualTo.appendChild(customOpt);
     }
 
-    // Вылетные направления (16 базовая система + добавленные вручную/из файлов)
-    const departuresSet = new Set([
-        'AER', 'СОЧ', 'CCC', 'DYU', 'ДШБ', 'GOX', 'HOG', 'HRG',
-        'KQT', 'КГТ', 'LBD', 'ХДТ', 'OSS', 'ОШШ', 'PMV', 'REN', 'ОНГ',
-        'SSH', 'SUI', 'СУИ', 'TAS', 'ТАС', 'UTP', 'VRA'
-    ]);
-    if (baggageDb && baggageDb.departures_filter) {
-        baggageDb.departures_filter.forEach(d => {
+    // Вылетные направления (из активного фильтра вылетов + базы рейсов)
+    const customFilters = getCustomAirportFilters();
+    const departuresSet = new Set(customFilters.departures || []);
+    if (customFilters.departures) {
+        customFilters.departures.forEach(d => {
             if (d && !isHeaderGarbage(d)) {
-                departuresSet.add(d);
                 const iata = ruToIata(d);
                 if (iata && !isHeaderGarbage(iata)) departuresSet.add(iata);
             }
@@ -1593,12 +1939,11 @@ function populateAirportDropdowns() {
         });
     }
 
-    // Прилетные направления (из arrivals_filter + всех ручных и загруженных рейсов)
-    const arrivalsSet = new Set();
-    if (baggageDb && baggageDb.arrivals_filter) {
-        baggageDb.arrivals_filter.forEach(a => {
+    // Прилетные направления (из активного фильтра прилетов + всех рейсов)
+    const arrivalsSet = new Set(customFilters.arrivals || []);
+    if (customFilters.arrivals) {
+        customFilters.arrivals.forEach(a => {
             if (a && !isHeaderGarbage(a)) {
-                arrivalsSet.add(a);
                 const iata = ruToIata(a);
                 if (iata && !isHeaderGarbage(iata)) arrivalsSet.add(iata);
             }
@@ -4949,7 +5294,9 @@ function processRegistrationData(filename, rows, options = {}) {
     if (colMap.bagWeight === -1) colMap.bagWeight = 21;    // Столбец V (Багаж вес)
 
     let addedCount = 0;
-    const departuresFilter = (baggageDb && baggageDb.departures_filter) ? baggageDb.departures_filter : [];
+    const customFilters = getCustomAirportFilters();
+    const allowedDeparturesSet = new Set((customFilters.departures || []).map(c => String(c).trim().toUpperCase()));
+    const allowedArrivalsSet = new Set((customFilters.arrivals || []).map(c => String(c).trim().toUpperCase()));
 
     for (let i = headerRowIdx + 1; i < rows.length; i++) {
         const row = rows[i];
@@ -4975,21 +5322,39 @@ function processRegistrationData(filename, rows, options = {}) {
         if (!cleanFrom) cleanFrom = 'AER';
         if (!cleanDirection) cleanDirection = 'AYT';
 
-        const fromIata = ruToIata(cleanFrom) || cleanFrom;
-        const toIata = ruToIata(cleanDirection) || cleanDirection;
-        const fromRu = iataToRu(fromIata);
-        
-        // Строгий фильтр: загружаются ИСКЛЮЧИТЕЛЬНО рейсы из списка разрешенных аэропортов вылета
-        const allowedDeparturesSet = new Set([
-            'AER', 'СОЧ', 'CCC', 'DYU', 'ДШБ', 'GOX', 'HOG', 'HRG',
-            'KQT', 'КГТ', 'LBD', 'ХДТ', 'OSS', 'ОШШ', 'PMV', 'REN', 'ОНГ',
-            'SSH', 'SUI', 'СУИ', 'TAS', 'ТАС', 'UTP', 'VRA'
-        ]);
+        const fromInfo = resolveAirportInfo(cleanFrom) || resolveAirportInfo(rawFrom);
+        const fromIata = fromInfo ? fromInfo.iata : (ruToIata(cleanFrom) || cleanFrom);
+        const fromRu = fromInfo ? fromInfo.ru : (iataToRu(fromIata) || cleanFrom);
+        const toInfo = resolveAirportInfo(cleanDirection) || resolveAirportInfo(rawDirectionFull);
+        const toIata = toInfo ? toInfo.iata : (ruToIata(cleanDirection) || cleanDirection);
+        const toRu = toInfo ? toInfo.ru : (iataToRu(toIata) || cleanDirection);
 
-        const isAllowedDep = allowedDeparturesSet.has(fromIata) || allowedDeparturesSet.has(cleanFrom) || allowedDeparturesSet.has(rawFrom) || (fromRu && allowedDeparturesSet.has(fromRu));
-        if (!isAllowedDep) {
-            // Рейс из неразрешенного аэропорта вылета пропускается
-            continue;
+        // 1. Проверка по фильтру вылетов (Departures Filter)
+        if (allowedDeparturesSet.size > 0) {
+            const isAllowedDep = allowedDeparturesSet.has(fromIata.toUpperCase()) || 
+                                 allowedDeparturesSet.has(fromRu.toUpperCase()) || 
+                                 allowedDeparturesSet.has(cleanFrom.toUpperCase()) || 
+                                 allowedDeparturesSet.has(rawFrom.toUpperCase()) ||
+                                 (fromInfo && fromInfo.name && allowedDeparturesSet.has(fromInfo.name.toUpperCase()));
+
+            if (!isAllowedDep) {
+                // Рейс из неразрешенного аэропорта вылета пропускается
+                continue;
+            }
+        }
+
+        // 2. Проверка по фильтру прилетов (Arrivals Filter, только если включен строгий режим - Вариант А)
+        if (customFilters.strict_arrivals && allowedArrivalsSet.size > 0) {
+            const isAllowedArr = allowedArrivalsSet.has(toIata.toUpperCase()) || 
+                                 allowedArrivalsSet.has(toRu.toUpperCase()) || 
+                                 allowedArrivalsSet.has(cleanDirection.toUpperCase()) || 
+                                 allowedArrivalsSet.has(rawDirectionFull.toUpperCase()) ||
+                                 (toInfo && toInfo.name && allowedArrivalsSet.has(toInfo.name.toUpperCase()));
+
+            if (!isAllowedArr) {
+                // Рейс в неразрешенный аэропорт прилета пропускается
+                continue;
+            }
         }
 
         // Пассажиры: ВЗ (Столбец P / 15), РБ (Столбец Q / 16), РМ (Столбец S / 18)

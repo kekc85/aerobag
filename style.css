@@ -5168,3 +5168,78 @@ body.light-theme .btn-table-action {
     color: #334155;
 }
 
+/* --- Чипсы/Теги фильтра аэропортов (Aviation Chips) --- */
+.airport-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 0.78rem;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+}
+
+.airport-filter-chip:hover {
+    background: rgba(0, 240, 255, 0.15);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+
+.airport-filter-chip.chip-arrival {
+    background: rgba(255, 183, 0, 0.08);
+    border-color: rgba(255, 183, 0, 0.3);
+}
+
+.airport-filter-chip.chip-arrival:hover {
+    background: rgba(255, 183, 0, 0.15);
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 8px rgba(255, 183, 0, 0.2);
+}
+
+.airport-filter-chip .chip-code {
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.airport-filter-chip.chip-arrival .chip-code {
+    color: var(--accent-gold);
+}
+
+.airport-filter-chip .chip-name {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+}
+
+.airport-filter-chip .btn-chip-remove {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.15s ease;
+}
+
+.airport-filter-chip .btn-chip-remove:hover {
+    color: #ef4444;
+}
+
+body.light-theme .airport-filter-chip {
+    background: rgba(2, 132, 199, 0.08);
+    border-color: rgba(2, 132, 199, 0.3);
+}
+
+body.light-theme .airport-filter-chip.chip-arrival {
+    background: rgba(217, 119, 6, 0.08);
+    border-color: rgba(217, 119, 6, 0.3);
+}
+

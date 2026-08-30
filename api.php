@@ -145,6 +145,16 @@ switch ($action) {
         handleRestoreBackup($pdo);
         break;
 
+    // --- НАСТРОЙКИ СИСТЕМЫ (ФИЛЬТРЫ ГОРОДОВ И АЭРОПОРТОВ) ---
+    case 'get_settings':
+        handleGetSettings($pdo);
+        break;
+
+    case 'save_settings':
+        requireAdmin();
+        handleSaveSettings($pdo);
+        break;
+
     default:
         echo json_encode([
             'success' => false,
@@ -222,7 +232,15 @@ function initDatabase($pdo) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     $pdo->exec($sqlUsers);
 
-    // 3. Автосоздание первого Главного Администратора (если таблица пуста)
+    // 3. Таблица настроек системы (фильтры городов и параметры)
+    $sqlSettings = "CREATE TABLE IF NOT EXISTS app_settings (
+        setting_key VARCHAR(100) PRIMARY KEY,
+        setting_value LONGTEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+    $pdo->exec($sqlSettings);
+
+    // 4. Автосоздание первого Главного Администратора (если таблица пуста)
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
     $adminCount = $stmt->fetchColumn();
     if ($adminCount == 0) {
@@ -236,7 +254,7 @@ function initDatabase($pdo) {
         $insertAdmin->execute([$defaultAdminId, $defaultUsername, $defaultPassHash, $defaultFullName]);
     }
 
-    // 4. Создание защищенной папки backups/ с .htaccess
+    // 5. Создание защищенной папки backups/ с .htaccess
     $backupDir = __DIR__ . '/backups';
     if (!is_dir($backupDir)) {
         @mkdir($backupDir, 0755, true);
@@ -979,5 +997,73 @@ function rotateBackups($dir, $daysCount = 30) {
                 @unlink($path);
             }
         }
+    }
+}
+
+/**
+ * Получение системных настроек (например, фильтров городов)
+ */
+function handleGetSettings($pdo) {
+    $key = $_GET['key'] ?? '';
+    try {
+        if (!empty($key)) {
+            $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = ? LIMIT 1");
+            $stmt->execute([$key]);
+            $val = $stmt->fetchColumn();
+            $data = $val ? json_decode($val, true) : null;
+
+            echo json_encode([
+                'success' => true,
+                'key' => $key,
+                'value' => $data
+            ], JSON_UNESCAPED_UNICODE);
+        } else {
+            $stmt = $pdo->query("SELECT setting_key, setting_value FROM app_settings");
+            $rows = $stmt->fetchAll();
+            $settings = [];
+            foreach ($rows as $r) {
+                $settings[$r['setting_key']] = json_decode($r['setting_value'], true);
+            }
+            echo json_encode([
+                'success' => true,
+                'settings' => $settings
+            ], JSON_UNESCAPED_UNICODE);
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ошибка получения настроек: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+}
+
+/**
+ * Сохранение системных настроек (Admin)
+ */
+function handleSaveSettings($pdo) {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $key = trim($input['setting_key'] ?? '');
+    $value = $input['setting_value'] ?? null;
+
+    if (empty($key)) {
+        echo json_encode(['success' => false, 'error' => 'Не указан ключ настройки.'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    try {
+        $jsonVal = json_encode($value, JSON_UNESCAPED_UNICODE);
+        $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES (?, ?) 
+                               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+        $stmt->execute([$key, $jsonVal]);
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Настройка успешно сохранена.'
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ошибка сохранения настройки: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
     }
 }
