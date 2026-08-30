@@ -24,6 +24,7 @@ jobs:
           password: ${{ secrets.BEGET_FTP_PASSWORD }}
           server-dir: ${{ secrets.BEGET_REMOTE_DIR }}
           security: loose
+          log-level: verbose
           exclude: |
             **/.git*
             **/.git*/**
