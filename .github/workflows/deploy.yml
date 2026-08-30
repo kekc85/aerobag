@@ -16,14 +16,14 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: 📂 Sync files via FTPS to Beget
+      - name: 📂 Sync files to Beget
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.BEGET_FTP_SERVER }}
           username: ${{ secrets.BEGET_FTP_USERNAME }}
           password: ${{ secrets.BEGET_FTP_PASSWORD }}
           server-dir: ${{ secrets.BEGET_REMOTE_DIR }}
-          security: loose
+          protocol: ftp
           log-level: verbose
           exclude: |
             **/.git*
