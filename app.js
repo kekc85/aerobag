@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.111';
+const APP_VERSION = 'v12.0.112';
 const APP_BUILD_DATE = '30.08.2026';
 
 // Глобальное состояние
@@ -1718,6 +1718,8 @@ const translations = {
         'btn-reset-filters': 'Сбросить по умолчанию',
         'btn-add': 'Добавить',
         'chk-strict-arrivals': 'Включить строгий фильтр по прилетам',
+        'btn-expand': 'Развернуть',
+        'btn-collapse': 'Свернуть',
         'footer-build-label': 'Сборка',
         'footer-developer': 'Разработчик: Andrey Zubkov',
         'btn-manual': 'Руководство'
@@ -1952,6 +1954,8 @@ const translations = {
         'btn-reset-filters': 'Reset to Default',
         'btn-add': 'Add',
         'chk-strict-arrivals': 'Enable strict arrivals filter',
+        'btn-expand': 'Expand',
+        'btn-collapse': 'Collapse',
         'footer-build-label': 'Build',
         'footer-developer': 'Developer: Andrey Zubkov',
         'btn-manual': 'Manual'
@@ -2863,6 +2867,57 @@ async function initAirportFiltersFromServer() {
     populateAirportDropdowns();
 }
 
+// Вспомогательная функция для дедупликации и упорядочивания аэропортов по алфавиту городов (А-Я)
+function getCanonicalAirportItems(codesList) {
+    const map = new Map();
+    (codesList || []).forEach(code => {
+        if (!code) return;
+        const info = resolveAirportInfo(code);
+        const key = info ? (info.iata || info.ru || code).toUpperCase() : String(code).trim().toUpperCase();
+        if (!map.has(key)) {
+            map.set(key, {
+                key: key,
+                origCode: code,
+                iata: info ? info.iata : key,
+                ru: info ? info.ru : key,
+                name: info ? info.name : key
+            });
+        }
+    });
+    // Сортировка строго по алфавиту русского названия города (или кода, если названия нет)
+    return Array.from(map.values()).sort((a, b) => {
+        const nameA = a.name || a.ru || a.iata;
+        const nameB = b.name || b.ru || b.iata;
+        return nameA.localeCompare(nameB, 'ru', { sensitivity: 'base' });
+    });
+}
+
+// Переключение раскрытия/складывания панели фильтров
+function toggleAirportFiltersAccordion(e) {
+    if (e && e.target && (e.target.closest('#btn-reset-filters-default') || e.target.closest('input') || e.target.closest('form') || e.target.closest('button.btn-chip-remove') || e.target.closest('label'))) {
+        return;
+    }
+    const panel = document.getElementById('airport-filters-panel');
+    const toggleBtn = document.getElementById('btn-toggle-filters-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+    
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) {
+            iconEl.textContent = isCollapsed ? '▼' : '▲';
+        }
+    }
+}
+
 // Отрисовка интерактивной панели фильтров (чипсы + автодополнение + счетчики)
 function renderAirportFiltersUI() {
     const depContainer = document.getElementById('departures-chips-container');
@@ -2871,6 +2926,8 @@ function renderAirportFiltersUI() {
     const arrBadge = document.getElementById('arrivals-count-badge');
     const datalist = document.getElementById('airports-datalist');
     const chkStrict = document.getElementById('chk-strict-arrivals');
+    const summaryDeps = document.getElementById('filters-summary-deps');
+    const summaryArrs = document.getElementById('filters-summary-arrs');
 
     if (!depContainer || !arrContainer) return;
 
@@ -2896,26 +2953,39 @@ function renderAirportFiltersUI() {
         });
     }
 
-    // 1. Отрисовка чипсов вылетов (Departures)
-    depContainer.innerHTML = '';
-    const uniqueDeps = Array.from(new Set(filters.departures || []));
-    if (depBadge) {
-        const itemWord = currentLang === 'ru' ? 'пунктов' : 'items';
-        depBadge.textContent = `${uniqueDeps.length} ${itemWord}`;
+    // Получаем упорядоченные и дедуплицированные списки
+    const sortedDeps = getCanonicalAirportItems(filters.departures);
+    const sortedArrs = getCanonicalAirportItems(filters.arrivals);
+
+    // Обновляем бейджи в шапке панели
+    if (summaryDeps) {
+        const word = currentLang === 'ru' ? 'вылетов' : 'deps';
+        summaryDeps.textContent = `🛫 ${sortedDeps.length} ${word}`;
+    }
+    if (summaryArrs) {
+        const word = currentLang === 'ru' ? 'прилетов' : 'arrs';
+        const strictLabel = filters.strict_arrivals ? (currentLang === 'ru' ? ' [Строгий]' : ' [Strict]') : '';
+        summaryArrs.textContent = `🛬 ${sortedArrs.length} ${word}${strictLabel}`;
     }
 
-    if (uniqueDeps.length === 0) {
+    // 1. Отрисовка чипсов вылетов (Departures)
+    depContainer.innerHTML = '';
+    if (depBadge) {
+        const itemWord = currentLang === 'ru' ? 'городов' : 'cities';
+        depBadge.textContent = `${sortedDeps.length} ${itemWord}`;
+    }
+
+    if (sortedDeps.length === 0) {
         depContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все вылеты разрешены)' : 'No filters (all departures allowed)'}</span>`;
     } else {
-        uniqueDeps.forEach(code => {
-            const info = resolveAirportInfo(code);
+        sortedDeps.forEach(item => {
             const chip = document.createElement('div');
             chip.className = 'airport-filter-chip';
+            const codesText = (item.ru && item.ru !== item.iata) ? `${item.iata} / ${item.ru}` : item.iata;
             chip.innerHTML = `
-                <span class="chip-code">${info ? info.iata : code}</span>
-                ${info && info.ru && info.ru !== info.iata ? `<span style="opacity: 0.6; font-size: 0.7rem;">/ ${info.ru}</span>` : ''}
-                <span class="chip-name">${info && info.name && info.name !== info.iata ? info.name : ''}</span>
-                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('departures', '${code}')">✕</button>
+                <span class="chip-code">${codesText}</span>
+                <span class="chip-name">${item.name || ''}</span>
+                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('departures', '${item.key}')">✕</button>
             `;
             depContainer.appendChild(chip);
         });
@@ -2923,24 +2993,22 @@ function renderAirportFiltersUI() {
 
     // 2. Отрисовка чипсов прилетов (Arrivals)
     arrContainer.innerHTML = '';
-    const uniqueArrs = Array.from(new Set(filters.arrivals || []));
     if (arrBadge) {
-        const itemWord = currentLang === 'ru' ? 'пунктов' : 'items';
-        arrBadge.textContent = `${uniqueArrs.length} ${itemWord}`;
+        const itemWord = currentLang === 'ru' ? 'городов' : 'cities';
+        arrBadge.textContent = `${sortedArrs.length} ${itemWord}`;
     }
 
-    if (uniqueArrs.length === 0) {
+    if (sortedArrs.length === 0) {
         arrContainer.innerHTML = `<span class="dash-subtext" style="padding: 4px;">${currentLang === 'ru' ? 'Нет фильтров (все прилеты разрешены)' : 'No filters (all arrivals allowed)'}</span>`;
     } else {
-        uniqueArrs.forEach(code => {
-            const info = resolveAirportInfo(code);
+        sortedArrs.forEach(item => {
             const chip = document.createElement('div');
             chip.className = 'airport-filter-chip chip-arrival';
+            const codesText = (item.ru && item.ru !== item.iata) ? `${item.ru} / ${item.iata}` : item.ru;
             chip.innerHTML = `
-                <span class="chip-code">${info ? (info.ru || info.iata) : code}</span>
-                ${info && info.iata && info.iata !== info.ru ? `<span style="opacity: 0.6; font-size: 0.7rem;">/ ${info.iata}</span>` : ''}
-                <span class="chip-name">${info && info.name && info.name !== info.iata ? info.name : ''}</span>
-                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('arrivals', '${code}')">✕</button>
+                <span class="chip-code">${codesText}</span>
+                <span class="chip-name">${item.name || ''}</span>
+                <button type="button" class="btn-chip-remove" title="${currentLang === 'ru' ? 'Удалить из фильтра' : 'Remove'}" onclick="handleRemoveAirportFilter('arrivals', '${item.key}')">✕</button>
             `;
             arrContainer.appendChild(chip);
         });
@@ -3013,7 +3081,14 @@ function handleRemoveAirportFilter(type, code) {
         if (info.name) codesToRemove.add(info.name.toUpperCase());
     }
 
-    const updated = list.filter(c => !codesToRemove.has(String(c).trim().toUpperCase()));
+    const updated = list.filter(c => {
+        const u = String(c).trim().toUpperCase();
+        const cInfo = resolveAirportInfo(c);
+        const cIata = cInfo ? cInfo.iata.toUpperCase() : u;
+        const cRu = cInfo ? cInfo.ru.toUpperCase() : u;
+        return !codesToRemove.has(u) && !codesToRemove.has(cIata) && !codesToRemove.has(cRu);
+    });
+
     if (type === 'departures') {
         filters.departures = updated;
     } else {
@@ -3050,6 +3125,7 @@ function handleToggleStrictArrivals(isChecked) {
     const filters = getCustomAirportFilters();
     filters.strict_arrivals = !!isChecked;
     saveCustomAirportFilters(filters);
+    renderAirportFiltersUI();
     const msg = isChecked
         ? (currentLang === 'ru' ? 'Включен строгий фильтр: будут загружаться только рейсы в разрешенные аэропорты прилета.' : 'Strict arrivals filter enabled.')
         : (currentLang === 'ru' ? 'Строгий фильтр по прилетам отключен: разрешены все прилеты из хабов вылета.' : 'Strict arrivals filter disabled.');
@@ -3057,6 +3133,7 @@ function handleToggleStrictArrivals(isChecked) {
 }
 
 // Экспортируем в window для инлайновых вызовов в HTML
+window.toggleAirportFiltersAccordion = toggleAirportFiltersAccordion;
 window.handleAddAirportFilter = handleAddAirportFilter;
 window.handleRemoveAirportFilter = handleRemoveAirportFilter;
 window.handleResetAirportFilters = handleResetAirportFilters;
