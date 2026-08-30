@@ -23,6 +23,7 @@ jobs:
           username: ${{ secrets.BEGET_FTP_USERNAME }}
           password: ${{ secrets.BEGET_FTP_PASSWORD }}
           server-dir: ${{ secrets.BEGET_REMOTE_DIR }}
+          security: loose
           exclude: |
             **/.git*
             **/.git*/**
