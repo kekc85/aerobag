@@ -16,13 +16,27 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: 🧹 Auto-clean server address and directory
+        run: |
+          RAW_SERVER="${{ secrets.BEGET_FTP_SERVER }}"
+          # Удаляем протоколы ftp://, http://, https://
+          CLEAN_SERVER=$(echo "$RAW_SERVER" | sed -e 's|^[^/]*://||' -e 's|/.*$||' | tr -d '[:space:]')
+          
+          RAW_DIR="${{ secrets.BEGET_REMOTE_DIR }}"
+          CLEAN_DIR=$(echo "$RAW_DIR" | tr -d '\r\n' | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||')
+          # Гарантируем слэш на конце
+          [[ "$CLEAN_DIR" != */ ]] && CLEAN_DIR="${CLEAN_DIR}/"
+          
+          echo "CLEAN_SERVER=${CLEAN_SERVER}" >> $GITHUB_ENV
+          echo "CLEAN_DIR=${CLEAN_DIR}" >> $GITHUB_ENV
+
       - name: 📂 Sync files to Beget
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.BEGET_FTP_SERVER }}
+          server: ${{ env.CLEAN_SERVER }}
           username: ${{ secrets.BEGET_FTP_USERNAME }}
           password: ${{ secrets.BEGET_FTP_PASSWORD }}
-          server-dir: ${{ secrets.BEGET_REMOTE_DIR }}
+          server-dir: ${{ env.CLEAN_DIR }}
           protocol: ftp
           log-level: verbose
           exclude: |
