@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.132';
+const APP_VERSION = 'v12.0.133';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -5855,7 +5855,7 @@ function renderSampledFlightsDetails(coefs) {
             seasonalNote = `<div class="seasonality-pill">🌸 Сезонная поправка (${coefs.seasonInfo.monthName}): x${coefs.seasonInfo.multiplier.toFixed(3)} (${sign}${pct}%)</div><br/>`;
         }
 
-        const formulaTitle = '📐 <strong>Расчет коэффициентов (Экспоненциальное сглаживание &alpha; = 0.3):</strong>';
+        const formulaTitle = `📐 <strong>Расчет коэффициентов (Экспоненциальное сглаживание &alpha; = ${(coefs.alpha || 0.2).toFixed(1)}):</strong>`;
         const formulaDetails = `${seasonalNote}• <strong>PCS/PAX</strong> = <strong>${coefs.pcs_pax.toFixed(4)}</strong> ${coefs.raw_pcs_pax ? `(базовый ${coefs.raw_pcs_pax.toFixed(4)} × ${coefs.seasonInfo.multiplier.toFixed(3)})` : ''}<br/>
                • <strong>Weight/PC</strong> = <strong>${coefs.wght_pc.toFixed(2)} ${unitKg}</strong><br/>
                • <strong>HB/PAX</strong> = <strong>${coefs.hb_pax.toFixed(2)} ${unitKg}</strong>`;
@@ -6207,8 +6207,8 @@ function getRouteSeasonalityMultiplier(from, to, targetDateStr) {
     };
 }
 
-// Расчет средних коэффициентов по переданному массиву рейсов (Экспоненциальное сглаживание alpha = 0.3)
-function calculateMeansFromFlights(flights, alpha = 0.3) {
+// Расчет средних коэффициентов по переданному массиву рейсов (Экспоненциальное сглаживание alpha = 0.2 + MAD фильтрация выбросов)
+function calculateMeansFromFlights(flights, alpha = 0.2) {
     if (!flights || flights.length === 0) return null;
 
     // Сортируем по дате в обратном порядке (самый свежий — индекс 0)
@@ -6250,24 +6250,64 @@ function calculateMeansFromFlights(flights, alpha = 0.3) {
         weights = rawWeights.map(w => w / sumW);
     }
 
-    let pcs_pax = 0;
-    let wght_pc = 0;
-    let hb_pax = 0;
-
-    sortedFlights.forEach((f, idx) => {
+    // Извлечение индивидуальных показателей каждого рейса выборки
+    const flMetrics = sortedFlights.map(f => {
         const pax = getEffectivePaxCount(f);
         const pcs = parseInt(f.bag_pcs) || 0;
         const bagWeight = parseFloat(f.bag_weight) || 0;
         const hbWeight = parseFloat(f.hb_weight) || 0;
 
-        const fl_pcs_pax = pax > 0 ? (pcs / pax) : 0;
-        const fl_wght_pc = pcs > 0 ? (bagWeight / pcs) : 0;
-        const fl_hb_pax = pax > 0 ? (hbWeight / pax) : 0;
+        const k_pcs = pax > 0 ? (pcs / pax) : 0;
+        const v_pc = pcs > 0 ? (bagWeight / pcs) : 0;
+        const hb_pax = pax > 0 ? (hbWeight / pax) : 0;
+
+        return { k_pcs, v_pc, hb_pax };
+    });
+
+    // Функция вычисления медианы числового массива
+    const calcMedian = (arr) => {
+        if (!arr || arr.length === 0) return 0;
+        const sorted = [...arr].sort((a, b) => a - b);
+        const mid = Math.floor(sorted.length / 2);
+        return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+    };
+
+    // MAD-фильтрация выбросов (применяется при выборке N >= 6 для устранения разовых аномалий)
+    let minK = 0, maxK = Infinity;
+    let minV = 0, maxV = Infinity;
+
+    if (N >= 6) {
+        const rawKs = flMetrics.map(m => m.k_pcs);
+        const medK = calcMedian(rawKs);
+        const madK = calcMedian(rawKs.map(x => Math.abs(x - medK)));
+        if (madK > 0.001) {
+            minK = Math.max(0, medK - 2.0 * madK);
+            maxK = medK + 2.0 * madK;
+        }
+
+        const validVs = flMetrics.map(m => m.v_pc).filter(v => v > 0);
+        if (validVs.length >= 6) {
+            const medV = calcMedian(validVs);
+            const madV = calcMedian(validVs.map(x => Math.abs(x - medV)));
+            if (madV > 0.1) {
+                minV = Math.max(5.0, medV - 2.0 * madV);
+                maxV = Math.min(32.0, medV + 2.0 * madV);
+            }
+        }
+    }
+
+    let pcs_pax = 0;
+    let wght_pc = 0;
+    let hb_pax = 0;
+
+    flMetrics.forEach((m, idx) => {
+        const clampedK = Math.max(minK, Math.min(maxK, m.k_pcs));
+        const clampedV = m.v_pc > 0 ? Math.max(minV, Math.min(maxV, m.v_pc)) : m.v_pc;
 
         const w = weights[idx];
-        pcs_pax += w * fl_pcs_pax;
-        wght_pc += w * fl_wght_pc;
-        hb_pax += w * fl_hb_pax;
+        pcs_pax += w * clampedK;
+        wght_pc += w * clampedV;
+        hb_pax += w * m.hb_pax;
     });
 
     return {
@@ -8257,7 +8297,7 @@ function runBacktestAccuracySimulation() {
 
             if (sample.length > 0) {
                 const sampleSlice = sample.slice(0, 20);
-                const means = calculateMeansFromFlights(sampleSlice, 0.3);
+                const means = calculateMeansFromFlights(sampleSlice, 0.2);
                 if (means && typeof means.pcs_pax === 'number' && typeof means.wght_pc === 'number' && !isNaN(means.pcs_pax) && !isNaN(means.wght_pc)) {
                     const effectivePax = Math.max(1, actualPax);
                     const seasonInfo = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
@@ -8276,15 +8316,21 @@ function runBacktestAccuracySimulation() {
             const diffPcsPct = actualPcs > 0 ? ((diffPcs / actualPcs) * 100) : 0;
             const errPcsPctAbs = Math.abs(diffPcsPct);
 
-            // Определение статуса точности по шкале:
-            // до 10% - хороший результат, 10-15% - допустимый, 15-25% - отклонение, > 25% - аномалия
-            const maxErrPct = Math.max(errWPctAbs, errPcsPctAbs);
+            // Определение статуса точности по шкале с учетом авиационных порогов:
+            // исключает ложные срабатывания на легких/малолюдных рейсах, где разница в несколько сумок дает > 25%
+            const isWeightAnomaly = (errWPctAbs > 25 && Math.abs(diffW) > 150);
+            const isPcsAnomaly = (errPcsPctAbs > 25 && Math.abs(diffPcs) > 10);
+            const isAnomaly = (errWPctAbs > 25 || errPcsPctAbs > 25) && (isWeightAnomaly || isPcsAnomaly);
+
+            const isWarning = !isAnomaly && (errWPctAbs > 15 || errPcsPctAbs > 15);
+            const isAcceptable = !isAnomaly && !isWarning && (errWPctAbs > 10 || errPcsPctAbs > 10);
+
             let status = 'good'; // <= 10% (Хороший результат)
-            if (maxErrPct > 25) {
+            if (isAnomaly) {
                 status = 'danger'; // > 25% (Аномалия)
-            } else if (maxErrPct > 15) {
+            } else if (isWarning) {
                 status = 'warning'; // 15-25% (Отклонение)
-            } else if (maxErrPct > 10) {
+            } else if (isAcceptable) {
                 status = 'acceptable'; // 10-15% (Допустимый)
             }
 
