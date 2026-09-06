@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.122';
+const APP_VERSION = 'v12.0.123';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -1694,18 +1694,9 @@ const translations = {
         
         // Резервное копирование и верификация
         'btn-open-backtest': '🔬 Тест точности (Backtest)',
-        'backtest-modal-title': '[ ИСТОРИЧЕСКИЙ БЭКТЕСТИНГ И ВЕРИФИКАЦИЯ ТОЧНОСТИ ]',
-        'backtest-label-period': 'Период выборки:',
-        'backtest-opt-3m': 'Последние 3 месяца',
-        'backtest-opt-6m': 'Последние 6 месяцев (Рекомендуется)',
-        'backtest-opt-1y': 'Последний 1 год',
-        'backtest-opt-all': 'Вся доступная база рейсов',
-        'backtest-label-limit': 'Количество рейсов:',
-        'btn-start-backtest': '▶ Запустить тест',
-        'backtest-badge-gain': 'ПРИРОСТ ТОЧНОСТИ',
-        'backtest-label-gain-weight': 'Прирост точности (вес):',
-        'backtest-label-gain-pcs': 'Прирост точности (места):',
-        'backtest-sample-table-title': 'Примеры прогнозов по реальным вылетам:',
+        'backtest-modal-title': '[ ТЕСТИРОВАНИЕ И ВАЛИДАЦИЯ ТОЧНОСТИ ПРОГНОЗОВ ]',
+        'backtest-label-period': 'Период анализа:',
+        'btn-start-backtest': '▶ Запустить тест точности',
         'btn-export-db': 'Экспорт базы (Backup)',
         'btn-import-db': 'Импорт базы (Restore)',
         'backup-import-success': 'База данных успешно восстановлена! Загружено {flights} рейсов и {predictions} прогнозов.',
@@ -1930,18 +1921,9 @@ const translations = {
         
         // Backups and verification
         'btn-open-backtest': '🔬 Accuracy Test (Backtest)',
-        'backtest-modal-title': '[ FORECAST ACCURACY VERIFICATION & BACKTESTING ]',
-        'backtest-label-period': 'Sample Period:',
-        'backtest-opt-3m': 'Last 3 Months',
-        'backtest-opt-6m': 'Last 6 Months (Recommended)',
-        'backtest-opt-1y': 'Last 1 Year',
-        'backtest-opt-all': 'All Available Database Flights',
-        'backtest-label-limit': 'Number of Flights:',
-        'btn-start-backtest': '▶ Run Test',
-        'backtest-badge-gain': 'ACCURACY GAIN',
-        'backtest-label-gain-weight': 'Weight Accuracy Gain:',
-        'backtest-label-gain-pcs': 'Pieces Accuracy Gain:',
-        'backtest-sample-table-title': 'Sample Forecasts for Real Flights:',
+        'backtest-modal-title': '[ FORECAST ACCURACY VERIFICATION & CALIBRATION ]',
+        'backtest-label-period': 'Analysis Period:',
+        'btn-start-backtest': '▶ Run Accuracy Test',
         'btn-export-db': 'Export Database (Backup)',
         'btn-import-db': 'Import Database (Restore)',
         'backup-import-success': 'Database successfully restored! Loaded {flights} flights and {predictions} predictions.',
@@ -7883,16 +7865,26 @@ function renderDashboardAnalytics() {
     }
 }
 
-// --- МОДУЛЬ БЭКТЕСТИНГА И ВЕРИФИКАЦИИ ТОЧНОСТИ (STAGE 3) ---
+// --- МОДУЛЬ ТЕСТИРОВАНИЯ И ВАЛИДАЦИИ ТОЧНОСТИ ПРОГНОЗОВ (STAGE 3) ---
+
+let lastBacktestResults = [];
+let backtestSortCol = 'date';
+let backtestSortAsc = false;
 
 function initBacktestModule() {
     const btnOpen = document.getElementById('btn-open-backtest');
     const btnClose = document.getElementById('btn-close-backtest');
     const modal = document.getElementById('backtest-modal');
     const btnStart = document.getElementById('btn-start-backtest');
+    const periodSelect = document.getElementById('backtest-period-select');
+    const customWrap = document.getElementById('backtest-custom-dates-wrap');
+    const filterSelect = document.getElementById('backtest-table-filter');
+    const searchInput = document.getElementById('backtest-table-search');
+    const btnExport = document.getElementById('btn-export-backtest-excel');
 
     if (btnOpen && modal) {
         btnOpen.addEventListener('click', () => {
+            populateBacktestAirlines();
             modal.classList.remove('hidden');
         });
     }
@@ -7909,21 +7901,75 @@ function initBacktestModule() {
         });
     }
 
+    if (periodSelect) {
+        periodSelect.addEventListener('change', () => {
+            if (customWrap) {
+                customWrap.style.display = periodSelect.value === 'custom' ? 'flex' : 'none';
+            }
+        });
+    }
+
     if (btnStart) {
         btnStart.addEventListener('click', () => {
             runBacktestAccuracySimulation();
         });
     }
+
+    if (filterSelect) {
+        filterSelect.addEventListener('change', () => {
+            renderBacktestTable();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderBacktestTable();
+        });
+    }
+
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            exportBacktestToExcel();
+        });
+    }
 }
 
+// Заполнение выпадающего списка авиакомпаний
+function populateBacktestAirlines() {
+    const select = document.getElementById('backtest-airline-select');
+    if (!select || !userFlights) return;
+
+    const currentVal = select.value;
+    const airlines = new Set();
+    userFlights.forEach(f => {
+        if (f.airline && String(f.airline).trim()) {
+            airlines.add(String(f.airline).trim().toUpperCase());
+        }
+    });
+
+    let html = `<option value="all">${currentLang === 'ru' ? 'Все АК' : 'All Airlines'}</option>`;
+    Array.from(airlines).sort().forEach(al => {
+        html += `<option value="${escapeHtml(al)}">${escapeHtml(al)}</option>`;
+    });
+
+    select.innerHTML = html;
+    if (airlines.has(currentVal)) {
+        select.value = currentVal;
+    }
+}
+
+// Запуск симуляции точности
 function runBacktestAccuracySimulation() {
     if (!userFlights || userFlights.length === 0) {
-        showAviationAlert(currentLang === 'ru' ? 'База данных пуста! Загрузите архив полетов.' : 'Database is empty! Please load flights data.', true);
+        showAviationAlert(currentLang === 'ru' ? 'База данных пуста! Загрузите отчеты рейсов.' : 'Database is empty! Please load flights data.', true);
         return;
     }
 
-    const periodVal = document.getElementById('backtest-period-select')?.value || '180';
-    const limitVal = parseInt(document.getElementById('backtest-limit-select')?.value || '250', 10);
+    const periodVal = document.getElementById('backtest-period-select')?.value || '30';
+    const airlineVal = document.getElementById('backtest-airline-select')?.value || 'all';
+    const dateFromVal = document.getElementById('backtest-date-from')?.value;
+    const dateToVal = document.getElementById('backtest-date-to')?.value;
+
     const btnStart = document.getElementById('btn-start-backtest');
     const progressContainer = document.getElementById('backtest-progress-container');
     const progressStatus = document.getElementById('backtest-progress-status');
@@ -7931,43 +7977,62 @@ function runBacktestAccuracySimulation() {
     const progressFill = document.getElementById('backtest-progress-fill');
     const resultsContainer = document.getElementById('backtest-results-container');
 
-    // 1. Фильтрация и хронологическая сортировка
+    // 1. Фильтрация валидных рейсов и хронологическая сортировка
     const validFlights = userFlights.filter(f => {
         if (!f.date) return false;
         const pax = getEffectivePaxCount(f);
         const w = parseFloat(f.bag_weight) || 0;
-        return pax > 0 && w > 0 && parseDateToJsDate(f.date) !== null;
+        const pcs = parseInt(f.bag_pcs, 10) || 0;
+        return pax > 0 && w > 0 && pcs > 0 && parseDateToJsDate(f.date) !== null;
     }).sort((a, b) => {
         const da = parseDateToJsDate(a.date);
         const db = parseDateToJsDate(b.date);
         return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
     });
 
-    if (validFlights.length < 10) {
-        showAviationAlert(currentLang === 'ru' ? 'Слишком мало рейсов с датами для бэктестинга (требуется >= 10).' : 'Not enough flights for backtesting (>= 10 required).', true);
+    if (validFlights.length < 5) {
+        showAviationAlert(currentLang === 'ru' ? 'Слишком мало рейсов с заполненными данными для теста (требуется >= 5).' : 'Not enough valid flights for testing (>= 5 required).', true);
         return;
     }
 
-    // Фильтрация по периоду
-    let targetPool = validFlights;
-    if (periodVal !== 'all') {
+    // 2. Отбор тестовой выборки по периоду и АК
+    let testSample = validFlights;
+
+    if (airlineVal !== 'all') {
+        testSample = testSample.filter(f => String(f.airline).trim().toUpperCase() === airlineVal);
+    }
+
+    if (periodVal === 'custom') {
+        if (dateFromVal) {
+            const dtFrom = new Date(dateFromVal + 'T00:00:00');
+            testSample = testSample.filter(f => {
+                const fd = parseDateToJsDate(f.date);
+                return fd && fd.getTime() >= dtFrom.getTime();
+            });
+        }
+        if (dateToVal) {
+            const dtTo = new Date(dateToVal + 'T23:59:59');
+            testSample = testSample.filter(f => {
+                const fd = parseDateToJsDate(f.date);
+                return fd && fd.getTime() <= dtTo.getTime();
+            });
+        }
+    } else if (periodVal !== 'all') {
         const days = parseInt(periodVal, 10);
         const newestFlightDate = parseDateToJsDate(validFlights[validFlights.length - 1].date);
         if (newestFlightDate) {
             const cutoffMs = newestFlightDate.getTime() - (days * 24 * 60 * 60 * 1000);
-            targetPool = validFlights.filter(f => {
+            testSample = testSample.filter(f => {
                 const fd = parseDateToJsDate(f.date);
                 return fd && fd.getTime() >= cutoffMs;
             });
         }
     }
 
-    if (targetPool.length < 5) {
-        targetPool = validFlights.slice(-50);
+    if (testSample.length === 0) {
+        showAviationAlert(currentLang === 'ru' ? 'За выбранный период и фильтры рейсов не найдено.' : 'No flights found for the selected period/filters.', true);
+        return;
     }
-
-    // Выборка из пула (до limitVal самых свежих)
-    const testSample = targetPool.slice(-limitVal);
 
     if (btnStart) btnStart.disabled = true;
     if (progressContainer) progressContainer.classList.remove('hidden');
@@ -7975,17 +8040,11 @@ function runBacktestAccuracySimulation() {
     if (progressFill) progressFill.style.width = '0%';
     if (progressPercent) progressPercent.textContent = '0%';
 
+    lastBacktestResults = [];
     let currentIndex = 0;
-    const oldWeightErrors = [];
-    const newWeightErrors = [];
-    const oldPcsErrors = [];
-    const newPcsErrors = [];
-    let oldAccurateCount = 0;
-    let newAccurateCount = 0;
-    const sampleRowsData = [];
 
     function processBatch() {
-        const batchSize = 20;
+        const batchSize = 25;
         const endIndex = Math.min(currentIndex + batchSize, testSample.length);
 
         for (let i = currentIndex; i < endIndex; i++) {
@@ -8004,50 +8063,11 @@ function runBacktestAccuracySimulation() {
                 return fd && fd.getTime() < targetMs;
             });
 
-            // 1. Старый метод (4 рейса за 60 дней)
-            const window60Ms = 60 * 24 * 60 * 60 * 1000;
-            let oldSample = historyBefore.filter(f => {
-                if (f.flight_no !== targetFlight.flight_no) return false;
-                if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
-                const fd = parseDateToJsDate(f.date);
-                const diff = targetMs - fd.getTime();
-                return diff > 0 && diff <= window60Ms;
-            }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date)).slice(0, 4);
-
-            if (oldSample.length === 0) {
-                const window30Ms = 30 * 24 * 60 * 60 * 1000;
-                oldSample = historyBefore.filter(f => {
-                    const fd = parseDateToJsDate(f.date);
-                    const diff = targetMs - fd.getTime();
-                    return diff > 0 && diff <= window30Ms;
-                }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date)).slice(0, 4);
-            }
-
-            const defaultFallbackK = 0.45;
-            const defaultFallbackV = 14.5;
-
-            let oldPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
-            let oldPredWeight = Math.round(oldPredPcs * defaultFallbackV);
-            if (oldSample.length > 0) {
-                let sumK = 0, sumV = 0;
-                oldSample.forEach(f => {
-                    const p = getEffectivePaxCount(f);
-                    const pcs = parseInt(f.bag_pcs, 10) || 0;
-                    const w = parseFloat(f.bag_weight) || 0;
-                    sumK += (pcs / p);
-                    sumV += pcs > 0 ? (w / pcs) : 0;
-                });
-                const avgK = sumK / oldSample.length;
-                const avgV = sumV / oldSample.length;
-                oldPredPcs = Math.round(actualPax * avgK);
-                oldPredWeight = Math.round(oldPredPcs * avgV);
-            }
-
-            // 2. Новый Smart Waterfall метод (180 дней, порог >=5, сглаживание альфа=0.3, авто-сезонность, 97% явка)
+            // Smart Waterfall алгоритм
             const window180Ms = 180 * 24 * 60 * 60 * 1000;
             const routeFlights = historyBefore.filter(f => f.from === targetFlight.from && f.to === targetFlight.to);
 
-            let newSample = routeFlights.filter(f => {
+            let sample = routeFlights.filter(f => {
                 if (f.flight_no !== targetFlight.flight_no) return false;
                 if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
                 const fd = parseDateToJsDate(f.date);
@@ -8055,8 +8075,8 @@ function runBacktestAccuracySimulation() {
                 return diff > 0 && diff <= window180Ms;
             }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
 
-            if (newSample.length < 5) {
-                newSample = routeFlights.filter(f => {
+            if (sample.length < 5) {
+                sample = routeFlights.filter(f => {
                     if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
@@ -8064,16 +8084,16 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            if (newSample.length < 5) {
-                newSample = routeFlights.filter(f => {
+            if (sample.length < 5) {
+                sample = routeFlights.filter(f => {
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
                     return diff > 0 && diff <= window180Ms;
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            if (newSample.length === 0) {
-                newSample = historyBefore.filter(f => {
+            if (sample.length === 0) {
+                sample = historyBefore.filter(f => {
                     if (f.from !== targetFlight.from) return false;
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
@@ -8081,51 +8101,68 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            let newPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
-            let newPredWeight = Math.round(newPredPcs * defaultFallbackV);
-            if (newSample.length > 0) {
-                const sampleSlice = newSample.slice(0, 20);
+            const defaultFallbackK = 0.45;
+            const defaultFallbackV = 14.5;
+            let predPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
+            let predWeight = Math.round(predPcs * defaultFallbackV);
+
+            if (sample.length > 0) {
+                const sampleSlice = sample.slice(0, 20);
                 const means = calculateMeansFromFlights(sampleSlice, 0.3);
                 if (means && typeof means.pcs_pax === 'number' && typeof means.wght_pc === 'number' && !isNaN(means.pcs_pax) && !isNaN(means.wght_pc)) {
-                    // При симуляции на исторических данных базы пассажиры уже являются 100% фактическими
                     const effectivePax = Math.max(1, actualPax);
                     const seasonInfo = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
                     const seasonMultiplier = (seasonInfo && typeof seasonInfo.multiplier === 'number') ? seasonInfo.multiplier : 1.0;
                     const adjustedK = means.pcs_pax * seasonMultiplier;
-                    newPredPcs = Math.round(effectivePax * adjustedK);
-                    newPredWeight = Math.round(newPredPcs * means.wght_pc);
+                    predPcs = Math.max(1, Math.round(effectivePax * adjustedK));
+                    predWeight = Math.round(predPcs * means.wght_pc);
                 }
             }
 
-            const oldErrW = Math.abs(actualWeight - oldPredWeight);
-            const newErrW = Math.abs(actualWeight - newPredWeight);
-            const oldErrPcs = Math.abs(actualPcs - oldPredPcs);
-            const newErrPcs = Math.abs(actualPcs - newPredPcs);
+            const diffW = predWeight - actualWeight;
+            const diffWPct = actualWeight > 0 ? ((diffW / actualWeight) * 100) : 0;
+            const errWPctAbs = Math.abs(diffWPct);
 
-            oldWeightErrors.push(oldErrW);
-            newWeightErrors.push(newErrW);
-            oldPcsErrors.push(oldErrPcs);
-            newPcsErrors.push(newErrPcs);
+            const diffPcs = predPcs - actualPcs;
+            const diffPcsPct = actualPcs > 0 ? ((diffPcs / actualPcs) * 100) : 0;
+            const errPcsPctAbs = Math.abs(diffPcsPct);
 
-            if (actualWeight > 0) {
-                if (oldErrW / actualWeight <= 0.10) oldAccurateCount++;
-                if (newErrW / actualWeight <= 0.10) newAccurateCount++;
+            let status = 'accurate'; // <= 5%
+            if (errWPctAbs > 25 || errPcsPctAbs > 25) {
+                status = 'danger'; // > 25% (аномалия)
+            } else if (errWPctAbs > 10 || errPcsPctAbs > 10) {
+                status = 'warning'; // 10-25% (отклонение)
+            } else if (errWPctAbs > 5 || errPcsPctAbs > 5) {
+                status = 'acceptable'; // 5-10% (допустимо)
             }
 
-            // Отбираем 15 репрезентативных примеров (приоритет рейсам с историей выборки)
-            const sampleInterval = Math.max(1, Math.floor(testSample.length / 15));
-            if ((i % sampleInterval === 0 || newSample.length >= 3) && sampleRowsData.length < 15) {
-                sampleRowsData.push({
-                    date: targetFlight.date ? formatDateStr(targetFlight.date) : '-',
-                    flight: targetFlight.flight_no || '-',
-                    route: `${targetFlight.from}➔${targetFlight.to}`,
-                    pax: actualPax,
-                    factW: Math.round(actualWeight),
-                    oldW: oldPredWeight,
-                    newW: newPredWeight,
-                    newDiff: Math.round(newPredWeight - actualWeight)
-                });
-            }
+            lastBacktestResults.push({
+                date: targetFlight.date,
+                dateFormatted: formatDateStr(targetFlight.date),
+                airline: targetFlight.airline || '',
+                flight: targetFlight.flight_no || '',
+                route: `${targetFlight.from}➔${targetFlight.to}`,
+                from: targetFlight.from,
+                to: targetFlight.to,
+                men: (targetFlight.men || 0),
+                women: (targetFlight.women || 0),
+                rb: (targetFlight.rb || 0),
+                rm: (targetFlight.rm || 0),
+                pax: actualPax,
+                factWeight: actualWeight,
+                predWeight: predWeight,
+                diffWeight: diffW,
+                diffWeightPct: diffWPct,
+                errWeightAbs: Math.abs(diffW),
+                errWeightPctAbs: errWPctAbs,
+                factPcs: actualPcs,
+                predPcs: predPcs,
+                diffPcs: diffPcs,
+                diffPcsPct: diffPcsPct,
+                errPcsAbs: Math.abs(diffPcs),
+                errPcsPctAbs: errPcsPctAbs,
+                status: status
+            });
         }
 
         currentIndex = endIndex;
@@ -8134,81 +8171,279 @@ function runBacktestAccuracySimulation() {
         if (progressPercent) progressPercent.textContent = `${progressPct}%`;
         if (progressStatus) {
             progressStatus.textContent = currentLang === 'ru'
-                ? `Тестирование алгоритмов: рейс ${currentIndex} из ${testSample.length}...`
-                : `Testing algorithms: flight ${currentIndex} of ${testSample.length}...`;
+                ? `Тестирование алгоритма: проверено ${currentIndex} из ${testSample.length} рейсов...`
+                : `Testing algorithm: verified ${currentIndex} of ${testSample.length} flights...`;
         }
 
         if (currentIndex < testSample.length) {
             setTimeout(processBatch, 0);
         } else {
-            // Завершение тестирования
+            // Завершение тестирования и вывод метрик
             if (btnStart) btnStart.disabled = false;
             if (progressContainer) progressContainer.classList.add('hidden');
             if (resultsContainer) resultsContainer.classList.remove('hidden');
 
-            const totalTested = oldWeightErrors.length || 1;
-            const avgOldW = oldWeightErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgNewW = newWeightErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgOldPcs = oldPcsErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgNewPcs = newPcsErrors.reduce((a, b) => a + b, 0) / totalTested;
-
-            const oldAccPct = Math.round((oldAccurateCount / totalTested) * 100);
-            const newAccPct = Math.round((newAccurateCount / totalTested) * 100);
-
-            const gainWeightPct = avgOldW > 0 ? (((avgOldW - avgNewW) / avgOldW) * 100) : 0;
-            const gainPcsPct = avgOldPcs > 0 ? (((avgOldPcs - avgNewPcs) / avgOldPcs) * 100) : 0;
-
-            const elOldW = document.getElementById('bt-old-weight-mae');
-            const elNewW = document.getElementById('bt-new-weight-mae');
-            const elOldP = document.getElementById('bt-old-pcs-mae');
-            const elNewP = document.getElementById('bt-new-pcs-mae');
-            const elOldAcc = document.getElementById('bt-old-accuracy');
-            const elNewAcc = document.getElementById('bt-new-accuracy');
-            const elGainW = document.getElementById('bt-weight-gain');
-            const elGainP = document.getElementById('bt-pcs-gain');
-
-            if (elOldW) elOldW.textContent = `${avgOldW.toFixed(1)} кг`;
-            if (elNewW) elNewW.textContent = `${avgNewW.toFixed(1)} кг`;
-            if (elOldP) elOldP.textContent = `${avgOldPcs.toFixed(1)} шт`;
-            if (elNewP) elNewP.textContent = `${avgNewPcs.toFixed(1)} шт`;
-            if (elOldAcc) elOldAcc.textContent = `${oldAccPct}%`;
-            if (elNewAcc) elNewAcc.textContent = `${newAccPct}%`;
-
-            if (elGainW) {
-                elGainW.textContent = `${gainWeightPct >= 0 ? '+' : '-'}${Math.abs(gainWeightPct).toFixed(1)}%`;
-                elGainW.style.color = gainWeightPct >= 0 ? '#34d399' : '#f87171';
-            }
-            if (elGainP) {
-                elGainP.textContent = `${gainPcsPct >= 0 ? '+' : '-'}${Math.abs(gainPcsPct).toFixed(1)}%`;
-                elGainP.style.color = gainPcsPct >= 0 ? '#34d399' : '#f87171';
-            }
-
-            // Рендер таблицы примеров
-            const tbody = document.getElementById('backtest-table-body');
-            if (tbody) {
-                let html = '';
-                sampleRowsData.forEach(r => {
-                    const diffSign = r.newDiff > 0 ? `+${r.newDiff}` : `${r.newDiff}`;
-                    const diffColor = Math.abs(r.newDiff) <= Math.round(r.factW * 0.1) ? 'highlight-green' : 'cyan-val';
-                    html += `
-                        <tr>
-                            <td>${r.date}</td>
-                            <td><strong>${r.flight}</strong></td>
-                            <td class="cyan-val">${r.route}</td>
-                            <td>${r.pax}</td>
-                            <td class="gold-val"><strong>${r.factW} кг</strong></td>
-                            <td style="opacity: 0.75;">${r.oldW} кг</td>
-                            <td class="highlight-green"><strong>${r.newW} кг</strong></td>
-                            <td class="${diffColor} font-mono">${diffSign} кг</td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            }
+            renderBacktestKPIs();
+            renderBacktestTable();
         }
     }
 
     setTimeout(processBatch, 50);
 }
+
+// Рендер KPI карточек точности
+function renderBacktestKPIs() {
+    const total = lastBacktestResults.length;
+    if (total === 0) return;
+
+    let sumErrW = 0;
+    let sumErrPcs = 0;
+    let sumDiffW = 0;
+    let sumDiffPcs = 0;
+    let sumFactW = 0;
+    let sumFactPcs = 0;
+
+    let accW5 = 0;
+    let accW10 = 0;
+    let accPcs5 = 0;
+    let accPcs10 = 0;
+
+    let countAccurate = 0;
+    let countWarning = 0;
+    let countDanger = 0;
+
+    lastBacktestResults.forEach(r => {
+        sumErrW += r.errWeightAbs;
+        sumErrPcs += r.errPcsAbs;
+        sumDiffW += r.diffWeight;
+        sumDiffPcs += r.diffPcs;
+        sumFactW += r.factWeight;
+        sumFactPcs += r.factPcs;
+
+        if (r.errWeightPctAbs <= 5) accW5++;
+        if (r.errWeightPctAbs <= 10) accW10++;
+
+        if (r.errPcsPctAbs <= 5) accPcs5++;
+        if (r.errPcsPctAbs <= 10) accPcs10++;
+
+        if (r.status === 'accurate' || r.status === 'acceptable') {
+            countAccurate++;
+        } else if (r.status === 'warning') {
+            countWarning++;
+        } else if (r.status === 'danger') {
+            countDanger++;
+        }
+    });
+
+    const maeW = (sumErrW / total).toFixed(1);
+    const maePcs = (sumErrPcs / total).toFixed(1);
+    const pctW5 = Math.round((accW5 / total) * 100);
+    const pctW10 = Math.round((accW10 / total) * 100);
+    const pctPcs5 = Math.round((accPcs5 / total) * 100);
+    const pctPcs10 = Math.round((accPcs10 / total) * 100);
+
+    const biasWPct = sumFactW > 0 ? ((sumDiffW / sumFactW) * 100).toFixed(1) : '0.0';
+    const biasPcsPct = sumFactPcs > 0 ? ((sumDiffPcs / sumFactPcs) * 100).toFixed(1) : '0.0';
+
+    const elW_mae = document.getElementById('bt-weight-mae');
+    const elW_acc5 = document.getElementById('bt-weight-acc-5');
+    const elW_acc10 = document.getElementById('bt-weight-acc-10');
+    const elW_bias = document.getElementById('bt-weight-bias');
+
+    const elP_mae = document.getElementById('bt-pcs-mae');
+    const elP_acc5 = document.getElementById('bt-pcs-acc-5');
+    const elP_acc10 = document.getElementById('bt-pcs-acc-10');
+    const elP_bias = document.getElementById('bt-pcs-bias');
+
+    const elTotal = document.getElementById('bt-total-tested');
+    const elAccCount = document.getElementById('bt-count-accurate');
+    const elWarnCount = document.getElementById('bt-count-warning');
+    const elDangCount = document.getElementById('bt-count-danger');
+
+    if (elW_mae) elW_mae.textContent = `±${maeW} кг`;
+    if (elW_acc5) elW_acc5.textContent = `${pctW5}%`;
+    if (elW_acc10) elW_acc10.textContent = `${pctW10}%`;
+    if (elW_bias) {
+        const sign = Number(biasWPct) > 0 ? '+' : '';
+        elW_bias.textContent = `${sign}${biasWPct}% (${sign}${Math.round(sumDiffW)} кг)`;
+        elW_bias.style.color = Math.abs(Number(biasWPct)) <= 3 ? '#10b981' : (Number(biasWPct) > 0 ? 'var(--accent-cyan)' : 'var(--accent-gold)');
+    }
+
+    if (elP_mae) elP_mae.textContent = `±${maePcs} шт`;
+    if (elP_acc5) elP_acc5.textContent = `${pctPcs5}%`;
+    if (elP_acc10) elP_acc10.textContent = `${pctPcs10}%`;
+    if (elP_bias) {
+        const sign = Number(biasPcsPct) > 0 ? '+' : '';
+        elP_bias.textContent = `${sign}${biasPcsPct}% (${sign}${Math.round(sumDiffPcs)} шт)`;
+        elP_bias.style.color = Math.abs(Number(biasPcsPct)) <= 3 ? '#10b981' : (Number(biasPcsPct) > 0 ? 'var(--accent-cyan)' : 'var(--accent-gold)');
+    }
+
+    if (elTotal) elTotal.textContent = `${total} рейсов`;
+    if (elAccCount) elAccCount.textContent = `${countAccurate} (${Math.round((countAccurate / total) * 100)}%)`;
+    if (elWarnCount) elWarnCount.textContent = `${countWarning} (${Math.round((countWarning / total) * 100)}%)`;
+    if (elDangCount) elDangCount.textContent = `${countDanger} (${Math.round((countDanger / total) * 100)}%)`;
+}
+
+// Отрисовка таблицы с фильтрацией и сортировкой
+function renderBacktestTable() {
+    const tbody = document.getElementById('backtest-table-body');
+    const filterVal = document.getElementById('backtest-table-filter')?.value || 'all';
+    const searchVal = document.getElementById('backtest-table-search')?.value.trim().toLowerCase() || '';
+
+    if (!tbody) return;
+
+    let rows = [...lastBacktestResults];
+
+    // Фильтрация по статусу
+    if (filterVal === 'warning') {
+        rows = rows.filter(r => r.status === 'warning' || r.status === 'danger');
+    } else if (filterVal === 'danger') {
+        rows = rows.filter(r => r.status === 'danger');
+    } else if (filterVal === 'accurate') {
+        rows = rows.filter(r => r.status === 'accurate');
+    }
+
+    // Поиск по тексту
+    if (searchVal) {
+        rows = rows.filter(r => {
+            return String(r.flight).toLowerCase().includes(searchVal) ||
+                   String(r.route).toLowerCase().includes(searchVal) ||
+                   String(r.airline).toLowerCase().includes(searchVal) ||
+                   String(r.dateFormatted).toLowerCase().includes(searchVal);
+        });
+    }
+
+    // Сортировка
+    rows.sort((a, b) => {
+        let valA = a[backtestSortCol];
+        let valB = b[backtestSortCol];
+
+        if (backtestSortCol === 'date') {
+            const da = parseDateToJsDate(a.date);
+            const db = parseDateToJsDate(b.date);
+            valA = da ? da.getTime() : 0;
+            valB = db ? db.getTime() : 0;
+        } else if (backtestSortCol === 'diff_weight') {
+            valA = a.errWeightAbs;
+            valB = b.errWeightAbs;
+        } else if (backtestSortCol === 'diff_pcs') {
+            valA = a.errPcsAbs;
+            valB = b.errPcsAbs;
+        }
+
+        if (valA < valB) return backtestSortAsc ? -1 : 1;
+        if (valA > valB) return backtestSortAsc ? 1 : -1;
+        return 0;
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="empty-table-text">${currentLang === 'ru' ? 'Нет рейсов, соответствующих фильтрам поиска.' : 'No matching flights found.'}</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    rows.forEach(r => {
+        const signW = r.diffWeight > 0 ? '+' : '';
+        const signPcs = r.diffPcs > 0 ? '+' : '';
+
+        let badgeHtml = '';
+        let rowStyle = '';
+        if (r.status === 'accurate') {
+            badgeHtml = `<span class="badge-role" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.72rem; padding: 2px 6px;">🟢 Точно (≤5%)</span>`;
+        } else if (r.status === 'acceptable') {
+            badgeHtml = `<span class="badge-role" style="background: rgba(0, 240, 255, 0.2); color: var(--accent-cyan); font-size: 0.72rem; padding: 2px 6px;">🟢 Норма (≤10%)</span>`;
+        } else if (r.status === 'warning') {
+            badgeHtml = `<span class="badge-role" style="background: rgba(255, 183, 0, 0.2); color: var(--accent-gold); font-size: 0.72rem; padding: 2px 6px;">🟡 Отклонение</span>`;
+        } else if (r.status === 'danger') {
+            badgeHtml = `<span class="badge-role" style="background: rgba(239, 68, 68, 0.25); color: #ef4444; font-size: 0.72rem; padding: 2px 6px;">🔴 Аномалия</span>`;
+            rowStyle = 'background: rgba(239, 68, 68, 0.05);';
+        }
+
+        const diffWColor = r.errWeightPctAbs <= 5 ? '#10b981' : (r.errWeightPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#ef4444'));
+        const diffPcsColor = r.errPcsPctAbs <= 5 ? '#10b981' : (r.errPcsPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#ef4444'));
+
+        const paxDetails = (r.rb > 0 || r.rm > 0) ? `${r.pax} <span style="font-size: 0.75rem; color: var(--text-muted);">(${r.pax - r.rb - r.rm}/${r.rb}/${r.rm})</span>` : `${r.pax}`;
+
+        html += `
+            <tr style="${rowStyle}">
+                <td class="monospace-val" style="font-size: 0.8rem;">${r.dateFormatted}</td>
+                <td><strong>${escapeHtml(r.airline)} ${escapeHtml(r.flight)}</strong></td>
+                <td class="cyan-val">${escapeHtml(r.route)}</td>
+                <td>${paxDetails}</td>
+                <td class="monospace-val" style="color: var(--accent-gold); font-weight: 600;">${Math.round(r.factWeight)} кг</td>
+                <td class="monospace-val" style="color: var(--accent-cyan); font-weight: 600;">${Math.round(r.predWeight)} кг</td>
+                <td class="monospace-val" style="color: ${diffWColor}; font-weight: 700;">
+                    ${signW}${Math.round(r.diffWeight)} кг <span style="font-size: 0.72rem;">(${signW}${r.diffWeightPct.toFixed(1)}%)</span>
+                </td>
+                <td class="monospace-val" style="color: var(--accent-gold);">${r.factPcs} шт</td>
+                <td class="monospace-val" style="color: var(--accent-cyan);">${r.predPcs} шт</td>
+                <td class="monospace-val" style="color: ${diffPcsColor};">
+                    ${signPcs}${r.diffPcs} шт <span style="font-size: 0.72rem;">(${signPcs}${r.diffPcsPct.toFixed(1)}%)</span>
+                </td>
+                <td style="text-align: center;">${badgeHtml}</td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Сортировка таблицы бэктеста по столбцам
+function sortBacktestTable(col) {
+    if (backtestSortCol === col) {
+        backtestSortAsc = !backtestSortAsc;
+    } else {
+        backtestSortCol = col;
+        backtestSortAsc = false;
+    }
+    renderBacktestTable();
+}
+
+// Экспорт результатов тестирования в Excel (.xlsx)
+function exportBacktestToExcel() {
+    if (!lastBacktestResults || lastBacktestResults.length === 0) {
+        showAviationAlert(currentLang === 'ru' ? 'Нет данных для экспорта! Сначала запустите тест.' : 'No test results to export!', true);
+        return;
+    }
+
+    if (typeof XLSX === 'undefined') {
+        showAviationAlert('Библиотека XLSX не найдена для экспорта.', true);
+        return;
+    }
+
+    const exportData = lastBacktestResults.map(r => ({
+        'Дата': r.dateFormatted,
+        'Авиакомпания': r.airline,
+        'Рейс': r.flight,
+        'Вылет': r.from,
+        'Прилет': r.to,
+        'Пассажиры всего': r.pax,
+        'Взрослые': r.pax - r.rb - r.rm,
+        'Дети (РБ)': r.rb,
+        'Младенцы (РМ)': r.rm,
+        'Факт Вес (кг)': Math.round(r.factWeight),
+        'Прогноз Вес (кг)': Math.round(r.predWeight),
+        'Разница Вес (кг)': Math.round(r.diffWeight),
+        'Погрешность Вес (%)': Number(r.diffWeightPct.toFixed(2)),
+        'Факт Мест (шт)': r.factPcs,
+        'Прогноз Мест (шт)': r.predPcs,
+        'Разница Мест (шт)': r.diffPcs,
+        'Погрешность Мест (%)': Number(r.diffPcsPct.toFixed(2)),
+        'Статус точности': r.status === 'accurate' ? 'Высокая (≤5%)' : (r.status === 'acceptable' ? 'Норма (≤10%)' : (r.status === 'warning' ? 'Отклонение (10-25%)' : 'Аномалия (>25%)'))
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Accuracy_Report");
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `AeroBag_Accuracy_Test_${dateStr}.xlsx`);
+    showAviationAlert(currentLang === 'ru' ? `Отчет точности успешно экспортирован в Excel (${exportData.length} рейсов).` : 'Accuracy report exported to Excel.', false);
+}
+
+// Экспорт в глобальную область
+window.sortBacktestTable = sortBacktestTable;
+window.exportBacktestToExcel = exportBacktestToExcel;
+window.runBacktestAccuracySimulation = runBacktestAccuracySimulation;
 
 
