@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.122';
-const APP_BUILD_DATE = '30.08.2026';
+const APP_VERSION = 'v12.0.131';
+const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -1694,18 +1694,9 @@ const translations = {
         
         // Резервное копирование и верификация
         'btn-open-backtest': '🔬 Тест точности (Backtest)',
-        'backtest-modal-title': '[ ИСТОРИЧЕСКИЙ БЭКТЕСТИНГ И ВЕРИФИКАЦИЯ ТОЧНОСТИ ]',
-        'backtest-label-period': 'Период выборки:',
-        'backtest-opt-3m': 'Последние 3 месяца',
-        'backtest-opt-6m': 'Последние 6 месяцев (Рекомендуется)',
-        'backtest-opt-1y': 'Последний 1 год',
-        'backtest-opt-all': 'Вся доступная база рейсов',
-        'backtest-label-limit': 'Количество рейсов:',
-        'btn-start-backtest': '▶ Запустить тест',
-        'backtest-badge-gain': 'ПРИРОСТ ТОЧНОСТИ',
-        'backtest-label-gain-weight': 'Прирост точности (вес):',
-        'backtest-label-gain-pcs': 'Прирост точности (места):',
-        'backtest-sample-table-title': 'Примеры прогнозов по реальным вылетам:',
+        'backtest-modal-title': '[ ТЕСТИРОВАНИЕ И ВАЛИДАЦИЯ ТОЧНОСТИ ПРОГНОЗОВ ]',
+        'backtest-label-period': 'Период анализа:',
+        'btn-start-backtest': '▶ Запустить тест точности',
         'btn-export-db': 'Экспорт базы (Backup)',
         'btn-import-db': 'Импорт базы (Restore)',
         'backup-import-success': 'База данных успешно восстановлена! Загружено {flights} рейсов и {predictions} прогнозов.',
@@ -1930,18 +1921,9 @@ const translations = {
         
         // Backups and verification
         'btn-open-backtest': '🔬 Accuracy Test (Backtest)',
-        'backtest-modal-title': '[ FORECAST ACCURACY VERIFICATION & BACKTESTING ]',
-        'backtest-label-period': 'Sample Period:',
-        'backtest-opt-3m': 'Last 3 Months',
-        'backtest-opt-6m': 'Last 6 Months (Recommended)',
-        'backtest-opt-1y': 'Last 1 Year',
-        'backtest-opt-all': 'All Available Database Flights',
-        'backtest-label-limit': 'Number of Flights:',
-        'btn-start-backtest': '▶ Run Test',
-        'backtest-badge-gain': 'ACCURACY GAIN',
-        'backtest-label-gain-weight': 'Weight Accuracy Gain:',
-        'backtest-label-gain-pcs': 'Pieces Accuracy Gain:',
-        'backtest-sample-table-title': 'Sample Forecasts for Real Flights:',
+        'backtest-modal-title': '[ FORECAST ACCURACY VERIFICATION & CALIBRATION ]',
+        'backtest-label-period': 'Analysis Period:',
+        'btn-start-backtest': '▶ Run Accuracy Test',
         'btn-export-db': 'Export Database (Backup)',
         'btn-import-db': 'Import Database (Restore)',
         'backup-import-success': 'Database successfully restored! Loaded {flights} flights and {predictions} predictions.',
@@ -2203,6 +2185,15 @@ function resetCompartments() {
     }
 }
 
+// Таймер для отложенного сохранения раскладки без блокировки UI
+let saveCompartmentsTimeout = null;
+function debouncedSaveCompartmentsToPrediction() {
+    clearTimeout(saveCompartmentsTimeout);
+    saveCompartmentsTimeout = setTimeout(() => {
+        saveCompartmentsToPrediction();
+    }, 250);
+}
+
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
     if (!currentActivePredictionId) {
@@ -2370,6 +2361,8 @@ function transferPredictionToPreliminary(predId) {
 }
 
 function recalculateLoadPlanning() {
+    const activeEl = document.activeElement;
+
     const prelimPax = parseInt(document.getElementById('prelim-pax')?.textContent || 0) || 0;
     const prelimPcs = parseInt(document.getElementById('prelim-pcs')?.textContent || 0) || 0;
     const prelimWeight = parseFloat(document.getElementById('prelim-weight')?.textContent || 0) || 0;
@@ -2407,9 +2400,13 @@ function recalculateLoadPlanning() {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
         const weightCell = document.getElementById(`bulk-weight-${i}`);
 
-        if (pcsInput) {
+        if (pcsInput && weightCell) {
             const pcs = parseInt(pcsInput.value, 10) || 0;
-            const isLocked = weightCell && weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
+            const isEditingThisWeight = (weightCell === activeEl);
+            const isExplicitlyLocked = weightCell.getAttribute('data-locked') === 'true';
+
+            // Если поле веса редактируется пользователем прямо сейчас или заблокировано
+            const isLocked = isExplicitlyLocked || (isEditingThisWeight && weightCell.value.trim() !== '');
 
             if (isLocked) {
                 const w = parseFloat(weightCell.value) || 0;
@@ -2419,8 +2416,8 @@ function recalculateLoadPlanning() {
                 if (pcs > 0) {
                     unlockedComps.push({ index: i, pcs: pcs, weightCell: weightCell });
                 } else {
-                    // Если мест 0 и отсек не зафиксирован - сбрасываем вес в 0
-                    if (weightCell) {
+                    // Если мест 0 и отсек не зафиксирован и не редактируется прямо сейчас - сбрасываем вес в 0
+                    if (!isEditingThisWeight && weightCell.value !== '0') {
                         if (weightCell.tagName === 'INPUT') weightCell.value = '0';
                         else weightCell.textContent = '0';
                     }
@@ -2454,11 +2451,12 @@ function recalculateLoadPlanning() {
             allocatedUnlockedWeight += w;
         }
 
-        if (comp.weightCell) {
+        if (comp.weightCell && comp.weightCell !== activeEl) {
+            const wStr = String(w);
             if (comp.weightCell.tagName === 'INPUT') {
-                comp.weightCell.value = String(w);
+                if (comp.weightCell.value !== wStr) comp.weightCell.value = wStr;
             } else {
-                comp.weightCell.textContent = String(w);
+                if (comp.weightCell.textContent !== wStr) comp.weightCell.textContent = wStr;
             }
         }
     });
@@ -2471,7 +2469,8 @@ function recalculateLoadPlanning() {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
         const weightCell = document.getElementById(`bulk-weight-${i}`);
         if (pcsInput && weightCell) {
-            const isLocked = weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
+            const isEditingThisWeight = (weightCell === activeEl);
+            const isLocked = weightCell.getAttribute('data-locked') === 'true' || (isEditingThisWeight && weightCell.value.trim() !== '');
             if (!isLocked) {
                 const w = parseFloat(weightCell.tagName === 'INPUT' ? weightCell.value : weightCell.textContent) || 0;
                 ttlBulkWeight += w;
@@ -2481,8 +2480,8 @@ function recalculateLoadPlanning() {
 
     const bulkTtlPcsEl = document.getElementById('bulk-ttl-pcs');
     const bulkTtlWghtEl = document.getElementById('bulk-ttl-weight');
-    if (bulkTtlPcsEl) bulkTtlPcsEl.textContent = ttlBulkPcs;
-    if (bulkTtlWghtEl) bulkTtlWghtEl.textContent = ttlBulkWeight;
+    if (bulkTtlPcsEl && bulkTtlPcsEl.textContent !== String(ttlBulkPcs)) bulkTtlPcsEl.textContent = String(ttlBulkPcs);
+    if (bulkTtlWghtEl && bulkTtlWghtEl.textContent !== String(ttlBulkWeight)) bulkTtlWghtEl.textContent = String(ttlBulkWeight);
 
     const bulkRestPcs = targetPcs - ttlBulkPcs;
     const bulkRestWeight = targetWeight - ttlBulkWeight;
@@ -2491,18 +2490,18 @@ function recalculateLoadPlanning() {
     const bulkRestWghtCell = document.getElementById('bulk-rest-weight');
 
     if (bulkRestPcsCell) {
-        bulkRestPcsCell.textContent = bulkRestPcs;
+        if (bulkRestPcsCell.textContent !== String(bulkRestPcs)) bulkRestPcsCell.textContent = String(bulkRestPcs);
         bulkRestPcsCell.classList.toggle('rest-balanced', bulkRestPcs === 0 && targetPcs > 0);
         bulkRestPcsCell.classList.toggle('rest-overload', bulkRestPcs < 0);
     }
     if (bulkRestWghtCell) {
-        bulkRestWghtCell.textContent = bulkRestWeight;
+        if (bulkRestWghtCell.textContent !== String(bulkRestWeight)) bulkRestWghtCell.textContent = String(bulkRestWeight);
         bulkRestWghtCell.classList.toggle('rest-balanced', bulkRestWeight === 0 && targetWeight > 0);
         bulkRestWghtCell.classList.toggle('rest-overload', bulkRestWeight < 0);
     }
 }
 
-// Инициализация таблицы коммерческой загружеб (12 отсеков BULK)
+// Инициализация таблицы коммерческой загрузки (12 отсеков BULK)
 function initLoadPlanningData() {
     const unifiedBody = document.getElementById('unified-load-tbody');
     if (unifiedBody) {
@@ -2543,8 +2542,26 @@ function initLoadPlanningData() {
         const el = document.getElementById(id);
         if (el && !el.dataset.hasRecalcListener) {
             el.dataset.hasRecalcListener = 'true';
-            ['input', 'change', 'keyup', 'blur'].forEach(evt => {
+            
+            el.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (typeof el.select === 'function') el.select();
+                }, 10);
+            });
+
+            el.addEventListener('input', () => {
+                recalculateLoadPlanning();
+                debouncedSaveCompartmentsToPrediction();
+            });
+
+            ['change', 'blur'].forEach(evt => {
                 el.addEventListener(evt, () => {
+                    let v = el.value.trim();
+                    if (v === '' || isNaN(v) || parseFloat(v) < 0) {
+                        el.value = '0';
+                    } else {
+                        el.value = String(parseFloat(v));
+                    }
                     recalculateLoadPlanning();
                     saveCompartmentsToPrediction();
                 });
@@ -2555,6 +2572,13 @@ function initLoadPlanningData() {
     document.querySelectorAll('.table-input').forEach(input => {
         if (!input.dataset.hasKeyNavListener) {
             input.dataset.hasKeyNavListener = 'true';
+            
+            input.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (typeof input.select === 'function') input.select();
+                }, 10);
+            });
+
             input.addEventListener('keydown', (e) => {
                 if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
                     e.preventDefault();
@@ -2576,46 +2600,42 @@ function initLoadPlanningData() {
             });
 
             input.addEventListener('input', () => {
-                if (input.classList.contains('uld-pcs-input')) {
-                    const uldId = input.id.replace('uld-pcs-', '');
-                    const weightInput = document.getElementById(`uld-weight-${uldId}`);
-                    if (weightInput) {
-                        weightInput.removeAttribute('data-locked');
-                        weightInput.classList.remove('weight-locked');
-                    }
-                } else if (input.classList.contains('bulk-pcs-input')) {
+                if (input.classList.contains('bulk-pcs-input')) {
                     const bulkId = input.id.replace('bulk-pcs-', '');
                     const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    if (weightInput) {
-                        weightInput.removeAttribute('data-locked');
+                    // Если изменились места и вес не был заблокирован пользователем, держим разблокированным
+                    if (weightInput && weightInput.getAttribute('data-locked') !== 'true') {
                         weightInput.classList.remove('weight-locked');
                     }
-                } else if (input.classList.contains('uld-weight-input') || input.classList.contains('bulk-weight-input')) {
+                } else if (input.classList.contains('bulk-weight-input')) {
+                    // При ручном вводе веса фиксируем отсек
                     if (input.value.trim() !== '') {
                         input.setAttribute('data-locked', 'true');
                         input.classList.add('weight-locked');
-                    } else {
-                        input.removeAttribute('data-locked');
-                        input.classList.remove('weight-locked');
                     }
                 }
 
                 recalculateLoadPlanning();
-                // Автосохранение раскладки BULK в активный рейс из Истории
-                saveCompartmentsToPrediction();
+                debouncedSaveCompartmentsToPrediction();
             });
 
             ['change', 'blur'].forEach(evt => {
                 input.addEventListener(evt, () => {
-                    let v = input.value;
-                    if (v && v.length > 1 && v.startsWith('0')) {
-                        input.value = String(parseInt(v, 10));
-                    }
+                    let v = input.value.trim();
                     if (v === '' || isNaN(v) || parseInt(v, 10) < 0) {
                         input.value = '0';
+                    } else {
+                        input.value = String(parseInt(v, 10));
                     }
+
+                    if (input.classList.contains('bulk-weight-input')) {
+                        if (input.value === '0') {
+                            input.removeAttribute('data-locked');
+                            input.classList.remove('weight-locked');
+                        }
+                    }
+
                     recalculateLoadPlanning();
-                    // Автосохранение раскладки BULK в активный рейс из Истории
                     saveCompartmentsToPrediction();
                 });
             });
@@ -4360,7 +4380,12 @@ function setupEventListeners() {
 
     // Слушатели автоматических бэкапов
     const btnCreateServerBackup = document.getElementById('btn-create-server-backup');
-    if (btnCreateServerBackup) btnCreateServerBackup.addEventListener('click', createServerBackupNow);
+    if (btnCreateServerBackup) {
+        btnCreateServerBackup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            createServerBackupNow();
+        });
+    }
 }
 
 // Автоматическая/ручная загрузка системной статистики stats_july.xls
@@ -5128,36 +5153,107 @@ async function handleDeleteUser(userId, userName) {
 
 let serverBackupsList = [];
 
-// Загрузка списка серверных автобэкапов
+// Переключение раскрытия/складывания панели автоматических бэкапов
+function toggleAutoBackupsAccordion(e) {
+    if (e) {
+        if (e.target && (e.target.closest('#btn-create-server-backup') || e.target.closest('button.btn-table-action') || e.target.closest('a'))) {
+            return;
+        }
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('auto-backups-panel');
+    const toggleBtn = document.getElementById('btn-toggle-backups-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+    
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) {
+            iconEl.textContent = isCollapsed ? '▼' : '▲';
+        }
+    }
+}
+
+// Загрузка списка серверных / локальных автобэкапов
 async function loadServerBackupsList() {
     if (!currentUser || currentUser.role !== 'admin') return;
 
     const tbody = document.getElementById('backups-table-body');
     if (!tbody) return;
 
-    try {
-        const response = await fetch('api.php?action=list_backups');
-        const data = await response.json();
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=list_backups');
+            const data = await response.json();
 
-        if (data.success && Array.isArray(data.backups)) {
-            serverBackupsList = data.backups;
-            renderServerBackupsTable();
-        } else {
-            tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">${data.error || 'Ошибка загрузки списка бэкапов'}</td></tr>`;
+            if (data.success && Array.isArray(data.backups)) {
+                serverBackupsList = data.backups;
+                renderServerBackupsTable();
+                return;
+            }
+        } catch (err) {
+            console.warn("Серверная загрузка бэкапов недоступна, переключаемся на локальные бэкапы:", err);
         }
-    } catch (err) {
-        console.error("Ошибка при загрузке бэкапов:", err);
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">Не удалось получить список бэкапов с сервера</td></tr>`;
+    }
+
+    // Резервный локальный режим (Offline/LocalStorage)
+    try {
+        const localData = localStorage.getItem('averago_local_backups_db');
+        if (localData) {
+            let parsed = JSON.parse(localData);
+            if (Array.isArray(parsed)) {
+                // Автоматическая дедупликация по имени файла
+                const uniqueMap = new Map();
+                parsed.forEach(item => {
+                    if (item && item.filename && !uniqueMap.has(item.filename)) {
+                        uniqueMap.set(item.filename, item);
+                    }
+                });
+                serverBackupsList = Array.from(uniqueMap.values());
+                localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+            } else {
+                serverBackupsList = [];
+            }
+        } else {
+            serverBackupsList = [];
+        }
+        renderServerBackupsTable();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">Ошибка локального хранилища бэкапов</td></tr>`;
     }
 }
 
-// Отрисовка таблицы серверных автобэкапов
+// Отрисовка таблицы серверных / локальных автобэкапов и сводки в шапке
 function renderServerBackupsTable() {
     const tbody = document.getElementById('backups-table-body');
+    const countBadge = document.getElementById('backups-count-badge');
+    const lastDateBadge = document.getElementById('backups-last-date-badge');
     if (!tbody) return;
 
+    if (countBadge) {
+        const itemWord = currentLang === 'ru' ? 'копий' : 'backups';
+        countBadge.textContent = `💾 ${serverBackupsList.length} ${itemWord}`;
+    }
+
+    if (lastDateBadge) {
+        if (serverBackupsList.length > 0 && serverBackupsList[0].created_at) {
+            const lastDate = serverBackupsList[0].created_at.split(' ')[0];
+            lastDateBadge.textContent = (currentLang === 'ru' ? 'Последняя: ' : 'Latest: ') + lastDate;
+        } else {
+            lastDateBadge.textContent = (currentLang === 'ru' ? 'Последняя: —' : 'Latest: —');
+        }
+    }
+
     if (serverBackupsList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text">Автоматические бэкапы пока отсутствуют. Нажмите кнопку "Создать бэкап сейчас".</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text">${currentLang === 'ru' ? 'Автоматические бэкапы пока отсутствуют. Нажмите кнопку "Создать бэкап сейчас".' : 'No backups found.'}</td></tr>`;
         return;
     }
 
@@ -5174,8 +5270,9 @@ function renderServerBackupsTable() {
                 <td class="monospace-val highlight-cyan">${sizeDisplay}</td>
                 <td style="text-align: right;">
                     <div class="table-action-btns">
-                        <button type="button" class="btn-table-action" onclick="downloadServerBackup('${escapeHtml(b.filename)}')" title="Скачать архив">📥 Скачать</button>
-                        <button type="button" class="btn-table-action danger" onclick="restoreServerBackup('${escapeHtml(b.filename)}')" title="Восстановить базу">🔄 Восстановить</button>
+                        <button type="button" class="btn-table-action" onclick="downloadServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Скачать архив' : 'Download'}">📥 ${currentLang === 'ru' ? 'Скачать' : 'Download'}</button>
+                        <button type="button" class="btn-table-action" onclick="restoreServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Восстановить базу' : 'Restore'}">🔄 ${currentLang === 'ru' ? 'Восстановить' : 'Restore'}</button>
+                        <button type="button" class="btn-table-action danger" onclick="deleteServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Удалить архив' : 'Delete'}">🗑️ ${currentLang === 'ru' ? 'Удалить' : 'Delete'}</button>
                     </div>
                 </td>
             </tr>
@@ -5185,34 +5282,124 @@ function renderServerBackupsTable() {
     tbody.innerHTML = html;
 }
 
-// Создание мгновенного серверного бэкапа
+let isCreatingBackupNow = false;
+
+// Создание мгновенного серверного или локального бэкапа
 async function createServerBackupNow() {
+    if (isCreatingBackupNow) return;
+    isCreatingBackupNow = true;
+
     const btn = document.getElementById('btn-create-server-backup');
     if (btn) btn.disabled = true;
 
     try {
-        const response = await fetch('api.php?action=create_backup');
-        const data = await response.json();
+        if (!isOfflineMode) {
+            try {
+                const response = await fetch('api.php?action=create_backup');
+                const data = await response.json();
 
-        if (data.success) {
-            await loadServerBackupsList();
-            showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
-        } else {
-            showAviationAlert(data.error || 'Ошибка создания бэкапа.', true);
+                if (data.success) {
+                    await loadServerBackupsList();
+                    showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Серверный бэкап недоступен, выполняем локальный бэкап:", err);
+            }
         }
-    } catch (err) {
-        showAviationAlert('Ошибка соединения с сервером: ' + err.message, true);
+
+        // Локальное создание бэкапа в Offline/Local mode
+        try {
+            const flights = userFlights || [];
+            const dateNow = new Date();
+            const yyyy = dateNow.getFullYear();
+            const mm = String(dateNow.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateNow.getDate()).padStart(2, '0');
+            const hh = String(dateNow.getHours()).padStart(2, '0');
+            const min = String(dateNow.getMinutes()).padStart(2, '0');
+            const ss = String(dateNow.getSeconds()).padStart(2, '0');
+
+            const filename = `aerobag_local_${yyyy}_${mm}_${dd}_${hh}${min}${ss}.json`;
+            const createdAt = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+
+            const backupData = {
+                backup_version: '1.0',
+                backup_type: 'local_offline',
+                exported_at: dateNow.toISOString(),
+                flights_count: flights.length,
+                flights: flights
+            };
+
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const sizeBytes = new Blob([jsonStr]).size;
+
+            const newBackupItem = {
+                filename: filename,
+                created_at: createdAt,
+                timestamp: Math.floor(dateNow.getTime() / 1000),
+                size: sizeBytes,
+                is_local: true,
+                data: backupData
+            };
+
+            let localList = [];
+            try {
+                const existing = localStorage.getItem('averago_local_backups_db');
+                if (existing) localList = JSON.parse(existing);
+                if (!Array.isArray(localList)) localList = [];
+            } catch (e) {}
+
+            // Удаляем возможные дубликаты с таким же именем
+            localList = localList.filter(b => b && b.filename !== filename);
+            localList.unshift(newBackupItem);
+
+            // Автоматическая дедупликация по имени файла
+            const uniqueMap = new Map();
+            localList.forEach(item => {
+                if (item && item.filename && !uniqueMap.has(item.filename)) {
+                    uniqueMap.set(item.filename, item);
+                }
+            });
+            localList = Array.from(uniqueMap.values());
+
+            // Ротация: оставляем 30 последних
+            if (localList.length > 30) localList = localList.slice(0, 30);
+
+            localStorage.setItem('averago_local_backups_db', JSON.stringify(localList));
+            serverBackupsList = localList;
+            renderServerBackupsTable();
+
+            showAviationAlert(`Локальная копия создана: ${filename} (${flights.length} рейсов).`, false);
+        } catch (e) {
+            showAviationAlert('Ошибка создания локального бэкапа: ' + e.message, true);
+        }
     } finally {
         if (btn) btn.disabled = false;
+        isCreatingBackupNow = false;
     }
 }
 
 // Скачивание файла бэкапа
 function downloadServerBackup(filename) {
+    const localItem = serverBackupsList.find(b => b.filename === filename && (b.is_local || b.data));
+    if (localItem && localItem.data) {
+        const jsonStr = JSON.stringify(localItem.data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
     window.location.href = `api.php?action=download_backup&file=${encodeURIComponent(filename)}`;
 }
 
-// Восстановление базы из серверного бэкапа
+// Восстановление базы из серверного / локального бэкапа
 async function restoreServerBackup(filename) {
     const confirmModal = document.getElementById('aviation-confirm-modal');
     const msgEl = document.getElementById('aviation-confirm-message');
@@ -5227,6 +5414,17 @@ async function restoreServerBackup(filename) {
     const handleConfirm = async () => {
         confirmModal.classList.add('hidden');
         btnConfirm.removeEventListener('click', handleConfirm);
+
+        // Проверяем локальный бэкап
+        const localItem = serverBackupsList.find(b => b.filename === filename && (b.is_local || b.data));
+        if (localItem && localItem.data && Array.isArray(localItem.data.flights)) {
+            userFlights = localItem.data.flights;
+            localStorage.setItem('averago_local_flights_db', JSON.stringify(userFlights));
+            renderFlightsTable(userFlights);
+            renderDashboardAnalytics();
+            showAviationAlert(`База успешно восстановлена из локального архива! Загружено ${userFlights.length} рейсов.`, false);
+            return;
+        }
 
         try {
             const response = await fetch('api.php?action=restore_backup', {
@@ -5255,6 +5453,57 @@ async function restoreServerBackup(filename) {
         }, { once: true });
     }
 }
+
+// Удаление резервной копии с сервера или локального хранилища
+async function deleteServerBackup(filename) {
+    const msg = currentLang === 'ru'
+        ? `Вы действительно хотите безвозвратно удалить резервную копию "${filename}"?`
+        : `Are you sure you want to permanently delete backup "${filename}"?`;
+
+    showAviationConfirm(msg, async () => {
+        const localIdx = serverBackupsList.findIndex(b => b.filename === filename && b.is_local);
+        if (localIdx !== -1) {
+            serverBackupsList.splice(localIdx, 1);
+            localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+            renderServerBackupsTable();
+            showAviationAlert(currentLang === 'ru' ? 'Локальная копия успешно удалена.' : 'Local backup deleted.', false);
+            return;
+        }
+
+        try {
+            const response = await fetch('api.php?action=delete_backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                await loadServerBackupsList();
+                showAviationAlert(currentLang === 'ru' ? 'Резервная копия успешно удалена.' : 'Backup deleted successfully.', false);
+            } else {
+                showAviationAlert(data.error || (currentLang === 'ru' ? 'Ошибка удаления бэкапа.' : 'Delete error.'), true);
+            }
+        } catch (err) {
+            const idx = serverBackupsList.findIndex(b => b.filename === filename);
+            if (idx !== -1) {
+                serverBackupsList.splice(idx, 1);
+                localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+                renderServerBackupsTable();
+                showAviationAlert(currentLang === 'ru' ? 'Копия удалена из локального хранилища.' : 'Backup deleted locally.', false);
+            } else {
+                showAviationAlert('Ошибка при удалении: ' + err.message, true);
+            }
+        }
+    });
+}
+
+// Экспорт функций бэкапов в window
+window.toggleAutoBackupsAccordion = toggleAutoBackupsAccordion;
+window.createServerBackupNow = createServerBackupNow;
+window.downloadServerBackup = downloadServerBackup;
+window.restoreServerBackup = restoreServerBackup;
+window.deleteServerBackup = deleteServerBackup;
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -7100,97 +7349,62 @@ function formatDateStr(dateStr) {
 
 // Валидация числовых полей ввода и автоочистка ведущих нулей
 function setupNumericInputValidation() {
-    // Инпуты количества пассажиров и целых чисел
-    const paxInputs = [
+    // Инпуты количества пассажиров и целых чисел в форме ручного ввода
+    const integerInputs = [
         'input-pax',
-        'lir-pax',
-        'lir-pcs',
-        'lir-weight',
         'manual-men',
         'manual-women',
         'manual-rb',
         'manual-rm',
         'manual-bag-pcs'
     ];
-    for (let i = 1; i <= 12; i++) {
-        paxInputs.push(`bulk-pcs-${i}`);
-        paxInputs.push(`bulk-weight-${i}`);
-    }
 
-    paxInputs.forEach(id => {
+    integerInputs.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
 
-        el.dataset.prevValue = el.value || (id === 'input-pax' ? '150' : '0');
-        el.dataset.readyToOverwrite = 'false';
-
-        // 1. При фокусе (клик или TAB) число НЕ пропадает, но подсвечивается и помечается к перезаписи
-        el.addEventListener('focus', (e) => {
-            if (e.target.value !== '') {
-                e.target.dataset.prevValue = e.target.value;
-            }
-            e.target.dataset.readyToOverwrite = 'true';
+        // При фокусе выделяем число для мгновенной перезаписи при необходимости
+        el.addEventListener('focus', () => {
             setTimeout(() => {
-                if (typeof e.target.select === 'function') {
-                    e.target.select();
+                if (typeof el.select === 'function') {
+                    el.select();
                 }
-            }, 0);
+            }, 10);
         });
 
-        // 2. Повторный клик внутри уже активного поля помечает текст к авто-перезаписи при вводе
-        el.addEventListener('click', (e) => {
-            e.target.dataset.readyToOverwrite = 'true';
-            if (typeof e.target.select === 'function') {
-                e.target.select();
-            }
-        });
-
-        // 3. Перехвачик нажатия клавиш: стирает старое значение при первом вводе цифры
+        // Блокируем ввод запрещенных символов
         el.addEventListener('keydown', (e) => {
-            if (e.target.dataset.readyToOverwrite === 'true') {
-                const isNavigationKey = ['Tab', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key);
-                if (!isNavigationKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
-                        e.target.value = '';
-                        e.target.dataset.readyToOverwrite = 'false';
-                        if (id === 'lir-pax') {
-                            recalculateLoadPlanning();
-                        }
-                    }
-                }
+            if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
+                e.preventDefault();
             }
         });
 
-        // 4. Фильтрация ввода (только цифры, авто-удаление ведущих нулей)
+        // Очистка от нечисловых символов при вставке
         el.addEventListener('input', (e) => {
-            e.target.dataset.readyToOverwrite = 'false';
             let val = e.target.value;
-            let clean = val.replace(/[^0-9]/g, '');
-            if (clean.length > 1 && clean.startsWith('0')) {
-                clean = clean.replace(/^0+/, '');
-            }
-            e.target.value = clean;
-            if (id === 'lir-pax') {
-                recalculateLoadPlanning();
+            if (/[^0-9]/.test(val)) {
+                e.target.value = val.replace(/[^0-9]/g, '');
             }
         });
 
-        // 5. Восстановление сохраненного значения при уходе (blur), если поле осталось пустым
+        // Нормализация при уходе из поля (удаление ведущих нулей, минимум 1 для PAX)
         el.addEventListener('blur', (e) => {
-            e.target.dataset.readyToOverwrite = 'false';
             let val = e.target.value.trim();
-            if (val === '') {
-                e.target.value = e.target.dataset.prevValue || (id === 'input-pax' ? '150' : '0');
-            } else if (id === 'input-pax' && parseInt(val, 10) === 0) {
-                e.target.value = '1';
-            }
-            if (id === 'lir-pax') {
-                recalculateLoadPlanning();
+            if (val === '' || isNaN(val)) {
+                e.target.value = (id === 'input-pax') ? '150' : '0';
+            } else {
+                let num = parseInt(val, 10);
+                if (id === 'input-pax' && num < 1) {
+                    num = 1;
+                } else if (num < 0) {
+                    num = 0;
+                }
+                e.target.value = String(num);
             }
         });
     });
 
-    // Инпуты дробных чисел (вес)
+    // Инпуты дробных чисел (вес в форме ручного добавления)
     const floatInputs = [
         'manual-bag-weight',
         'manual-hb-weight'
@@ -7200,46 +7414,39 @@ function setupNumericInputValidation() {
         const el = document.getElementById(id);
         if (!el) return;
 
+        el.addEventListener('focus', () => {
+            setTimeout(() => {
+                if (typeof el.select === 'function') {
+                    el.select();
+                }
+            }, 10);
+        });
+
         el.addEventListener('input', (e) => {
             let val = e.target.value;
-            
-            // Разрешаем только цифры и одну точку
-            let clean = val.replace(/[^0-9.]/g, '');
-            const parts = clean.split('.');
-            if (parts.length > 2) {
-                clean = parts[0] + '.' + parts.slice(1).join('');
+            if (/[^0-9.]/.test(val)) {
+                let clean = val.replace(/[^0-9.]/g, '');
+                const parts = clean.split('.');
+                if (parts.length > 2) {
+                    clean = parts[0] + '.' + parts.slice(1).join('');
+                }
+                e.target.value = clean;
             }
-            
-            // Убираем ведущие нули (напр. 020 -> 20, но 0.5 остается 0.5)
-            if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
-                clean = clean.replace(/^0+/, '');
-            }
-            
-            e.target.value = clean;
         });
 
         el.addEventListener('blur', (e) => {
             let val = e.target.value.trim();
-            if (val === '' || val === '.') {
+            if (val === '' || val === '.' || isNaN(parseFloat(val))) {
                 e.target.value = '0';
+            } else {
+                let clean = val;
+                if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
+                    clean = clean.replace(/^0+/, '') || '0';
+                }
+                e.target.value = clean;
             }
         });
     });
-
-    // Обнуляем количество мест и веса в BULK (отсеки 1..12)
-    for (let i = 1; i <= 12; i++) {
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        if (pcsInput) pcsInput.value = '0';
-        
-        const wInput = document.getElementById(`bulk-weight-${i}`);
-        if (wInput) {
-            wInput.removeAttribute('data-locked');
-            wInput.classList.remove('weight-locked');
-            wInput.value = '0';
-        }
-    }
-
-    recalculateLoadPlanning();
 }
 
 // --- ОТРИСОВКА И РАСЧЕТ ДАШБОРДА АНАЛИТИКИ И МАСШТАБИРОВАНИЯ ---
@@ -7803,16 +8010,26 @@ function renderDashboardAnalytics() {
     }
 }
 
-// --- МОДУЛЬ БЭКТЕСТИНГА И ВЕРИФИКАЦИИ ТОЧНОСТИ (STAGE 3) ---
+// --- МОДУЛЬ ТЕСТИРОВАНИЯ И ВАЛИДАЦИИ ТОЧНОСТИ ПРОГНОЗОВ (STAGE 3) ---
+
+let lastBacktestResults = [];
+let backtestSortCol = 'date';
+let backtestSortAsc = false;
 
 function initBacktestModule() {
     const btnOpen = document.getElementById('btn-open-backtest');
     const btnClose = document.getElementById('btn-close-backtest');
     const modal = document.getElementById('backtest-modal');
     const btnStart = document.getElementById('btn-start-backtest');
+    const periodSelect = document.getElementById('backtest-period-select');
+    const customWrap = document.getElementById('backtest-custom-dates-wrap');
+    const filterSelect = document.getElementById('backtest-table-filter');
+    const searchInput = document.getElementById('backtest-table-search');
+    const btnExport = document.getElementById('btn-export-backtest-excel');
 
     if (btnOpen && modal) {
         btnOpen.addEventListener('click', () => {
+            populateBacktestAirlines();
             modal.classList.remove('hidden');
         });
     }
@@ -7829,21 +8046,79 @@ function initBacktestModule() {
         });
     }
 
+    if (periodSelect) {
+        periodSelect.addEventListener('change', () => {
+            if (customWrap) {
+                customWrap.style.display = periodSelect.value === 'custom' ? 'flex' : 'none';
+            }
+        });
+    }
+
     if (btnStart) {
         btnStart.addEventListener('click', () => {
             runBacktestAccuracySimulation();
         });
     }
+
+    if (filterSelect) {
+        filterSelect.addEventListener('change', () => {
+            renderBacktestTable();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderBacktestTable();
+        });
+    }
+
+    if (btnExport) {
+        btnExport.addEventListener('click', (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            exportBacktestToExcel();
+        });
+    }
 }
 
+// Заполнение выпадающего списка авиакомпаний
+function populateBacktestAirlines() {
+    const select = document.getElementById('backtest-airline-select');
+    if (!select || !userFlights) return;
+
+    const currentVal = select.value;
+    const airlines = new Set();
+    userFlights.forEach(f => {
+        if (f.airline && String(f.airline).trim()) {
+            airlines.add(String(f.airline).trim().toUpperCase());
+        }
+    });
+
+    let html = `<option value="all">${currentLang === 'ru' ? 'Все АК' : 'All Airlines'}</option>`;
+    Array.from(airlines).sort().forEach(al => {
+        html += `<option value="${escapeHtml(al)}">${escapeHtml(al)}</option>`;
+    });
+
+    select.innerHTML = html;
+    if (airlines.has(currentVal)) {
+        select.value = currentVal;
+    }
+}
+
+// Запуск симуляции точности
 function runBacktestAccuracySimulation() {
     if (!userFlights || userFlights.length === 0) {
-        showAviationAlert(currentLang === 'ru' ? 'База данных пуста! Загрузите архив полетов.' : 'Database is empty! Please load flights data.', true);
+        showAviationAlert(currentLang === 'ru' ? 'База данных пуста! Загрузите отчеты рейсов.' : 'Database is empty! Please load flights data.', true);
         return;
     }
 
-    const periodVal = document.getElementById('backtest-period-select')?.value || '180';
-    const limitVal = parseInt(document.getElementById('backtest-limit-select')?.value || '250', 10);
+    const periodVal = document.getElementById('backtest-period-select')?.value || '30';
+    const airlineVal = document.getElementById('backtest-airline-select')?.value || 'all';
+    const dateFromVal = document.getElementById('backtest-date-from')?.value;
+    const dateToVal = document.getElementById('backtest-date-to')?.value;
+
     const btnStart = document.getElementById('btn-start-backtest');
     const progressContainer = document.getElementById('backtest-progress-container');
     const progressStatus = document.getElementById('backtest-progress-status');
@@ -7851,43 +8126,62 @@ function runBacktestAccuracySimulation() {
     const progressFill = document.getElementById('backtest-progress-fill');
     const resultsContainer = document.getElementById('backtest-results-container');
 
-    // 1. Фильтрация и хронологическая сортировка
+    // 1. Фильтрация валидных рейсов и хронологическая сортировка
     const validFlights = userFlights.filter(f => {
         if (!f.date) return false;
         const pax = getEffectivePaxCount(f);
         const w = parseFloat(f.bag_weight) || 0;
-        return pax > 0 && w > 0 && parseDateToJsDate(f.date) !== null;
+        const pcs = parseInt(f.bag_pcs, 10) || 0;
+        return pax > 0 && w > 0 && pcs > 0 && parseDateToJsDate(f.date) !== null;
     }).sort((a, b) => {
         const da = parseDateToJsDate(a.date);
         const db = parseDateToJsDate(b.date);
         return (da ? da.getTime() : 0) - (db ? db.getTime() : 0);
     });
 
-    if (validFlights.length < 10) {
-        showAviationAlert(currentLang === 'ru' ? 'Слишком мало рейсов с датами для бэктестинга (требуется >= 10).' : 'Not enough flights for backtesting (>= 10 required).', true);
+    if (validFlights.length < 5) {
+        showAviationAlert(currentLang === 'ru' ? 'Слишком мало рейсов с заполненными данными для теста (требуется >= 5).' : 'Not enough valid flights for testing (>= 5 required).', true);
         return;
     }
 
-    // Фильтрация по периоду
-    let targetPool = validFlights;
-    if (periodVal !== 'all') {
+    // 2. Отбор тестовой выборки по периоду и АК
+    let testSample = validFlights;
+
+    if (airlineVal !== 'all') {
+        testSample = testSample.filter(f => String(f.airline).trim().toUpperCase() === airlineVal);
+    }
+
+    if (periodVal === 'custom') {
+        if (dateFromVal) {
+            const dtFrom = new Date(dateFromVal + 'T00:00:00');
+            testSample = testSample.filter(f => {
+                const fd = parseDateToJsDate(f.date);
+                return fd && fd.getTime() >= dtFrom.getTime();
+            });
+        }
+        if (dateToVal) {
+            const dtTo = new Date(dateToVal + 'T23:59:59');
+            testSample = testSample.filter(f => {
+                const fd = parseDateToJsDate(f.date);
+                return fd && fd.getTime() <= dtTo.getTime();
+            });
+        }
+    } else if (periodVal !== 'all') {
         const days = parseInt(periodVal, 10);
         const newestFlightDate = parseDateToJsDate(validFlights[validFlights.length - 1].date);
         if (newestFlightDate) {
             const cutoffMs = newestFlightDate.getTime() - (days * 24 * 60 * 60 * 1000);
-            targetPool = validFlights.filter(f => {
+            testSample = testSample.filter(f => {
                 const fd = parseDateToJsDate(f.date);
                 return fd && fd.getTime() >= cutoffMs;
             });
         }
     }
 
-    if (targetPool.length < 5) {
-        targetPool = validFlights.slice(-50);
+    if (testSample.length === 0) {
+        showAviationAlert(currentLang === 'ru' ? 'За выбранный период и фильтры рейсов не найдено.' : 'No flights found for the selected period/filters.', true);
+        return;
     }
-
-    // Выборка из пула (до limitVal самых свежих)
-    const testSample = targetPool.slice(-limitVal);
 
     if (btnStart) btnStart.disabled = true;
     if (progressContainer) progressContainer.classList.remove('hidden');
@@ -7895,17 +8189,11 @@ function runBacktestAccuracySimulation() {
     if (progressFill) progressFill.style.width = '0%';
     if (progressPercent) progressPercent.textContent = '0%';
 
+    lastBacktestResults = [];
     let currentIndex = 0;
-    const oldWeightErrors = [];
-    const newWeightErrors = [];
-    const oldPcsErrors = [];
-    const newPcsErrors = [];
-    let oldAccurateCount = 0;
-    let newAccurateCount = 0;
-    const sampleRowsData = [];
 
     function processBatch() {
-        const batchSize = 20;
+        const batchSize = 25;
         const endIndex = Math.min(currentIndex + batchSize, testSample.length);
 
         for (let i = currentIndex; i < endIndex; i++) {
@@ -7924,50 +8212,11 @@ function runBacktestAccuracySimulation() {
                 return fd && fd.getTime() < targetMs;
             });
 
-            // 1. Старый метод (4 рейса за 60 дней)
-            const window60Ms = 60 * 24 * 60 * 60 * 1000;
-            let oldSample = historyBefore.filter(f => {
-                if (f.flight_no !== targetFlight.flight_no) return false;
-                if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
-                const fd = parseDateToJsDate(f.date);
-                const diff = targetMs - fd.getTime();
-                return diff > 0 && diff <= window60Ms;
-            }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date)).slice(0, 4);
-
-            if (oldSample.length === 0) {
-                const window30Ms = 30 * 24 * 60 * 60 * 1000;
-                oldSample = historyBefore.filter(f => {
-                    const fd = parseDateToJsDate(f.date);
-                    const diff = targetMs - fd.getTime();
-                    return diff > 0 && diff <= window30Ms;
-                }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date)).slice(0, 4);
-            }
-
-            const defaultFallbackK = 0.45;
-            const defaultFallbackV = 14.5;
-
-            let oldPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
-            let oldPredWeight = Math.round(oldPredPcs * defaultFallbackV);
-            if (oldSample.length > 0) {
-                let sumK = 0, sumV = 0;
-                oldSample.forEach(f => {
-                    const p = getEffectivePaxCount(f);
-                    const pcs = parseInt(f.bag_pcs, 10) || 0;
-                    const w = parseFloat(f.bag_weight) || 0;
-                    sumK += (pcs / p);
-                    sumV += pcs > 0 ? (w / pcs) : 0;
-                });
-                const avgK = sumK / oldSample.length;
-                const avgV = sumV / oldSample.length;
-                oldPredPcs = Math.round(actualPax * avgK);
-                oldPredWeight = Math.round(oldPredPcs * avgV);
-            }
-
-            // 2. Новый Smart Waterfall метод (180 дней, порог >=5, сглаживание альфа=0.3, авто-сезонность, 97% явка)
+            // Smart Waterfall алгоритм
             const window180Ms = 180 * 24 * 60 * 60 * 1000;
             const routeFlights = historyBefore.filter(f => f.from === targetFlight.from && f.to === targetFlight.to);
 
-            let newSample = routeFlights.filter(f => {
+            let sample = routeFlights.filter(f => {
                 if (f.flight_no !== targetFlight.flight_no) return false;
                 if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
                 const fd = parseDateToJsDate(f.date);
@@ -7975,8 +8224,8 @@ function runBacktestAccuracySimulation() {
                 return diff > 0 && diff <= window180Ms;
             }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
 
-            if (newSample.length < 5) {
-                newSample = routeFlights.filter(f => {
+            if (sample.length < 5) {
+                sample = routeFlights.filter(f => {
                     if (getDayOfWeekFromIsoStr(f.date) !== targetDay) return false;
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
@@ -7984,16 +8233,16 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            if (newSample.length < 5) {
-                newSample = routeFlights.filter(f => {
+            if (sample.length < 5) {
+                sample = routeFlights.filter(f => {
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
                     return diff > 0 && diff <= window180Ms;
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            if (newSample.length === 0) {
-                newSample = historyBefore.filter(f => {
+            if (sample.length === 0) {
+                sample = historyBefore.filter(f => {
                     if (f.from !== targetFlight.from) return false;
                     const fd = parseDateToJsDate(f.date);
                     const diff = targetMs - fd.getTime();
@@ -8001,51 +8250,71 @@ function runBacktestAccuracySimulation() {
                 }).sort((a, b) => parseDateToJsDate(b.date) - parseDateToJsDate(a.date));
             }
 
-            let newPredPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
-            let newPredWeight = Math.round(newPredPcs * defaultFallbackV);
-            if (newSample.length > 0) {
-                const sampleSlice = newSample.slice(0, 20);
+            const defaultFallbackK = 0.45;
+            const defaultFallbackV = 14.5;
+            let predPcs = Math.max(1, Math.round(actualPax * defaultFallbackK));
+            let predWeight = Math.round(predPcs * defaultFallbackV);
+
+            if (sample.length > 0) {
+                const sampleSlice = sample.slice(0, 20);
                 const means = calculateMeansFromFlights(sampleSlice, 0.3);
                 if (means && typeof means.pcs_pax === 'number' && typeof means.wght_pc === 'number' && !isNaN(means.pcs_pax) && !isNaN(means.wght_pc)) {
-                    // При симуляции на исторических данных базы пассажиры уже являются 100% фактическими
                     const effectivePax = Math.max(1, actualPax);
                     const seasonInfo = getRouteSeasonalityMultiplier(targetFlight.from, targetFlight.to, targetFlight.date);
                     const seasonMultiplier = (seasonInfo && typeof seasonInfo.multiplier === 'number') ? seasonInfo.multiplier : 1.0;
                     const adjustedK = means.pcs_pax * seasonMultiplier;
-                    newPredPcs = Math.round(effectivePax * adjustedK);
-                    newPredWeight = Math.round(newPredPcs * means.wght_pc);
+                    predPcs = Math.max(1, Math.round(effectivePax * adjustedK));
+                    predWeight = Math.round(predPcs * means.wght_pc);
                 }
             }
 
-            const oldErrW = Math.abs(actualWeight - oldPredWeight);
-            const newErrW = Math.abs(actualWeight - newPredWeight);
-            const oldErrPcs = Math.abs(actualPcs - oldPredPcs);
-            const newErrPcs = Math.abs(actualPcs - newPredPcs);
+            const diffW = predWeight - actualWeight;
+            const diffWPct = actualWeight > 0 ? ((diffW / actualWeight) * 100) : 0;
+            const errWPctAbs = Math.abs(diffWPct);
 
-            oldWeightErrors.push(oldErrW);
-            newWeightErrors.push(newErrW);
-            oldPcsErrors.push(oldErrPcs);
-            newPcsErrors.push(newErrPcs);
+            const diffPcs = predPcs - actualPcs;
+            const diffPcsPct = actualPcs > 0 ? ((diffPcs / actualPcs) * 100) : 0;
+            const errPcsPctAbs = Math.abs(diffPcsPct);
 
-            if (actualWeight > 0) {
-                if (oldErrW / actualWeight <= 0.10) oldAccurateCount++;
-                if (newErrW / actualWeight <= 0.10) newAccurateCount++;
+            // Определение статуса точности по шкале:
+            // до 10% - хороший результат, 10-15% - допустимый, 15-25% - отклонение, > 25% - аномалия
+            const maxErrPct = Math.max(errWPctAbs, errPcsPctAbs);
+            let status = 'good'; // <= 10% (Хороший результат)
+            if (maxErrPct > 25) {
+                status = 'danger'; // > 25% (Аномалия)
+            } else if (maxErrPct > 15) {
+                status = 'warning'; // 15-25% (Отклонение)
+            } else if (maxErrPct > 10) {
+                status = 'acceptable'; // 10-15% (Допустимый)
             }
 
-            // Отбираем 15 репрезентативных примеров (приоритет рейсам с историей выборки)
-            const sampleInterval = Math.max(1, Math.floor(testSample.length / 15));
-            if ((i % sampleInterval === 0 || newSample.length >= 3) && sampleRowsData.length < 15) {
-                sampleRowsData.push({
-                    date: targetFlight.date ? formatDateStr(targetFlight.date) : '-',
-                    flight: targetFlight.flight_no || '-',
-                    route: `${targetFlight.from}➔${targetFlight.to}`,
-                    pax: actualPax,
-                    factW: Math.round(actualWeight),
-                    oldW: oldPredWeight,
-                    newW: newPredWeight,
-                    newDiff: Math.round(newPredWeight - actualWeight)
-                });
-            }
+            lastBacktestResults.push({
+                date: targetFlight.date,
+                dateFormatted: formatDateStr(targetFlight.date),
+                airline: targetFlight.airline || '',
+                flight: targetFlight.flight_no || '',
+                route: `${targetFlight.from}➔${targetFlight.to}`,
+                from: targetFlight.from,
+                to: targetFlight.to,
+                men: (targetFlight.men || 0),
+                women: (targetFlight.women || 0),
+                rb: (targetFlight.rb || 0),
+                rm: (targetFlight.rm || 0),
+                pax: actualPax,
+                factWeight: actualWeight,
+                predWeight: predWeight,
+                diffWeight: diffW,
+                diffWeightPct: diffWPct,
+                errWeightAbs: Math.abs(diffW),
+                errWeightPctAbs: errWPctAbs,
+                factPcs: actualPcs,
+                predPcs: predPcs,
+                diffPcs: diffPcs,
+                diffPcsPct: diffPcsPct,
+                errPcsAbs: Math.abs(diffPcs),
+                errPcsPctAbs: errPcsPctAbs,
+                status: status
+            });
         }
 
         currentIndex = endIndex;
@@ -8054,81 +8323,541 @@ function runBacktestAccuracySimulation() {
         if (progressPercent) progressPercent.textContent = `${progressPct}%`;
         if (progressStatus) {
             progressStatus.textContent = currentLang === 'ru'
-                ? `Тестирование алгоритмов: рейс ${currentIndex} из ${testSample.length}...`
-                : `Testing algorithms: flight ${currentIndex} of ${testSample.length}...`;
+                ? `Тестирование алгоритма: проверено ${currentIndex} из ${testSample.length} рейсов...`
+                : `Testing algorithm: verified ${currentIndex} of ${testSample.length} flights...`;
         }
 
         if (currentIndex < testSample.length) {
             setTimeout(processBatch, 0);
         } else {
-            // Завершение тестирования
+            // Завершение тестирования и вывод метрик
             if (btnStart) btnStart.disabled = false;
             if (progressContainer) progressContainer.classList.add('hidden');
             if (resultsContainer) resultsContainer.classList.remove('hidden');
 
-            const totalTested = oldWeightErrors.length || 1;
-            const avgOldW = oldWeightErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgNewW = newWeightErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgOldPcs = oldPcsErrors.reduce((a, b) => a + b, 0) / totalTested;
-            const avgNewPcs = newPcsErrors.reduce((a, b) => a + b, 0) / totalTested;
-
-            const oldAccPct = Math.round((oldAccurateCount / totalTested) * 100);
-            const newAccPct = Math.round((newAccurateCount / totalTested) * 100);
-
-            const gainWeightPct = avgOldW > 0 ? (((avgOldW - avgNewW) / avgOldW) * 100) : 0;
-            const gainPcsPct = avgOldPcs > 0 ? (((avgOldPcs - avgNewPcs) / avgOldPcs) * 100) : 0;
-
-            const elOldW = document.getElementById('bt-old-weight-mae');
-            const elNewW = document.getElementById('bt-new-weight-mae');
-            const elOldP = document.getElementById('bt-old-pcs-mae');
-            const elNewP = document.getElementById('bt-new-pcs-mae');
-            const elOldAcc = document.getElementById('bt-old-accuracy');
-            const elNewAcc = document.getElementById('bt-new-accuracy');
-            const elGainW = document.getElementById('bt-weight-gain');
-            const elGainP = document.getElementById('bt-pcs-gain');
-
-            if (elOldW) elOldW.textContent = `${avgOldW.toFixed(1)} кг`;
-            if (elNewW) elNewW.textContent = `${avgNewW.toFixed(1)} кг`;
-            if (elOldP) elOldP.textContent = `${avgOldPcs.toFixed(1)} шт`;
-            if (elNewP) elNewP.textContent = `${avgNewPcs.toFixed(1)} шт`;
-            if (elOldAcc) elOldAcc.textContent = `${oldAccPct}%`;
-            if (elNewAcc) elNewAcc.textContent = `${newAccPct}%`;
-
-            if (elGainW) {
-                elGainW.textContent = `${gainWeightPct >= 0 ? '+' : '-'}${Math.abs(gainWeightPct).toFixed(1)}%`;
-                elGainW.style.color = gainWeightPct >= 0 ? '#34d399' : '#f87171';
-            }
-            if (elGainP) {
-                elGainP.textContent = `${gainPcsPct >= 0 ? '+' : '-'}${Math.abs(gainPcsPct).toFixed(1)}%`;
-                elGainP.style.color = gainPcsPct >= 0 ? '#34d399' : '#f87171';
-            }
-
-            // Рендер таблицы примеров
-            const tbody = document.getElementById('backtest-table-body');
-            if (tbody) {
-                let html = '';
-                sampleRowsData.forEach(r => {
-                    const diffSign = r.newDiff > 0 ? `+${r.newDiff}` : `${r.newDiff}`;
-                    const diffColor = Math.abs(r.newDiff) <= Math.round(r.factW * 0.1) ? 'highlight-green' : 'cyan-val';
-                    html += `
-                        <tr>
-                            <td>${r.date}</td>
-                            <td><strong>${r.flight}</strong></td>
-                            <td class="cyan-val">${r.route}</td>
-                            <td>${r.pax}</td>
-                            <td class="gold-val"><strong>${r.factW} кг</strong></td>
-                            <td style="opacity: 0.75;">${r.oldW} кг</td>
-                            <td class="highlight-green"><strong>${r.newW} кг</strong></td>
-                            <td class="${diffColor} font-mono">${diffSign} кг</td>
-                        </tr>
-                    `;
-                });
-                tbody.innerHTML = html;
-            }
+            renderBacktestKPIs();
+            renderBacktestTable();
         }
     }
 
     setTimeout(processBatch, 50);
 }
+
+// Рендер KPI карточек точности
+function renderBacktestKPIs() {
+    const total = lastBacktestResults.length;
+    if (total === 0) return;
+
+    let sumErrW = 0;
+    let sumErrPcs = 0;
+    let sumDiffW = 0;
+    let sumDiffPcs = 0;
+    let sumFactW = 0;
+    let sumFactPcs = 0;
+
+    let accW10 = 0;
+    let accW15 = 0;
+    let accPcs10 = 0;
+    let accPcs15 = 0;
+
+    let countGood = 0;
+    let countAcceptable = 0;
+    let countWarning = 0;
+    let countDanger = 0;
+
+    lastBacktestResults.forEach(r => {
+        sumErrW += r.errWeightAbs;
+        sumErrPcs += r.errPcsAbs;
+        sumDiffW += r.diffWeight;
+        sumDiffPcs += r.diffPcs;
+        sumFactW += r.factWeight;
+        sumFactPcs += r.factPcs;
+
+        if (r.errWeightPctAbs <= 10) accW10++;
+        if (r.errWeightPctAbs <= 15) accW15++;
+
+        if (r.errPcsPctAbs <= 10) accPcs10++;
+        if (r.errPcsPctAbs <= 15) accPcs15++;
+
+        if (r.status === 'good') {
+            countGood++;
+        } else if (r.status === 'acceptable') {
+            countAcceptable++;
+        } else if (r.status === 'warning') {
+            countWarning++;
+        } else if (r.status === 'danger') {
+            countDanger++;
+        }
+    });
+
+    const maeW = (sumErrW / total).toFixed(1);
+    const maePcs = (sumErrPcs / total).toFixed(1);
+    const pctW10 = Math.round((accW10 / total) * 100);
+    const pctW15 = Math.round((accW15 / total) * 100);
+    const pctPcs10 = Math.round((accPcs10 / total) * 100);
+    const pctPcs15 = Math.round((accPcs15 / total) * 100);
+
+    const biasWPct = sumFactW > 0 ? ((sumDiffW / sumFactW) * 100).toFixed(1) : '0.0';
+    const biasPcsPct = sumFactPcs > 0 ? ((sumDiffPcs / sumFactPcs) * 100).toFixed(1) : '0.0';
+
+    const elW_mae = document.getElementById('bt-weight-mae');
+    const elW_acc10 = document.getElementById('bt-weight-acc-10');
+    const elW_acc15 = document.getElementById('bt-weight-acc-15');
+    const elW_bias = document.getElementById('bt-weight-bias');
+
+    const elP_mae = document.getElementById('bt-pcs-mae');
+    const elP_acc10 = document.getElementById('bt-pcs-acc-10');
+    const elP_acc15 = document.getElementById('bt-pcs-acc-15');
+    const elP_bias = document.getElementById('bt-pcs-bias');
+
+    const elTotal = document.getElementById('bt-total-tested');
+    const elGoodCount = document.getElementById('bt-count-good');
+    const elAcceptCount = document.getElementById('bt-count-acceptable');
+    const elWarnCount = document.getElementById('bt-count-warning');
+    const elDangCount = document.getElementById('bt-count-danger');
+
+    if (elW_mae) elW_mae.textContent = `±${maeW} кг`;
+    if (elW_acc10) elW_acc10.textContent = `${pctW10}%`;
+    if (elW_acc15) elW_acc15.textContent = `${pctW15}%`;
+    if (elW_bias) {
+        const sign = Number(biasWPct) > 0 ? '+' : '';
+        elW_bias.textContent = `${sign}${biasWPct}% (${sign}${Math.round(sumDiffW)} кг)`;
+        elW_bias.style.color = Math.abs(Number(biasWPct)) <= 3 ? '#10b981' : (Number(biasWPct) > 0 ? 'var(--accent-cyan)' : 'var(--accent-gold)');
+    }
+
+    if (elP_mae) elP_mae.textContent = `±${maePcs} шт`;
+    if (elP_acc10) elP_acc10.textContent = `${pctPcs10}%`;
+    if (elP_acc15) elP_acc15.textContent = `${pctPcs15}%`;
+    if (elP_bias) {
+        const sign = Number(biasPcsPct) > 0 ? '+' : '';
+        elP_bias.textContent = `${sign}${biasPcsPct}% (${sign}${Math.round(sumDiffPcs)} шт)`;
+        elP_bias.style.color = Math.abs(Number(biasPcsPct)) <= 3 ? '#10b981' : (Number(biasPcsPct) > 0 ? 'var(--accent-cyan)' : 'var(--accent-gold)');
+    }
+
+    if (elTotal) elTotal.textContent = `${total} рейсов`;
+    if (elGoodCount) elGoodCount.textContent = `${countGood} (${Math.round((countGood / total) * 100)}%)`;
+    if (elAcceptCount) elAcceptCount.textContent = `${countAcceptable} (${Math.round((countAcceptable / total) * 100)}%)`;
+    if (elWarnCount) elWarnCount.textContent = `${countWarning} (${Math.round((countWarning / total) * 100)}%)`;
+    if (elDangCount) elDangCount.textContent = `${countDanger} (${Math.round((countDanger / total) * 100)}%)`;
+}
+
+// Отрисовка таблицы с фильтрацией и сортировкой
+function renderBacktestTable() {
+    const tbody = document.getElementById('backtest-table-body');
+    const filterVal = document.getElementById('backtest-table-filter')?.value || 'all';
+    const searchVal = document.getElementById('backtest-table-search')?.value.trim().toLowerCase() || '';
+
+    if (!tbody) return;
+
+    let rows = [...lastBacktestResults];
+
+    // Фильтрация по статусу
+    if (filterVal === 'good') {
+        rows = rows.filter(r => r.status === 'good');
+    } else if (filterVal === 'acceptable') {
+        rows = rows.filter(r => r.status === 'acceptable');
+    } else if (filterVal === 'warning') {
+        rows = rows.filter(r => r.status === 'warning' || r.status === 'danger');
+    } else if (filterVal === 'danger') {
+        rows = rows.filter(r => r.status === 'danger');
+    }
+
+    // Поиск по тексту
+    if (searchVal) {
+        rows = rows.filter(r => {
+            return String(r.flight).toLowerCase().includes(searchVal) ||
+                   String(r.route).toLowerCase().includes(searchVal) ||
+                   String(r.airline).toLowerCase().includes(searchVal) ||
+                   String(r.dateFormatted).toLowerCase().includes(searchVal);
+        });
+    }
+
+    // Сортировка
+    rows.sort((a, b) => {
+        let valA = a[backtestSortCol];
+        let valB = b[backtestSortCol];
+
+        if (backtestSortCol === 'date') {
+            const da = parseDateToJsDate(a.date);
+            const db = parseDateToJsDate(b.date);
+            valA = da ? da.getTime() : 0;
+            valB = db ? db.getTime() : 0;
+        } else if (backtestSortCol === 'diff_weight') {
+            valA = a.errWeightAbs;
+            valB = b.errWeightAbs;
+        } else if (backtestSortCol === 'diff_pcs') {
+            valA = a.errPcsAbs;
+            valB = b.errPcsAbs;
+        }
+
+        if (valA < valB) return backtestSortAsc ? -1 : 1;
+        if (valA > valB) return backtestSortAsc ? 1 : -1;
+        return 0;
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="empty-table-text">${currentLang === 'ru' ? 'Нет рейсов, соответствующих фильтрам поиска.' : 'No matching flights found.'}</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    rows.forEach(r => {
+        const signW = r.diffWeight > 0 ? '+' : '';
+        const signPcs = r.diffPcs > 0 ? '+' : '';
+
+        let badgeHtml = '';
+        let rowStyle = '';
+        if (r.status === 'good') {
+            badgeHtml = `<span class="badge-status-pill badge-green">🟢 ≤10%</span>`;
+        } else if (r.status === 'acceptable') {
+            badgeHtml = `<span class="badge-status-pill badge-cyan">🟡 ≤15%</span>`;
+        } else if (r.status === 'warning') {
+            badgeHtml = `<span class="badge-status-pill badge-gold">🟠 >15%</span>`;
+        } else if (r.status === 'danger') {
+            badgeHtml = `<span class="badge-status-pill badge-danger">🔴 >25%</span>`;
+            rowStyle = 'background: rgba(239, 68, 68, 0.05);';
+        }
+
+        const diffWColor = r.errWeightPctAbs <= 10 ? '#10b981' : (r.errWeightPctAbs <= 15 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
+        const diffPcsColor = r.errPcsPctAbs <= 10 ? '#10b981' : (r.errPcsPctAbs <= 15 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
+
+        const paxDetails = (r.rb > 0 || r.rm > 0) ? `<strong>${r.pax}</strong> <span style="font-size: 0.72rem; color: var(--text-muted);">(${r.pax - r.rb - r.rm}/${r.rb}/${r.rm})</span>` : `<strong>${r.pax}</strong>`;
+
+        html += `
+            <tr style="${rowStyle}">
+                <td class="monospace-val" style="font-size: 0.8rem;">${r.dateFormatted}</td>
+                <td><strong class="font-mono">${escapeHtml(r.airline)} ${escapeHtml(r.flight)}</strong></td>
+                <td class="cyan-val" style="font-weight: 600;">${escapeHtml(r.route)}</td>
+                <td>${paxDetails}</td>
+                <td class="monospace-val highlight-gold" style="font-weight: 600;">${Math.round(r.factWeight)} кг</td>
+                <td class="monospace-val highlight-cyan" style="font-weight: 600;">${Math.round(r.predWeight)} кг</td>
+                <td class="monospace-val" style="color: ${diffWColor}; font-weight: 700;">
+                    ${signW}${Math.round(r.diffWeight)} кг <span style="font-size: 0.72rem; font-weight: normal;">(${signW}${r.diffWeightPct.toFixed(1)}%)</span>
+                </td>
+                <td class="monospace-val highlight-gold">${r.factPcs} шт</td>
+                <td class="monospace-val highlight-cyan">${r.predPcs} шт</td>
+                <td class="monospace-val" style="color: ${diffPcsColor}; font-weight: 600;">
+                    ${signPcs}${r.diffPcs} шт <span style="font-size: 0.72rem; font-weight: normal;">(${signPcs}${r.diffPcsPct.toFixed(1)}%)</span>
+                </td>
+                <td style="text-align: center;">${badgeHtml}</td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Сортировка таблицы бэктеста по столбцам
+function sortBacktestTable(col) {
+    if (backtestSortCol === col) {
+        backtestSortAsc = !backtestSortAsc;
+    } else {
+        backtestSortCol = col;
+        backtestSortAsc = false;
+    }
+    renderBacktestTable();
+}
+
+// Экспорт результатов тестирования в красиво стилизованный Excel (.xls) с автофильтрами
+function exportBacktestToExcel() {
+    if (!lastBacktestResults || lastBacktestResults.length === 0) {
+        showAviationAlert(currentLang === 'ru' ? 'Нет данных для экспорта! Сначала запустите тест.' : 'No test results to export!', true);
+        return;
+    }
+
+    const total = lastBacktestResults.length;
+    let sumErrW = 0, sumErrPcs = 0, sumDiffW = 0, sumDiffPcs = 0, sumFactW = 0, sumFactPcs = 0;
+    let countGood = 0, countAcceptable = 0, countWarning = 0, countDanger = 0;
+    let accW10 = 0, accW15 = 0, accPcs10 = 0, accPcs15 = 0;
+
+    lastBacktestResults.forEach(r => {
+        sumErrW += r.errWeightAbs;
+        sumErrPcs += r.errPcsAbs;
+        sumDiffW += r.diffWeight;
+        sumDiffPcs += r.diffPcs;
+        sumFactW += r.factWeight;
+        sumFactPcs += r.factPcs;
+
+        if (r.errWeightPctAbs <= 10) accW10++;
+        if (r.errWeightPctAbs <= 15) accW15++;
+        if (r.errPcsPctAbs <= 10) accPcs10++;
+        if (r.errPcsPctAbs <= 15) accPcs15++;
+
+        if (r.status === 'good') countGood++;
+        else if (r.status === 'acceptable') countAcceptable++;
+        else if (r.status === 'warning') countWarning++;
+        else if (r.status === 'danger') countDanger++;
+    });
+
+    const maeW = (sumErrW / total).toFixed(1);
+    const maePcs = (sumErrPcs / total).toFixed(1);
+    const pctW10 = Math.round((accW10 / total) * 100);
+    const pctW15 = Math.round((accW15 / total) * 100);
+    const pctPcs10 = Math.round((accPcs10 / total) * 100);
+    const pctPcs15 = Math.round((accPcs15 / total) * 100);
+    const biasW = sumFactW > 0 ? ((sumDiffW / sumFactW) * 100).toFixed(1) : '0.0';
+    const biasPcs = sumFactPcs > 0 ? ((sumDiffPcs / sumFactPcs) * 100).toFixed(1) : '0.0';
+
+    const periodSelect = document.getElementById('backtest-period-select');
+    const periodText = periodSelect ? periodSelect.options[periodSelect.selectedIndex]?.text : 'Выбранный период';
+    const airlineSelect = document.getElementById('backtest-airline-select');
+    const airlineText = airlineSelect ? airlineSelect.options[airlineSelect.selectedIndex]?.text : 'Все авиакомпании';
+    const genDate = new Date().toLocaleString('ru-RU');
+
+    const lastDataRow = 8 + total;
+
+    let html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+        <!--[if gte mso 9]>
+        <xml>
+            <x:ExcelWorkbook>
+                <x:ExcelWorksheets>
+                    <x:ExcelWorksheet>
+                        <x:Name>Точность_Прогнозов</x:Name>
+                        <x:WorksheetOptions>
+                            <x:DisplayGridlines/>
+                            <x:Selected/>
+                            <x:Panes>
+                                <x:Pane>
+                                    <x:Number>3</x:Number>
+                                    <x:ActiveRow>8</x:ActiveRow>
+                                    <x:ActiveCol>0</x:ActiveCol>
+                                </x:Pane>
+                            </x:Panes>
+                        </x:WorksheetOptions>
+                        <x:AutoFilter x:Range="R8C1:R${lastDataRow}C15"/>
+                    </x:ExcelWorksheet>
+                </x:ExcelWorksheets>
+            </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1E293B; margin: 0; padding: 0; }
+            table { border-collapse: collapse; table-layout: fixed; margin: 0; }
+            th, td { border: 0.5pt solid #CBD5E1; padding: 5px 8px; vertical-align: middle; }
+            
+            /* Шапка отчета */
+            .report-title-cell { background-color: #0F172A; color: #00F0FF; font-size: 13pt; font-weight: bold; text-align: left; padding: 10px 14px; border: 0.5pt solid #0F172A; }
+            .report-meta-cell { background-color: #1E293B; color: #94A3B8; font-size: 9pt; text-align: left; padding: 6px 14px; border: 0.5pt solid #1E293B; }
+            
+            /* Сводная таблица KPI */
+            .kpi-title { font-weight: bold; font-size: 10pt; text-align: center; color: #FFFFFF; border: 0.5pt solid #334155; }
+            .kpi-header { background-color: #F1F5F9; font-weight: bold; color: #475569; text-align: center; font-size: 9pt; border: 0.5pt solid #CBD5E1; }
+            .kpi-val { text-align: center; font-weight: bold; font-size: 9.5pt; border: 0.5pt solid #CBD5E1; }
+            .kpi-good { background-color: #E8F8F0; color: #0E6251; }
+            .kpi-acceptable { background-color: #EBF5FB; color: #1B4F72; }
+            .kpi-warning { background-color: #FEF9E7; color: #B7950B; }
+            .kpi-danger { background-color: #FDEDEC; color: #922B21; }
+
+            /* Шапка таблицы рейсов */
+            .table-head th { background-color: #1E293B; color: #FFFFFF; font-weight: bold; font-size: 9.5pt; text-align: center; border: 0.5pt solid #0F172A; }
+            .th-weight { background-color: #0369A1 !important; color: #FFFFFF !important; }
+            .th-pcs { background-color: #B45309 !important; color: #FFFFFF !important; }
+            .th-status { background-color: #334155 !important; color: #00F0FF !important; }
+
+            /* Цвета ячеек по статусу */
+            .cell-bg-good { background-color: #FFFFFF; border: 0.5pt solid #E2E8F0; }
+            .cell-bg-acceptable { background-color: #F8FAFC; border: 0.5pt solid #E2E8F0; }
+            .cell-bg-warning { background-color: #FEF9E7; border: 0.5pt solid #FDE68A; }
+            .cell-bg-danger { background-color: #FDEDEC; border: 0.5pt solid #FECACA; }
+
+            /* Текстовые выравнивания */
+            .text-center { text-align: center; }
+            .text-right { text-align: right; }
+            .text-left { text-align: left; }
+            .font-bold { font-weight: bold; }
+            .font-mono { font-family: 'Consolas', monospace; }
+
+            /* Бейджи статусов */
+            .badge-good { background-color: #D4EFDF; color: #145A32; font-weight: bold; text-align: center; border: 0.5pt solid #A9DFBF; }
+            .badge-acceptable { background-color: #D6EAF8; color: #1B4F72; font-weight: bold; text-align: center; border: 0.5pt solid #AED6F1; }
+            .badge-warning { background-color: #FCF3CF; color: #B7950B; font-weight: bold; text-align: center; border: 0.5pt solid #F9E79F; }
+            .badge-danger { background-color: #FADBD8; color: #78281F; font-weight: bold; text-align: center; border: 0.5pt solid #F5B7B1; }
+
+            /* Цвета отклонений */
+            .diff-good { color: #1E8449; font-weight: bold; }
+            .diff-acceptable { color: #2874A6; font-weight: bold; }
+            .diff-warning { color: #B7950B; font-weight: bold; }
+            .diff-danger { color: #C0392B; font-weight: bold; }
+        </style>
+    </head>
+    <body>
+        <table border="0" cellspacing="0" cellpadding="0">
+            <colgroup>
+                <col width="95">
+                <col width="65">
+                <col width="75">
+                <col width="105">
+                <col width="60">
+                <col width="85">
+                <col width="95">
+                <col width="95">
+                <col width="95">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="145">
+            </colgroup>
+
+            <!-- 1. Заголовок отчета -->
+            <tr>
+                <td colspan="15" class="report-title-cell">✈️ AEROBAG PREDICTOR v12.0 — ОТЧЕТ ТОЧНОСТИ И ВАЛИДАЦИИ ПРОГНОЗОВ БАГАЖА</td>
+            </tr>
+            <tr>
+                <td colspan="15" class="report-meta-cell">
+                    <strong>Период анализа:</strong> ${escapeHtml(periodText)} &nbsp;|&nbsp; 
+                    <strong>Авиакомпания:</strong> ${escapeHtml(airlineText)} &nbsp;|&nbsp; 
+                    <strong>Проверено рейсов:</strong> ${total} &nbsp;|&nbsp; 
+                    <strong>Дата выгрузки:</strong> ${genDate}
+                </td>
+            </tr>
+            <tr><td colspan="15" style="border: none; height: 8px;"></td></tr>
+
+            <!-- 2. Сводные KPI карточки -->
+            <tr>
+                <td colspan="5" class="kpi-title" style="background-color: #0369A1;">⚖️ ТОЧНОСТЬ ВЕСА БАГАЖА (КГ)</td>
+                <td colspan="5" class="kpi-title" style="background-color: #B45309;">🧳 ТОЧНОСТЬ МЕСТ БАГАЖА (ШТ)</td>
+                <td colspan="5" class="kpi-title" style="background-color: #047857;">📊 РАСПРЕДЕЛЕНИЕ ТОЧНОСТИ</td>
+            </tr>
+            <tr class="kpi-header">
+                <td>Ср. ошибка (MAE)</td>
+                <td>В коридоре ±10%</td>
+                <td>В коридоре ±15%</td>
+                <td colspan="2">Суммарный баланс (Bias)</td>
+                <td>Ср. ошибка (MAE)</td>
+                <td>В коридоре ±10%</td>
+                <td>В коридоре ±15%</td>
+                <td colspan="2">Суммарный баланс (Bias)</td>
+                <td class="kpi-good">Хорошо (≤10%)</td>
+                <td class="kpi-acceptable">Допустимо (≤15%)</td>
+                <td class="kpi-warning">Отклонение (>15%)</td>
+                <td colspan="2" class="kpi-danger">Аномалия (>25%)</td>
+            </tr>
+            <tr>
+                <td class="kpi-val font-mono">±${maeW} кг</td>
+                <td class="kpi-val kpi-good font-mono">${pctW10}%</td>
+                <td class="kpi-val kpi-acceptable font-mono">${pctW15}%</td>
+                <td colspan="2" class="kpi-val font-mono">${Number(biasW) > 0 ? '+' : ''}${biasW}% (${Number(sumDiffW) > 0 ? '+' : ''}${Math.round(sumDiffW)} кг)</td>
+                
+                <td class="kpi-val font-mono">±${maePcs} шт</td>
+                <td class="kpi-val kpi-good font-mono">${pctPcs10}%</td>
+                <td class="kpi-val kpi-acceptable font-mono">${pctPcs15}%</td>
+                <td colspan="2" class="kpi-val font-mono">${Number(biasPcs) > 0 ? '+' : ''}${biasPcs}% (${Number(sumDiffPcs) > 0 ? '+' : ''}${Math.round(sumDiffPcs)} шт)</td>
+                
+                <td class="kpi-val kpi-good font-mono">${countGood} (${Math.round((countGood / total) * 100)}%)</td>
+                <td class="kpi-val kpi-acceptable font-mono">${countAcceptable} (${Math.round((countAcceptable / total) * 100)}%)</td>
+                <td class="kpi-val kpi-warning font-mono">${countWarning} (${Math.round((countWarning / total) * 100)}%)</td>
+                <td colspan="2" class="kpi-val kpi-danger font-mono">${countDanger} (${Math.round((countDanger / total) * 100)}%)</td>
+            </tr>
+            <tr><td colspan="15" style="border: none; height: 12px;"></td></tr>
+
+            <!-- 3. Основная таблица рейсов с автофильтром -->
+            <tr class="table-head" x:autofilter="all">
+                <th style="width: 95px;" x:autofilter="all">Дата вылета</th>
+                <th style="width: 65px;" x:autofilter="all">АК</th>
+                <th style="width: 75px;" x:autofilter="all">Рейс</th>
+                <th style="width: 105px;" x:autofilter="all">Маршрут</th>
+                <th style="width: 60px;" x:autofilter="all">PAX</th>
+                <th style="width: 85px;" x:autofilter="all">ВЗ/РБ/РМ</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Факт Вес (кг)</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Прогноз (кг)</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Разница (кг)</th>
+                <th class="th-weight" style="width: 85px;" x:autofilter="all">Ошибка Вес</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Факт Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Прогноз Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Разница Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Ошибка Мест</th>
+                <th class="th-status" style="width: 145px;" x:autofilter="all">Статус точности</th>
+            </tr>
+    `;
+
+    lastBacktestResults.forEach(r => {
+        const signW = r.diffWeight > 0 ? '+' : '';
+        const signPcs = r.diffPcs > 0 ? '+' : '';
+
+        let cellBgClass = 'cell-bg-good';
+        let badgeClass = 'badge-good';
+        let statusLabel = '🟢 Хорошо (≤10%)';
+
+        if (r.status === 'danger') {
+            cellBgClass = 'cell-bg-danger';
+            badgeClass = 'badge-danger';
+            statusLabel = '🔴 Аномалия (>25%)';
+        } else if (r.status === 'warning') {
+            cellBgClass = 'cell-bg-warning';
+            badgeClass = 'badge-warning';
+            statusLabel = '🟠 Отклонение (>15%)';
+        } else if (r.status === 'acceptable') {
+            cellBgClass = 'cell-bg-acceptable';
+            badgeClass = 'badge-acceptable';
+            statusLabel = '🟡 Допустимо (≤15%)';
+        }
+
+        const diffWClass = r.errWeightPctAbs <= 10 ? 'diff-good' : (r.errWeightPctAbs <= 15 ? 'diff-acceptable' : (r.errWeightPctAbs <= 25 ? 'diff-warning' : 'diff-danger'));
+        const diffPcsClass = r.errPcsPctAbs <= 10 ? 'diff-good' : (r.errPcsPctAbs <= 15 ? 'diff-acceptable' : (r.errPcsPctAbs <= 25 ? 'diff-warning' : 'diff-danger'));
+
+        const vz = r.pax - r.rb - r.rm;
+        const paxComp = `${vz}/${r.rb}/${r.rm}`;
+
+        html += `
+            <tr>
+                <td class="${cellBgClass} text-center font-mono">${r.dateFormatted}</td>
+                <td class="${cellBgClass} text-center font-bold">${escapeHtml(r.airline)}</td>
+                <td class="${cellBgClass} text-center font-mono font-bold">${escapeHtml(r.flight)}</td>
+                <td class="${cellBgClass} text-center font-bold" style="color: #0284C7;">${escapeHtml(r.route)}</td>
+                <td class="${cellBgClass} text-center font-bold">${r.pax}</td>
+                <td class="${cellBgClass} text-center font-mono" style="font-size: 8.5pt; color: #64748B;">${paxComp}</td>
+                <td class="${cellBgClass} text-right font-mono font-bold">${Math.round(r.factWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono font-bold" style="color: #0284C7;">${Math.round(r.predWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono ${diffWClass}">${signW}${Math.round(r.diffWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono ${diffWClass}">${signW}${r.diffWeightPct.toFixed(1)}%</td>
+                <td class="${cellBgClass} text-right font-mono font-bold">${r.factPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono font-bold" style="color: #B45309;">${r.predPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcsPct.toFixed(1)}%</td>
+                <td class="${badgeClass}">${statusLabel}</td>
+            </tr>
+        `;
+    });
+
+    html += `
+        </table>
+    </body>
+    </html>
+    `;
+
+    try {
+        const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.download = `AeroBag_Accuracy_Report_${dateStr}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            if (document.body.contains(a)) {
+                document.body.removeChild(a);
+            }
+            URL.revokeObjectURL(url);
+        }, 500);
+
+        showAviationAlert(currentLang === 'ru' ? `Стилизованный отчет точности успешно выгружен (${total} рейсов).` : 'Styled accuracy report exported to Excel.', false);
+    } catch (e) {
+        showAviationAlert('Ошибка при экспорте отчета: ' + e.message, true);
+    }
+}
+
+// Экспорт в глобальную область
+window.sortBacktestTable = sortBacktestTable;
+window.exportBacktestToExcel = exportBacktestToExcel;
+window.runBacktestAccuracySimulation = runBacktestAccuracySimulation;
 
 

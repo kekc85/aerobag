@@ -127,12 +127,18 @@ switch ($action) {
     // --- УПРАВЛЕНИЕ РЕЗЕРВНЫМИ КОПИЯМИ (ТОЛЬКО ADMIN) ---
     case 'list_backups':
         requireAdmin();
+        checkAndPerformDailyAutoBackup($pdo);
         handleListBackups();
         break;
 
     case 'create_backup':
         requireAdmin();
         handleCreateBackup($pdo);
+        break;
+
+    case 'delete_backup':
+        requireAdmin();
+        handleDeleteBackup();
         break;
 
     case 'download_backup':
@@ -568,6 +574,7 @@ function handleDeleteUser($pdo) {
  * Получение списка рейсов
  */
 function handleGetFlights($pdo) {
+    checkAndPerformDailyAutoBackup($pdo);
     try {
         $stmt = $pdo->query("SELECT * FROM flights ORDER BY flight_date DESC, created_at DESC");
         $rows = $stmt->fetchAll();
@@ -752,6 +759,106 @@ function handleClearDb($pdo) {
             'success' => false,
             'error' => 'Ошибка при очистке базы данных: ' . $e->getMessage()
         ], JSON_UNESCAPED_UNICODE);
+    }
+}
+
+/**
+ * Автоматический ежедневный бэкап при активности в приложении (Smart In-App Daily Auto-Backup)
+ */
+function checkAndPerformDailyAutoBackup($pdo) {
+    if (!$pdo) return;
+    try {
+        $backupDir = __DIR__ . '/backups';
+        if (!is_dir($backupDir)) {
+            @mkdir($backupDir, 0755, true);
+            $htaccessPath = $backupDir . '/.htaccess';
+            $htaccessContent = "# Защита папки резервных копий от прямого HTTP-доступа (Apache 2.2 / 2.4)\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
+            @file_put_contents($htaccessPath, $htaccessContent);
+        }
+
+        $todayPrefix = 'aerobag_auto_' . date('Y_m_d_');
+        $hasTodayBackup = false;
+
+        if (is_dir($backupDir)) {
+            $files = scandir($backupDir);
+            foreach ($files as $file) {
+                if (strpos($file, $todayPrefix) === 0 && pathinfo($file, PATHINFO_EXTENSION) === 'json') {
+                    $hasTodayBackup = true;
+                    break;
+                }
+            }
+        }
+
+        // Если сегодня бэкап еще не создавался - автоматически делаем снимок базы
+        if (!$hasTodayBackup) {
+            $stmt = $pdo->query("SELECT * FROM flights ORDER BY flight_date ASC");
+            $rows = $stmt->fetchAll();
+
+            $flights = [];
+            foreach ($rows as $row) {
+                $flights[] = [
+                    'id' => $row['id'],
+                    'airline' => $row['airline'],
+                    'flight_no' => $row['flight_no'],
+                    'date' => $row['flight_date'],
+                    'from' => $row['airport_from'],
+                    'to' => $row['airport_to'],
+                    'men' => (int)$row['men'],
+                    'women' => (int)$row['women'],
+                    'rb' => (int)$row['rb'],
+                    'rm' => (int)$row['rm'],
+                    'pax' => (int)$row['pax'],
+                    'bag_pcs' => (int)$row['bag_pcs'],
+                    'bag_weight' => (float)$row['bag_weight'],
+                    'hb_weight' => (float)$row['hb_weight'],
+                    'source' => $row['source'],
+                    'active' => (bool)$row['active']
+                ];
+            }
+
+            $backupData = [
+                'backup_version' => '1.0',
+                'backup_type' => 'daily_smart_auto',
+                'exported_at' => date('c'),
+                'flights_count' => count($flights),
+                'flights' => $flights
+            ];
+
+            $filename = 'aerobag_auto_' . date('Y_m_d_His') . '.json';
+            $fullPath = $backupDir . '/' . $filename;
+            @file_put_contents($fullPath, json_encode($backupData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+            // Ротация: удаляем бэкапы старше 30 дней
+            rotateBackups($backupDir, 30);
+        }
+    } catch (Exception $e) {
+        error_log("Smart auto-backup error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Ручное удаление конкретного файла резервной копии (Admin)
+ */
+function handleDeleteBackup() {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $filename = basename($input['filename'] ?? $_GET['file'] ?? $_POST['file'] ?? '');
+
+    if (empty($filename) || pathinfo($filename, PATHINFO_EXTENSION) !== 'json') {
+        echo json_encode(['success' => false, 'error' => 'Неверное имя файла резервной копии.'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    $backupDir = __DIR__ . '/backups';
+    $fullPath = $backupDir . '/' . $filename;
+
+    if (file_exists($fullPath)) {
+        if (@unlink($fullPath)) {
+            echo json_encode(['success' => true, 'message' => 'Резервная копия успешно удалена.'], JSON_UNESCAPED_UNICODE);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Не удалось удалить файл с сервера.'], JSON_UNESCAPED_UNICODE);
+        }
+    } else {
+        echo json_encode(['success' => false, 'error' => 'Файл резервной копии не найден.'], JSON_UNESCAPED_UNICODE);
     }
 }
 
