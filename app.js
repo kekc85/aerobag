@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.128';
+const APP_VERSION = 'v12.0.129';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -8077,7 +8077,11 @@ function initBacktestModule() {
     }
 
     if (btnExport) {
-        btnExport.addEventListener('click', () => {
+        btnExport.addEventListener('click', (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
             exportBacktestToExcel();
         });
     }
@@ -8558,7 +8562,7 @@ function sortBacktestTable(col) {
     renderBacktestTable();
 }
 
-// Экспорт результатов тестирования в красиво стилизованный Excel (.xls)
+// Экспорт результатов тестирования в красиво стилизованный Excel (.xls) с автофильтрами
 function exportBacktestToExcel() {
     if (!lastBacktestResults || lastBacktestResults.length === 0) {
         showAviationAlert(currentLang === 'ru' ? 'Нет данных для экспорта! Сначала запустите тест.' : 'No test results to export!', true);
@@ -8604,6 +8608,8 @@ function exportBacktestToExcel() {
     const airlineText = airlineSelect ? airlineSelect.options[airlineSelect.selectedIndex]?.text : 'Все авиакомпании';
     const genDate = new Date().toLocaleString('ru-RU');
 
+    const lastDataRow = 8 + total;
+
     let html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
     <head>
@@ -8613,44 +8619,53 @@ function exportBacktestToExcel() {
             <x:ExcelWorkbook>
                 <x:ExcelWorksheets>
                     <x:ExcelWorksheet>
-                        <x:Name>AeroBag_Accuracy_Report</x:Name>
+                        <x:Name>Точность_Прогнозов</x:Name>
                         <x:WorksheetOptions>
                             <x:DisplayGridlines/>
+                            <x:Selected/>
+                            <x:Panes>
+                                <x:Pane>
+                                    <x:Number>3</x:Number>
+                                    <x:ActiveRow>8</x:ActiveRow>
+                                    <x:ActiveCol>0</x:ActiveCol>
+                                </x:Pane>
+                            </x:Panes>
                         </x:WorksheetOptions>
+                        <x:AutoFilter x:Range="R8C1:R${lastDataRow}C15"/>
                     </x:ExcelWorksheet>
                 </x:ExcelWorksheets>
             </x:ExcelWorkbook>
         </xml>
         <![endif]-->
         <style>
-            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1E293B; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #CBD5E1; padding: 6px 10px; vertical-align: middle; }
+            body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; color: #1E293B; margin: 0; padding: 0; }
+            table { border-collapse: collapse; table-layout: fixed; margin: 0; }
+            th, td { border: 0.5pt solid #CBD5E1; padding: 5px 8px; vertical-align: middle; }
             
             /* Шапка отчета */
-            .report-title-cell { background-color: #0F172A; color: #00F0FF; font-size: 14pt; font-weight: bold; text-align: left; padding: 12px 14px; border: 1px solid #0F172A; }
-            .report-meta-cell { background-color: #1E293B; color: #94A3B8; font-size: 9.5pt; text-align: left; padding: 6px 14px; border: 1px solid #1E293B; }
+            .report-title-cell { background-color: #0F172A; color: #00F0FF; font-size: 13pt; font-weight: bold; text-align: left; padding: 10px 14px; border: 0.5pt solid #0F172A; }
+            .report-meta-cell { background-color: #1E293B; color: #94A3B8; font-size: 9pt; text-align: left; padding: 6px 14px; border: 0.5pt solid #1E293B; }
             
             /* Сводная таблица KPI */
-            .kpi-title { background-color: #334155; color: #FFFFFF; font-weight: bold; font-size: 10.5pt; text-align: center; }
-            .kpi-header { background-color: #F1F5F9; font-weight: bold; color: #475569; text-align: center; font-size: 9.5pt; }
-            .kpi-val { text-align: center; font-weight: bold; font-size: 10pt; }
+            .kpi-title { font-weight: bold; font-size: 10pt; text-align: center; color: #FFFFFF; border: 0.5pt solid #334155; }
+            .kpi-header { background-color: #F1F5F9; font-weight: bold; color: #475569; text-align: center; font-size: 9pt; border: 0.5pt solid #CBD5E1; }
+            .kpi-val { text-align: center; font-weight: bold; font-size: 9.5pt; border: 0.5pt solid #CBD5E1; }
             .kpi-good { background-color: #E8F8F0; color: #0E6251; }
             .kpi-acceptable { background-color: #EBF5FB; color: #1B4F72; }
             .kpi-warning { background-color: #FEF9E7; color: #B7950B; }
             .kpi-danger { background-color: #FDEDEC; color: #922B21; }
 
             /* Шапка таблицы рейсов */
-            .table-head th { background-color: #1E293B; color: #FFFFFF; font-weight: bold; font-size: 10pt; text-align: center; border: 1px solid #0F172A; }
-            .th-weight { background-color: #0369A1; color: #FFFFFF; }
-            .th-pcs { background-color: #B45309; color: #FFFFFF; }
-            .th-status { background-color: #334155; color: #00F0FF; }
+            .table-head th { background-color: #1E293B; color: #FFFFFF; font-weight: bold; font-size: 9.5pt; text-align: center; border: 0.5pt solid #0F172A; }
+            .th-weight { background-color: #0369A1 !important; color: #FFFFFF !important; }
+            .th-pcs { background-color: #B45309 !important; color: #FFFFFF !important; }
+            .th-status { background-color: #334155 !important; color: #00F0FF !important; }
 
-            /* Строки данных */
-            .row-good { background-color: #FFFFFF; }
-            .row-acceptable { background-color: #F8FAFC; }
-            .row-warning { background-color: #FEF9E7; }
-            .row-danger { background-color: #FDEDEC; }
+            /* Цвета ячеек по статусу */
+            .cell-bg-good { background-color: #FFFFFF; border: 0.5pt solid #E2E8F0; }
+            .cell-bg-acceptable { background-color: #F8FAFC; border: 0.5pt solid #E2E8F0; }
+            .cell-bg-warning { background-color: #FEF9E7; border: 0.5pt solid #FDE68A; }
+            .cell-bg-danger { background-color: #FDEDEC; border: 0.5pt solid #FECACA; }
 
             /* Текстовые выравнивания */
             .text-center { text-align: center; }
@@ -8660,10 +8675,10 @@ function exportBacktestToExcel() {
             .font-mono { font-family: 'Consolas', monospace; }
 
             /* Бейджи статусов */
-            .badge-good { background-color: #D4EFDF; color: #145A32; font-weight: bold; text-align: center; border-radius: 3px; }
-            .badge-acceptable { background-color: #D6EAF8; color: #1B4F72; font-weight: bold; text-align: center; border-radius: 3px; }
-            .badge-warning { background-color: #FCF3CF; color: #B7950B; font-weight: bold; text-align: center; border-radius: 3px; }
-            .badge-danger { background-color: #FADBD8; color: #78281F; font-weight: bold; text-align: center; border-radius: 3px; }
+            .badge-good { background-color: #D4EFDF; color: #145A32; font-weight: bold; text-align: center; border: 0.5pt solid #A9DFBF; }
+            .badge-acceptable { background-color: #D6EAF8; color: #1B4F72; font-weight: bold; text-align: center; border: 0.5pt solid #AED6F1; }
+            .badge-warning { background-color: #FCF3CF; color: #B7950B; font-weight: bold; text-align: center; border: 0.5pt solid #F9E79F; }
+            .badge-danger { background-color: #FADBD8; color: #78281F; font-weight: bold; text-align: center; border: 0.5pt solid #F5B7B1; }
 
             /* Цвета отклонений */
             .diff-good { color: #1E8449; font-weight: bold; }
@@ -8673,7 +8688,25 @@ function exportBacktestToExcel() {
         </style>
     </head>
     <body>
-        <table>
+        <table border="0" cellspacing="0" cellpadding="0">
+            <colgroup>
+                <col width="95">
+                <col width="65">
+                <col width="75">
+                <col width="105">
+                <col width="60">
+                <col width="85">
+                <col width="95">
+                <col width="95">
+                <col width="95">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="85">
+                <col width="145">
+            </colgroup>
+
             <!-- 1. Заголовок отчета -->
             <tr>
                 <td colspan="15" class="report-title-cell">✈️ AEROBAG PREDICTOR v12.0 — ОТЧЕТ ТОЧНОСТИ И ВАЛИДАЦИИ ПРОГНОЗОВ БАГАЖА</td>
@@ -8726,23 +8759,23 @@ function exportBacktestToExcel() {
             </tr>
             <tr><td colspan="15" style="border: none; height: 12px;"></td></tr>
 
-            <!-- 3. Основная таблица рейсов -->
-            <tr class="table-head">
-                <th style="width: 90px;">Дата вылета</th>
-                <th style="width: 70px;">АК</th>
-                <th style="width: 70px;">Рейс</th>
-                <th style="width: 100px;">Маршрут</th>
-                <th style="width: 65px;">PAX</th>
-                <th style="width: 90px;">ВЗ/РБ/РМ</th>
-                <th class="th-weight" style="width: 95px;">Факт Вес (кг)</th>
-                <th class="th-weight" style="width: 95px;">Прогноз (кг)</th>
-                <th class="th-weight" style="width: 95px;">Разница (кг)</th>
-                <th class="th-weight" style="width: 85px;">Ошибка Вес</th>
-                <th class="th-pcs" style="width: 85px;">Факт Мест</th>
-                <th class="th-pcs" style="width: 85px;">Прогноз Мест</th>
-                <th class="th-pcs" style="width: 85px;">Разница Мест</th>
-                <th class="th-pcs" style="width: 85px;">Ошибка Мест</th>
-                <th class="th-status" style="width: 140px;">Статус точности</th>
+            <!-- 3. Основная таблица рейсов с автофильтром -->
+            <tr class="table-head" x:autofilter="all">
+                <th style="width: 95px;" x:autofilter="all">Дата вылета</th>
+                <th style="width: 65px;" x:autofilter="all">АК</th>
+                <th style="width: 75px;" x:autofilter="all">Рейс</th>
+                <th style="width: 105px;" x:autofilter="all">Маршрут</th>
+                <th style="width: 60px;" x:autofilter="all">PAX</th>
+                <th style="width: 85px;" x:autofilter="all">ВЗ/РБ/РМ</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Факт Вес (кг)</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Прогноз (кг)</th>
+                <th class="th-weight" style="width: 95px;" x:autofilter="all">Разница (кг)</th>
+                <th class="th-weight" style="width: 85px;" x:autofilter="all">Ошибка Вес</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Факт Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Прогноз Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Разница Мест</th>
+                <th class="th-pcs" style="width: 85px;" x:autofilter="all">Ошибка Мест</th>
+                <th class="th-status" style="width: 145px;" x:autofilter="all">Статус точности</th>
             </tr>
     `;
 
@@ -8750,20 +8783,20 @@ function exportBacktestToExcel() {
         const signW = r.diffWeight > 0 ? '+' : '';
         const signPcs = r.diffPcs > 0 ? '+' : '';
 
-        let rowClass = 'row-good';
+        let cellBgClass = 'cell-bg-good';
         let badgeClass = 'badge-good';
         let statusLabel = '🟢 Хорошо (≤10%)';
 
         if (r.status === 'danger') {
-            rowClass = 'row-danger';
+            cellBgClass = 'cell-bg-danger';
             badgeClass = 'badge-danger';
             statusLabel = '🔴 Аномалия (>25%)';
         } else if (r.status === 'warning') {
-            rowClass = 'row-warning';
+            cellBgClass = 'cell-bg-warning';
             badgeClass = 'badge-warning';
             statusLabel = '🟠 Отклонение (>15%)';
         } else if (r.status === 'acceptable') {
-            rowClass = 'row-acceptable';
+            cellBgClass = 'cell-bg-acceptable';
             badgeClass = 'badge-acceptable';
             statusLabel = '🟡 Допустимо (≤15%)';
         }
@@ -8775,21 +8808,21 @@ function exportBacktestToExcel() {
         const paxComp = `${vz}/${r.rb}/${r.rm}`;
 
         html += `
-            <tr class="${rowClass}">
-                <td class="text-center font-mono">${r.dateFormatted}</td>
-                <td class="text-center font-bold">${escapeHtml(r.airline)}</td>
-                <td class="text-center font-mono font-bold">${escapeHtml(r.flight)}</td>
-                <td class="text-center font-bold" style="color: #0284C7;">${escapeHtml(r.route)}</td>
-                <td class="text-center font-bold">${r.pax}</td>
-                <td class="text-center font-mono" style="font-size: 8.5pt; color: #64748B;">${paxComp}</td>
-                <td class="text-right font-mono font-bold">${Math.round(r.factWeight)} кг</td>
-                <td class="text-right font-mono font-bold" style="color: #0284C7;">${Math.round(r.predWeight)} кг</td>
-                <td class="text-right font-mono ${diffWClass}">${signW}${Math.round(r.diffWeight)} кг</td>
-                <td class="text-right font-mono ${diffWClass}">${signW}${r.diffWeightPct.toFixed(1)}%</td>
-                <td class="text-right font-mono font-bold">${r.factPcs} шт</td>
-                <td class="text-right font-mono font-bold" style="color: #B45309;">${r.predPcs} шт</td>
-                <td class="text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcs} шт</td>
-                <td class="text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcsPct.toFixed(1)}%</td>
+            <tr>
+                <td class="${cellBgClass} text-center font-mono">${r.dateFormatted}</td>
+                <td class="${cellBgClass} text-center font-bold">${escapeHtml(r.airline)}</td>
+                <td class="${cellBgClass} text-center font-mono font-bold">${escapeHtml(r.flight)}</td>
+                <td class="${cellBgClass} text-center font-bold" style="color: #0284C7;">${escapeHtml(r.route)}</td>
+                <td class="${cellBgClass} text-center font-bold">${r.pax}</td>
+                <td class="${cellBgClass} text-center font-mono" style="font-size: 8.5pt; color: #64748B;">${paxComp}</td>
+                <td class="${cellBgClass} text-right font-mono font-bold">${Math.round(r.factWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono font-bold" style="color: #0284C7;">${Math.round(r.predWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono ${diffWClass}">${signW}${Math.round(r.diffWeight)} кг</td>
+                <td class="${cellBgClass} text-right font-mono ${diffWClass}">${signW}${r.diffWeightPct.toFixed(1)}%</td>
+                <td class="${cellBgClass} text-right font-mono font-bold">${r.factPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono font-bold" style="color: #B45309;">${r.predPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcs} шт</td>
+                <td class="${cellBgClass} text-right font-mono ${diffPcsClass}">${signPcs}${r.diffPcsPct.toFixed(1)}%</td>
                 <td class="${badgeClass}">${statusLabel}</td>
             </tr>
         `;
@@ -8801,18 +8834,29 @@ function exportBacktestToExcel() {
     </html>
     `;
 
-    const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const dateStr = new Date().toISOString().split('T')[0];
-    a.href = url;
-    a.download = `AeroBag_Accuracy_Report_${dateStr}.xls`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+        const blob = new Blob(['\uFEFF' + html], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const dateStr = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.download = `AeroBag_Accuracy_Report_${dateStr}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        
+        setTimeout(() => {
+            if (document.body.contains(a)) {
+                document.body.removeChild(a);
+            }
+            URL.revokeObjectURL(url);
+        }, 500);
 
-    showAviationAlert(currentLang === 'ru' ? `Стилизованный отчет точности успешно выгружен (${total} рейсов).` : 'Styled accuracy report exported to Excel.', false);
+        showAviationAlert(currentLang === 'ru' ? `Стилизованный отчет точности успешно выгружен (${total} рейсов).` : 'Styled accuracy report exported to Excel.', false);
+    } catch (e) {
+        showAviationAlert('Ошибка при экспорте отчета: ' + e.message, true);
+    }
 }
 
 // Экспорт в глобальную область
