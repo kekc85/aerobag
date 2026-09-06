@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.121';
-const APP_BUILD_DATE = '30.08.2026';
+const APP_VERSION = 'v12.0.122';
+const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -5128,6 +5128,35 @@ async function handleDeleteUser(userId, userName) {
 
 let serverBackupsList = [];
 
+// Переключение раскрытия/складывания панели автоматических бэкапов
+function toggleAutoBackupsAccordion(e) {
+    if (e) {
+        if (e.target && (e.target.closest('#btn-create-server-backup') || e.target.closest('button.btn-table-action') || e.target.closest('a'))) {
+            return;
+        }
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('auto-backups-panel');
+    const toggleBtn = document.getElementById('btn-toggle-backups-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+    
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) {
+            iconEl.textContent = isCollapsed ? '▼' : '▲';
+        }
+    }
+}
+
 // Загрузка списка серверных автобэкапов
 async function loadServerBackupsList() {
     if (!currentUser || currentUser.role !== 'admin') return;
@@ -5151,13 +5180,29 @@ async function loadServerBackupsList() {
     }
 }
 
-// Отрисовка таблицы серверных автобэкапов
+// Отрисовка таблицы серверных автобэкапов и сводки в шапке
 function renderServerBackupsTable() {
     const tbody = document.getElementById('backups-table-body');
+    const countBadge = document.getElementById('backups-count-badge');
+    const lastDateBadge = document.getElementById('backups-last-date-badge');
     if (!tbody) return;
 
+    if (countBadge) {
+        const itemWord = currentLang === 'ru' ? 'копий' : 'backups';
+        countBadge.textContent = `💾 ${serverBackupsList.length} ${itemWord}`;
+    }
+
+    if (lastDateBadge) {
+        if (serverBackupsList.length > 0 && serverBackupsList[0].created_at) {
+            const lastDate = serverBackupsList[0].created_at.split(' ')[0];
+            lastDateBadge.textContent = (currentLang === 'ru' ? 'Последняя: ' : 'Latest: ') + lastDate;
+        } else {
+            lastDateBadge.textContent = (currentLang === 'ru' ? 'Последняя: —' : 'Latest: —');
+        }
+    }
+
     if (serverBackupsList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text">Автоматические бэкапы пока отсутствуют. Нажмите кнопку "Создать бэкап сейчас".</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text">${currentLang === 'ru' ? 'Автоматические бэкапы пока отсутствуют. Нажмите кнопку "Создать бэкап сейчас".' : 'No backups found.'}</td></tr>`;
         return;
     }
 
@@ -5174,8 +5219,9 @@ function renderServerBackupsTable() {
                 <td class="monospace-val highlight-cyan">${sizeDisplay}</td>
                 <td style="text-align: right;">
                     <div class="table-action-btns">
-                        <button type="button" class="btn-table-action" onclick="downloadServerBackup('${escapeHtml(b.filename)}')" title="Скачать архив">📥 Скачать</button>
-                        <button type="button" class="btn-table-action danger" onclick="restoreServerBackup('${escapeHtml(b.filename)}')" title="Восстановить базу">🔄 Восстановить</button>
+                        <button type="button" class="btn-table-action" onclick="downloadServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Скачать архив' : 'Download'}">📥 ${currentLang === 'ru' ? 'Скачать' : 'Download'}</button>
+                        <button type="button" class="btn-table-action" onclick="restoreServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Восстановить базу' : 'Restore'}">🔄 ${currentLang === 'ru' ? 'Восстановить' : 'Restore'}</button>
+                        <button type="button" class="btn-table-action danger" onclick="deleteServerBackup('${escapeHtml(b.filename)}')" title="${currentLang === 'ru' ? 'Удалить архив' : 'Delete'}">🗑️ ${currentLang === 'ru' ? 'Удалить' : 'Delete'}</button>
                     </div>
                 </td>
             </tr>
@@ -5255,6 +5301,40 @@ async function restoreServerBackup(filename) {
         }, { once: true });
     }
 }
+
+// Удаление резервной копии с сервера
+async function deleteServerBackup(filename) {
+    const msg = currentLang === 'ru'
+        ? `Вы действительно хотите безвозвратно удалить резервную копию "${filename}"?`
+        : `Are you sure you want to permanently delete backup "${filename}"?`;
+
+    showAviationConfirm(msg, async () => {
+        try {
+            const response = await fetch('api.php?action=delete_backup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filename: filename })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                await loadServerBackupsList();
+                showAviationAlert(currentLang === 'ru' ? 'Резервная копия успешно удалена.' : 'Backup deleted successfully.', false);
+            } else {
+                showAviationAlert(data.error || (currentLang === 'ru' ? 'Ошибка удаления бэкапа.' : 'Delete error.'), true);
+            }
+        } catch (err) {
+            showAviationAlert('Ошибка при удалении: ' + err.message, true);
+        }
+    });
+}
+
+// Экспорт функций бэкапов в window
+window.toggleAutoBackupsAccordion = toggleAutoBackupsAccordion;
+window.createServerBackupNow = createServerBackupNow;
+window.downloadServerBackup = downloadServerBackup;
+window.restoreServerBackup = restoreServerBackup;
+window.deleteServerBackup = deleteServerBackup;
 
 function escapeHtml(str) {
     if (!str) return '';

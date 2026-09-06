@@ -5342,30 +5342,36 @@ body.light-theme .airport-filter-row.row-arrival:hover {
 }
 
 /* --- Складываемая панель фильтров (Accordion Panel) --- */
-.airport-filters-section {
+.airport-filters-section,
+.auto-backups-section {
     transition: all 0.3s ease;
 }
 
-.airport-filters-section .airport-filters-header {
+.airport-filters-section .airport-filters-header,
+.auto-backups-section .auto-backups-header {
     cursor: pointer;
     user-select: none;
     transition: background 0.2s ease;
 }
 
-.airport-filters-section .airport-filters-header:hover {
+.airport-filters-section .airport-filters-header:hover,
+.auto-backups-section .auto-backups-header:hover {
     background: rgba(0, 240, 255, 0.03);
 }
 
-.airport-filters-section.collapsed .airport-filters-body {
+.airport-filters-section.collapsed .airport-filters-body,
+.auto-backups-section.collapsed .auto-backups-body {
     display: none !important;
 }
 
-.airport-filters-section:not(.collapsed) .airport-filters-body {
+.airport-filters-section:not(.collapsed) .airport-filters-body,
+.auto-backups-section:not(.collapsed) .auto-backups-body {
     display: block;
     animation: fadeIn 0.25s ease-in-out;
 }
 
-.airport-filters-section .btn-collapse-toggle {
+.airport-filters-section .btn-collapse-toggle,
+.auto-backups-section .btn-collapse-toggle {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -5374,13 +5380,15 @@ body.light-theme .airport-filter-row.row-arrival:hover {
     cursor: pointer;
 }
 
-.airport-filters-section.collapsed .collapse-icon {
+.airport-filters-section.collapsed .collapse-icon,
+.auto-backups-section.collapsed .collapse-icon {
     display: inline-block;
     transform: rotate(0deg);
     transition: transform 0.2s ease;
 }
 
-.airport-filters-section:not(.collapsed) .collapse-icon {
+.airport-filters-section:not(.collapsed) .collapse-icon,
+.auto-backups-section:not(.collapsed) .collapse-icon {
     display: inline-block;
     transform: rotate(180deg);
     transition: transform 0.2s ease;

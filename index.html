@@ -929,40 +929,51 @@
                 </section>
 
                 <!-- Секция 2: Автоматические резервные копии (Хранение 30 дней) -->
-                <section class="panel glass aviation-panel auto-backups-section" style="margin-bottom: 20px;">
+                <section class="panel glass aviation-panel auto-backups-section collapsed" id="auto-backups-panel" style="margin-bottom: 20px;">
                     <div class="hud-corner top-left"></div>
                     <div class="hud-corner top-right"></div>
                     <div class="hud-corner bottom-left"></div>
                     <div class="hud-corner bottom-right"></div>
                     
-                    <div class="table-header-container">
-                        <div>
-                            <h2 class="panel-title" data-translate="autobackup-title">[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]</h2>
-                            <p class="dash-subtext" data-translate="autobackup-subtext">Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.</p>
+                    <div class="table-header-container auto-backups-header" onclick="toggleAutoBackupsAccordion(event)" style="padding-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2 class="panel-title" style="margin: 0;" data-translate="autobackup-title">[ AUTOMATED DATABASE BACKUPS (30 DAYS) ]</h2>
+                            <div class="backups-summary-badges" style="display: flex; align-items: center; gap: 8px;">
+                                <span id="backups-count-badge" class="badge-role badge-role-admin" style="font-size: 0.72rem;">💾 0 копий</span>
+                                <span id="backups-last-date-badge" class="badge-role badge-role-dispatcher" style="font-size: 0.72rem;">Последняя: —</span>
+                            </div>
                         </div>
-                        <div class="table-actions">
-                            <button type="button" id="btn-create-server-backup" class="btn btn-secondary aviation-btn highlight-cyan-btn">
+                        <div class="table-actions" style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btn-create-server-backup" class="btn btn-secondary aviation-btn highlight-cyan-btn" style="padding: 6px 14px;" onclick="event.stopPropagation(); createServerBackupNow();">
                                 <span>⚡</span> <span data-translate="btn-create-server-backup">Создать бэкап сейчас</span>
+                            </button>
+                            <button type="button" id="btn-toggle-backups-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
+                                <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="table-responsive" style="margin-top: 10px; max-height: 220px; overflow-y: auto;">
-                        <table id="backups-table" class="flights-table aviation-table">
-                            <thead>
-                                <tr>
-                                    <th data-translate="th-backup-file">Имя файла архива</th>
-                                    <th data-translate="th-backup-date">Дата создания</th>
-                                    <th data-translate="th-backup-size">Размер</th>
-                                    <th data-translate="th-backup-actions" style="text-align: right;">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="backups-table-body">
-                                <tr>
-                                    <td colspan="4" class="empty-table-text">Загрузка списка бэкапов...</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <!-- Скрываемое тело панели бэкапов -->
+                    <div class="auto-backups-body" style="margin-top: 12px;">
+                        <p class="dash-subtext" style="margin-bottom: 12px;" data-translate="autobackup-subtext">Ежедневные снимки базы рейсов на сервере. Ротация и хранение последних 30 дней.</p>
+
+                        <div class="table-responsive" style="max-height: 260px; overflow-y: auto;">
+                            <table id="backups-table" class="flights-table aviation-table">
+                                <thead>
+                                    <tr>
+                                        <th data-translate="th-backup-file">Имя файла архива</th>
+                                        <th data-translate="th-backup-date">Дата создания</th>
+                                        <th data-translate="th-backup-size">Размер</th>
+                                        <th data-translate="th-backup-actions" style="text-align: right;">Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="backups-table-body">
+                                    <tr>
+                                        <td colspan="4" class="empty-table-text">Загрузка списка бэкапов...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -1320,13 +1331,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.121</span> (<span id="app-build-date">30.08.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.122</span> (<span id="app-build-date">06.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.121"></script>
+    <script src="app.js?v=v12.0.122"></script>
 </body>
 </html>
