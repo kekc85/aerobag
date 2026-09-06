@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.125';
+const APP_VERSION = 'v12.0.126';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -4342,7 +4342,12 @@ function setupEventListeners() {
 
     // Слушатели автоматических бэкапов
     const btnCreateServerBackup = document.getElementById('btn-create-server-backup');
-    if (btnCreateServerBackup) btnCreateServerBackup.addEventListener('click', createServerBackupNow);
+    if (btnCreateServerBackup) {
+        btnCreateServerBackup.addEventListener('click', (e) => {
+            e.stopPropagation();
+            createServerBackupNow();
+        });
+    }
 }
 
 // Автоматическая/ручная загрузка системной статистики stats_july.xls
@@ -5165,7 +5170,20 @@ async function loadServerBackupsList() {
     try {
         const localData = localStorage.getItem('averago_local_backups_db');
         if (localData) {
-            serverBackupsList = JSON.parse(localData);
+            let parsed = JSON.parse(localData);
+            if (Array.isArray(parsed)) {
+                // Автоматическая дедупликация по имени файла
+                const uniqueMap = new Map();
+                parsed.forEach(item => {
+                    if (item && item.filename && !uniqueMap.has(item.filename)) {
+                        uniqueMap.set(item.filename, item);
+                    }
+                });
+                serverBackupsList = Array.from(uniqueMap.values());
+                localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+            } else {
+                serverBackupsList = [];
+            }
         } else {
             serverBackupsList = [];
         }
@@ -5226,80 +5244,100 @@ function renderServerBackupsTable() {
     tbody.innerHTML = html;
 }
 
+let isCreatingBackupNow = false;
+
 // Создание мгновенного серверного или локального бэкапа
 async function createServerBackupNow() {
+    if (isCreatingBackupNow) return;
+    isCreatingBackupNow = true;
+
     const btn = document.getElementById('btn-create-server-backup');
     if (btn) btn.disabled = true;
 
-    if (!isOfflineMode) {
-        try {
-            const response = await fetch('api.php?action=create_backup');
-            const data = await response.json();
-
-            if (data.success) {
-                await loadServerBackupsList();
-                showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
-                if (btn) btn.disabled = false;
-                return;
-            }
-        } catch (err) {
-            console.warn("Серверный бэкап недоступен, выполняем локальный бэкап:", err);
-        }
-    }
-
-    // Локальное создание бэкапа в Offline/Local mode
     try {
-        const flights = userFlights || [];
-        const dateNow = new Date();
-        const yyyy = dateNow.getFullYear();
-        const mm = String(dateNow.getMonth() + 1).padStart(2, '0');
-        const dd = String(dateNow.getDate()).padStart(2, '0');
-        const hh = String(dateNow.getHours()).padStart(2, '0');
-        const min = String(dateNow.getMinutes()).padStart(2, '0');
-        const ss = String(dateNow.getSeconds()).padStart(2, '0');
+        if (!isOfflineMode) {
+            try {
+                const response = await fetch('api.php?action=create_backup');
+                const data = await response.json();
 
-        const filename = `aerobag_local_${yyyy}_${mm}_${dd}_${hh}${min}${ss}.json`;
-        const createdAt = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+                if (data.success) {
+                    await loadServerBackupsList();
+                    showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
+                    return;
+                }
+            } catch (err) {
+                console.warn("Серверный бэкап недоступен, выполняем локальный бэкап:", err);
+            }
+        }
 
-        const backupData = {
-            backup_version: '1.0',
-            backup_type: 'local_offline',
-            exported_at: dateNow.toISOString(),
-            flights_count: flights.length,
-            flights: flights
-        };
-
-        const jsonStr = JSON.stringify(backupData, null, 2);
-        const sizeBytes = new Blob([jsonStr]).size;
-
-        const newBackupItem = {
-            filename: filename,
-            created_at: createdAt,
-            timestamp: Math.floor(dateNow.getTime() / 1000),
-            size: sizeBytes,
-            is_local: true,
-            data: backupData
-        };
-
-        let localList = [];
+        // Локальное создание бэкапа в Offline/Local mode
         try {
-            const existing = localStorage.getItem('averago_local_backups_db');
-            if (existing) localList = JSON.parse(existing);
-        } catch (e) {}
+            const flights = userFlights || [];
+            const dateNow = new Date();
+            const yyyy = dateNow.getFullYear();
+            const mm = String(dateNow.getMonth() + 1).padStart(2, '0');
+            const dd = String(dateNow.getDate()).padStart(2, '0');
+            const hh = String(dateNow.getHours()).padStart(2, '0');
+            const min = String(dateNow.getMinutes()).padStart(2, '0');
+            const ss = String(dateNow.getSeconds()).padStart(2, '0');
 
-        localList.unshift(newBackupItem);
-        // Ротация: оставляем 30 последних
-        if (localList.length > 30) localList = localList.slice(0, 30);
+            const filename = `aerobag_local_${yyyy}_${mm}_${dd}_${hh}${min}${ss}.json`;
+            const createdAt = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 
-        localStorage.setItem('averago_local_backups_db', JSON.stringify(localList));
-        serverBackupsList = localList;
-        renderServerBackupsTable();
+            const backupData = {
+                backup_version: '1.0',
+                backup_type: 'local_offline',
+                exported_at: dateNow.toISOString(),
+                flights_count: flights.length,
+                flights: flights
+            };
 
-        showAviationAlert(`Локальная копия создана: ${filename} (${flights.length} рейсов).`, false);
-    } catch (e) {
-        showAviationAlert('Ошибка создания локального бэкапа: ' + e.message, true);
+            const jsonStr = JSON.stringify(backupData, null, 2);
+            const sizeBytes = new Blob([jsonStr]).size;
+
+            const newBackupItem = {
+                filename: filename,
+                created_at: createdAt,
+                timestamp: Math.floor(dateNow.getTime() / 1000),
+                size: sizeBytes,
+                is_local: true,
+                data: backupData
+            };
+
+            let localList = [];
+            try {
+                const existing = localStorage.getItem('averago_local_backups_db');
+                if (existing) localList = JSON.parse(existing);
+                if (!Array.isArray(localList)) localList = [];
+            } catch (e) {}
+
+            // Удаляем возможные дубликаты с таким же именем
+            localList = localList.filter(b => b && b.filename !== filename);
+            localList.unshift(newBackupItem);
+
+            // Автоматическая дедупликация по имени файла
+            const uniqueMap = new Map();
+            localList.forEach(item => {
+                if (item && item.filename && !uniqueMap.has(item.filename)) {
+                    uniqueMap.set(item.filename, item);
+                }
+            });
+            localList = Array.from(uniqueMap.values());
+
+            // Ротация: оставляем 30 последних
+            if (localList.length > 30) localList = localList.slice(0, 30);
+
+            localStorage.setItem('averago_local_backups_db', JSON.stringify(localList));
+            serverBackupsList = localList;
+            renderServerBackupsTable();
+
+            showAviationAlert(`Локальная копия создана: ${filename} (${flights.length} рейсов).`, false);
+        } catch (e) {
+            showAviationAlert('Ошибка создания локального бэкапа: ' + e.message, true);
+        }
     } finally {
         if (btn) btn.disabled = false;
+        isCreatingBackupNow = false;
     }
 }
 
