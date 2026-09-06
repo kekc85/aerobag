@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.129';
+const APP_VERSION = 'v12.0.130';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -2185,6 +2185,15 @@ function resetCompartments() {
     }
 }
 
+// Таймер для отложенного сохранения раскладки без блокировки UI
+let saveCompartmentsTimeout = null;
+function debouncedSaveCompartmentsToPrediction() {
+    clearTimeout(saveCompartmentsTimeout);
+    saveCompartmentsTimeout = setTimeout(() => {
+        saveCompartmentsToPrediction();
+    }, 250);
+}
+
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
     if (!currentActivePredictionId) {
@@ -2352,6 +2361,8 @@ function transferPredictionToPreliminary(predId) {
 }
 
 function recalculateLoadPlanning() {
+    const activeEl = document.activeElement;
+
     const prelimPax = parseInt(document.getElementById('prelim-pax')?.textContent || 0) || 0;
     const prelimPcs = parseInt(document.getElementById('prelim-pcs')?.textContent || 0) || 0;
     const prelimWeight = parseFloat(document.getElementById('prelim-weight')?.textContent || 0) || 0;
@@ -2389,9 +2400,13 @@ function recalculateLoadPlanning() {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
         const weightCell = document.getElementById(`bulk-weight-${i}`);
 
-        if (pcsInput) {
+        if (pcsInput && weightCell) {
             const pcs = parseInt(pcsInput.value, 10) || 0;
-            const isLocked = weightCell && weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
+            const isEditingThisWeight = (weightCell === activeEl);
+            const isExplicitlyLocked = weightCell.getAttribute('data-locked') === 'true';
+
+            // Если поле веса редактируется пользователем прямо сейчас или заблокировано
+            const isLocked = isExplicitlyLocked || (isEditingThisWeight && weightCell.value.trim() !== '');
 
             if (isLocked) {
                 const w = parseFloat(weightCell.value) || 0;
@@ -2401,8 +2416,8 @@ function recalculateLoadPlanning() {
                 if (pcs > 0) {
                     unlockedComps.push({ index: i, pcs: pcs, weightCell: weightCell });
                 } else {
-                    // Если мест 0 и отсек не зафиксирован - сбрасываем вес в 0
-                    if (weightCell) {
+                    // Если мест 0 и отсек не зафиксирован и не редактируется прямо сейчас - сбрасываем вес в 0
+                    if (!isEditingThisWeight && weightCell.value !== '0') {
                         if (weightCell.tagName === 'INPUT') weightCell.value = '0';
                         else weightCell.textContent = '0';
                     }
@@ -2436,11 +2451,12 @@ function recalculateLoadPlanning() {
             allocatedUnlockedWeight += w;
         }
 
-        if (comp.weightCell) {
+        if (comp.weightCell && comp.weightCell !== activeEl) {
+            const wStr = String(w);
             if (comp.weightCell.tagName === 'INPUT') {
-                comp.weightCell.value = String(w);
+                if (comp.weightCell.value !== wStr) comp.weightCell.value = wStr;
             } else {
-                comp.weightCell.textContent = String(w);
+                if (comp.weightCell.textContent !== wStr) comp.weightCell.textContent = wStr;
             }
         }
     });
@@ -2453,7 +2469,8 @@ function recalculateLoadPlanning() {
         const pcsInput = document.getElementById(`bulk-pcs-${i}`);
         const weightCell = document.getElementById(`bulk-weight-${i}`);
         if (pcsInput && weightCell) {
-            const isLocked = weightCell.tagName === 'INPUT' && weightCell.getAttribute('data-locked') === 'true';
+            const isEditingThisWeight = (weightCell === activeEl);
+            const isLocked = weightCell.getAttribute('data-locked') === 'true' || (isEditingThisWeight && weightCell.value.trim() !== '');
             if (!isLocked) {
                 const w = parseFloat(weightCell.tagName === 'INPUT' ? weightCell.value : weightCell.textContent) || 0;
                 ttlBulkWeight += w;
@@ -2463,8 +2480,8 @@ function recalculateLoadPlanning() {
 
     const bulkTtlPcsEl = document.getElementById('bulk-ttl-pcs');
     const bulkTtlWghtEl = document.getElementById('bulk-ttl-weight');
-    if (bulkTtlPcsEl) bulkTtlPcsEl.textContent = ttlBulkPcs;
-    if (bulkTtlWghtEl) bulkTtlWghtEl.textContent = ttlBulkWeight;
+    if (bulkTtlPcsEl && bulkTtlPcsEl.textContent !== String(ttlBulkPcs)) bulkTtlPcsEl.textContent = String(ttlBulkPcs);
+    if (bulkTtlWghtEl && bulkTtlWghtEl.textContent !== String(ttlBulkWeight)) bulkTtlWghtEl.textContent = String(ttlBulkWeight);
 
     const bulkRestPcs = targetPcs - ttlBulkPcs;
     const bulkRestWeight = targetWeight - ttlBulkWeight;
@@ -2473,18 +2490,18 @@ function recalculateLoadPlanning() {
     const bulkRestWghtCell = document.getElementById('bulk-rest-weight');
 
     if (bulkRestPcsCell) {
-        bulkRestPcsCell.textContent = bulkRestPcs;
+        if (bulkRestPcsCell.textContent !== String(bulkRestPcs)) bulkRestPcsCell.textContent = String(bulkRestPcs);
         bulkRestPcsCell.classList.toggle('rest-balanced', bulkRestPcs === 0 && targetPcs > 0);
         bulkRestPcsCell.classList.toggle('rest-overload', bulkRestPcs < 0);
     }
     if (bulkRestWghtCell) {
-        bulkRestWghtCell.textContent = bulkRestWeight;
+        if (bulkRestWghtCell.textContent !== String(bulkRestWeight)) bulkRestWghtCell.textContent = String(bulkRestWeight);
         bulkRestWghtCell.classList.toggle('rest-balanced', bulkRestWeight === 0 && targetWeight > 0);
         bulkRestWghtCell.classList.toggle('rest-overload', bulkRestWeight < 0);
     }
 }
 
-// Инициализация таблицы коммерческой загружеб (12 отсеков BULK)
+// Инициализация таблицы коммерческой загрузки (12 отсеков BULK)
 function initLoadPlanningData() {
     const unifiedBody = document.getElementById('unified-load-tbody');
     if (unifiedBody) {
@@ -2525,8 +2542,26 @@ function initLoadPlanningData() {
         const el = document.getElementById(id);
         if (el && !el.dataset.hasRecalcListener) {
             el.dataset.hasRecalcListener = 'true';
-            ['input', 'change', 'keyup', 'blur'].forEach(evt => {
+            
+            el.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (typeof el.select === 'function') el.select();
+                }, 10);
+            });
+
+            el.addEventListener('input', () => {
+                recalculateLoadPlanning();
+                debouncedSaveCompartmentsToPrediction();
+            });
+
+            ['change', 'blur'].forEach(evt => {
                 el.addEventListener(evt, () => {
+                    let v = el.value.trim();
+                    if (v === '' || isNaN(v) || parseFloat(v) < 0) {
+                        el.value = '0';
+                    } else {
+                        el.value = String(parseFloat(v));
+                    }
                     recalculateLoadPlanning();
                     saveCompartmentsToPrediction();
                 });
@@ -2537,6 +2572,13 @@ function initLoadPlanningData() {
     document.querySelectorAll('.table-input').forEach(input => {
         if (!input.dataset.hasKeyNavListener) {
             input.dataset.hasKeyNavListener = 'true';
+            
+            input.addEventListener('focus', () => {
+                setTimeout(() => {
+                    if (typeof input.select === 'function') input.select();
+                }, 10);
+            });
+
             input.addEventListener('keydown', (e) => {
                 if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
                     e.preventDefault();
@@ -2558,46 +2600,42 @@ function initLoadPlanningData() {
             });
 
             input.addEventListener('input', () => {
-                if (input.classList.contains('uld-pcs-input')) {
-                    const uldId = input.id.replace('uld-pcs-', '');
-                    const weightInput = document.getElementById(`uld-weight-${uldId}`);
-                    if (weightInput) {
-                        weightInput.removeAttribute('data-locked');
-                        weightInput.classList.remove('weight-locked');
-                    }
-                } else if (input.classList.contains('bulk-pcs-input')) {
+                if (input.classList.contains('bulk-pcs-input')) {
                     const bulkId = input.id.replace('bulk-pcs-', '');
                     const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    if (weightInput) {
-                        weightInput.removeAttribute('data-locked');
+                    // Если изменились места и вес не был заблокирован пользователем, держим разблокированным
+                    if (weightInput && weightInput.getAttribute('data-locked') !== 'true') {
                         weightInput.classList.remove('weight-locked');
                     }
-                } else if (input.classList.contains('uld-weight-input') || input.classList.contains('bulk-weight-input')) {
+                } else if (input.classList.contains('bulk-weight-input')) {
+                    // При ручном вводе веса фиксируем отсек
                     if (input.value.trim() !== '') {
                         input.setAttribute('data-locked', 'true');
                         input.classList.add('weight-locked');
-                    } else {
-                        input.removeAttribute('data-locked');
-                        input.classList.remove('weight-locked');
                     }
                 }
 
                 recalculateLoadPlanning();
-                // Автосохранение раскладки BULK в активный рейс из Истории
-                saveCompartmentsToPrediction();
+                debouncedSaveCompartmentsToPrediction();
             });
 
             ['change', 'blur'].forEach(evt => {
                 input.addEventListener(evt, () => {
-                    let v = input.value;
-                    if (v && v.length > 1 && v.startsWith('0')) {
-                        input.value = String(parseInt(v, 10));
-                    }
+                    let v = input.value.trim();
                     if (v === '' || isNaN(v) || parseInt(v, 10) < 0) {
                         input.value = '0';
+                    } else {
+                        input.value = String(parseInt(v, 10));
                     }
+
+                    if (input.classList.contains('bulk-weight-input')) {
+                        if (input.value === '0') {
+                            input.removeAttribute('data-locked');
+                            input.classList.remove('weight-locked');
+                        }
+                    }
+
                     recalculateLoadPlanning();
-                    // Автосохранение раскладки BULK в активный рейс из Истории
                     saveCompartmentsToPrediction();
                 });
             });
@@ -7311,97 +7349,62 @@ function formatDateStr(dateStr) {
 
 // Валидация числовых полей ввода и автоочистка ведущих нулей
 function setupNumericInputValidation() {
-    // Инпуты количества пассажиров и целых чисел
-    const paxInputs = [
+    // Инпуты количества пассажиров и целых чисел в форме ручного ввода
+    const integerInputs = [
         'input-pax',
-        'lir-pax',
-        'lir-pcs',
-        'lir-weight',
         'manual-men',
         'manual-women',
         'manual-rb',
         'manual-rm',
         'manual-bag-pcs'
     ];
-    for (let i = 1; i <= 12; i++) {
-        paxInputs.push(`bulk-pcs-${i}`);
-        paxInputs.push(`bulk-weight-${i}`);
-    }
 
-    paxInputs.forEach(id => {
+    integerInputs.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
 
-        el.dataset.prevValue = el.value || (id === 'input-pax' ? '150' : '0');
-        el.dataset.readyToOverwrite = 'false';
-
-        // 1. При фокусе (клик или TAB) число НЕ пропадает, но подсвечивается и помечается к перезаписи
-        el.addEventListener('focus', (e) => {
-            if (e.target.value !== '') {
-                e.target.dataset.prevValue = e.target.value;
-            }
-            e.target.dataset.readyToOverwrite = 'true';
+        // При фокусе выделяем число для мгновенной перезаписи при необходимости
+        el.addEventListener('focus', () => {
             setTimeout(() => {
-                if (typeof e.target.select === 'function') {
-                    e.target.select();
+                if (typeof el.select === 'function') {
+                    el.select();
                 }
-            }, 0);
+            }, 10);
         });
 
-        // 2. Повторный клик внутри уже активного поля помечает текст к авто-перезаписи при вводе
-        el.addEventListener('click', (e) => {
-            e.target.dataset.readyToOverwrite = 'true';
-            if (typeof e.target.select === 'function') {
-                e.target.select();
-            }
-        });
-
-        // 3. Перехвачик нажатия клавиш: стирает старое значение при первом вводе цифры
+        // Блокируем ввод запрещенных символов
         el.addEventListener('keydown', (e) => {
-            if (e.target.dataset.readyToOverwrite === 'true') {
-                const isNavigationKey = ['Tab', 'Enter', 'Escape', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Shift', 'Control', 'Alt', 'Meta'].includes(e.key);
-                if (!isNavigationKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
-                    if (e.key.length === 1 || e.key === 'Backspace' || e.key === 'Delete') {
-                        e.target.value = '';
-                        e.target.dataset.readyToOverwrite = 'false';
-                        if (id === 'lir-pax') {
-                            recalculateLoadPlanning();
-                        }
-                    }
-                }
+            if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
+                e.preventDefault();
             }
         });
 
-        // 4. Фильтрация ввода (только цифры, авто-удаление ведущих нулей)
+        // Очистка от нечисловых символов при вставке
         el.addEventListener('input', (e) => {
-            e.target.dataset.readyToOverwrite = 'false';
             let val = e.target.value;
-            let clean = val.replace(/[^0-9]/g, '');
-            if (clean.length > 1 && clean.startsWith('0')) {
-                clean = clean.replace(/^0+/, '');
-            }
-            e.target.value = clean;
-            if (id === 'lir-pax') {
-                recalculateLoadPlanning();
+            if (/[^0-9]/.test(val)) {
+                e.target.value = val.replace(/[^0-9]/g, '');
             }
         });
 
-        // 5. Восстановление сохраненного значения при уходе (blur), если поле осталось пустым
+        // Нормализация при уходе из поля (удаление ведущих нулей, минимум 1 для PAX)
         el.addEventListener('blur', (e) => {
-            e.target.dataset.readyToOverwrite = 'false';
             let val = e.target.value.trim();
-            if (val === '') {
-                e.target.value = e.target.dataset.prevValue || (id === 'input-pax' ? '150' : '0');
-            } else if (id === 'input-pax' && parseInt(val, 10) === 0) {
-                e.target.value = '1';
-            }
-            if (id === 'lir-pax') {
-                recalculateLoadPlanning();
+            if (val === '' || isNaN(val)) {
+                e.target.value = (id === 'input-pax') ? '150' : '0';
+            } else {
+                let num = parseInt(val, 10);
+                if (id === 'input-pax' && num < 1) {
+                    num = 1;
+                } else if (num < 0) {
+                    num = 0;
+                }
+                e.target.value = String(num);
             }
         });
     });
 
-    // Инпуты дробных чисел (вес)
+    // Инпуты дробных чисел (вес в форме ручного добавления)
     const floatInputs = [
         'manual-bag-weight',
         'manual-hb-weight'
@@ -7411,46 +7414,39 @@ function setupNumericInputValidation() {
         const el = document.getElementById(id);
         if (!el) return;
 
+        el.addEventListener('focus', () => {
+            setTimeout(() => {
+                if (typeof el.select === 'function') {
+                    el.select();
+                }
+            }, 10);
+        });
+
         el.addEventListener('input', (e) => {
             let val = e.target.value;
-            
-            // Разрешаем только цифры и одну точку
-            let clean = val.replace(/[^0-9.]/g, '');
-            const parts = clean.split('.');
-            if (parts.length > 2) {
-                clean = parts[0] + '.' + parts.slice(1).join('');
+            if (/[^0-9.]/.test(val)) {
+                let clean = val.replace(/[^0-9.]/g, '');
+                const parts = clean.split('.');
+                if (parts.length > 2) {
+                    clean = parts[0] + '.' + parts.slice(1).join('');
+                }
+                e.target.value = clean;
             }
-            
-            // Убираем ведущие нули (напр. 020 -> 20, но 0.5 остается 0.5)
-            if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
-                clean = clean.replace(/^0+/, '');
-            }
-            
-            e.target.value = clean;
         });
 
         el.addEventListener('blur', (e) => {
             let val = e.target.value.trim();
-            if (val === '' || val === '.') {
+            if (val === '' || val === '.' || isNaN(parseFloat(val))) {
                 e.target.value = '0';
+            } else {
+                let clean = val;
+                if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
+                    clean = clean.replace(/^0+/, '') || '0';
+                }
+                e.target.value = clean;
             }
         });
     });
-
-    // Обнуляем количество мест и веса в BULK (отсеки 1..12)
-    for (let i = 1; i <= 12; i++) {
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        if (pcsInput) pcsInput.value = '0';
-        
-        const wInput = document.getElementById(`bulk-weight-${i}`);
-        if (wInput) {
-            wInput.removeAttribute('data-locked');
-            wInput.classList.remove('weight-locked');
-            wInput.value = '0';
-        }
-    }
-
-    recalculateLoadPlanning();
 }
 
 // --- ОТРИСОВКА И РАСЧЕТ ДАШБОРДА АНАЛИТИКИ И МАСШТАБИРОВАНИЯ ---
