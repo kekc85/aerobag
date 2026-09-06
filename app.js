@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.126';
+const APP_VERSION = 'v12.0.127';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -8276,13 +8276,16 @@ function runBacktestAccuracySimulation() {
             const diffPcsPct = actualPcs > 0 ? ((diffPcs / actualPcs) * 100) : 0;
             const errPcsPctAbs = Math.abs(diffPcsPct);
 
-            let status = 'accurate'; // <= 5%
-            if (errWPctAbs > 25 || errPcsPctAbs > 25) {
-                status = 'danger'; // > 25% (аномалия)
-            } else if (errWPctAbs > 10 || errPcsPctAbs > 10) {
-                status = 'warning'; // 10-25% (отклонение)
-            } else if (errWPctAbs > 5 || errPcsPctAbs > 5) {
-                status = 'acceptable'; // 5-10% (допустимо)
+            // Определение статуса точности по шкале:
+            // до 10% - хороший результат, 10-15% - допустимый, 15-25% - отклонение, > 25% - аномалия
+            const maxErrPct = Math.max(errWPctAbs, errPcsPctAbs);
+            let status = 'good'; // <= 10% (Хороший результат)
+            if (maxErrPct > 25) {
+                status = 'danger'; // > 25% (Аномалия)
+            } else if (maxErrPct > 15) {
+                status = 'warning'; // 15-25% (Отклонение)
+            } else if (maxErrPct > 10) {
+                status = 'acceptable'; // 10-15% (Допустимый)
             }
 
             lastBacktestResults.push({
@@ -8352,12 +8355,13 @@ function renderBacktestKPIs() {
     let sumFactW = 0;
     let sumFactPcs = 0;
 
-    let accW5 = 0;
     let accW10 = 0;
-    let accPcs5 = 0;
+    let accW15 = 0;
     let accPcs10 = 0;
+    let accPcs15 = 0;
 
-    let countAccurate = 0;
+    let countGood = 0;
+    let countAcceptable = 0;
     let countWarning = 0;
     let countDanger = 0;
 
@@ -8369,14 +8373,16 @@ function renderBacktestKPIs() {
         sumFactW += r.factWeight;
         sumFactPcs += r.factPcs;
 
-        if (r.errWeightPctAbs <= 5) accW5++;
         if (r.errWeightPctAbs <= 10) accW10++;
+        if (r.errWeightPctAbs <= 15) accW15++;
 
-        if (r.errPcsPctAbs <= 5) accPcs5++;
         if (r.errPcsPctAbs <= 10) accPcs10++;
+        if (r.errPcsPctAbs <= 15) accPcs15++;
 
-        if (r.status === 'accurate' || r.status === 'acceptable') {
-            countAccurate++;
+        if (r.status === 'good') {
+            countGood++;
+        } else if (r.status === 'acceptable') {
+            countAcceptable++;
         } else if (r.status === 'warning') {
             countWarning++;
         } else if (r.status === 'danger') {
@@ -8386,32 +8392,33 @@ function renderBacktestKPIs() {
 
     const maeW = (sumErrW / total).toFixed(1);
     const maePcs = (sumErrPcs / total).toFixed(1);
-    const pctW5 = Math.round((accW5 / total) * 100);
     const pctW10 = Math.round((accW10 / total) * 100);
-    const pctPcs5 = Math.round((accPcs5 / total) * 100);
+    const pctW15 = Math.round((accW15 / total) * 100);
     const pctPcs10 = Math.round((accPcs10 / total) * 100);
+    const pctPcs15 = Math.round((accPcs15 / total) * 100);
 
     const biasWPct = sumFactW > 0 ? ((sumDiffW / sumFactW) * 100).toFixed(1) : '0.0';
     const biasPcsPct = sumFactPcs > 0 ? ((sumDiffPcs / sumFactPcs) * 100).toFixed(1) : '0.0';
 
     const elW_mae = document.getElementById('bt-weight-mae');
-    const elW_acc5 = document.getElementById('bt-weight-acc-5');
     const elW_acc10 = document.getElementById('bt-weight-acc-10');
+    const elW_acc15 = document.getElementById('bt-weight-acc-15');
     const elW_bias = document.getElementById('bt-weight-bias');
 
     const elP_mae = document.getElementById('bt-pcs-mae');
-    const elP_acc5 = document.getElementById('bt-pcs-acc-5');
     const elP_acc10 = document.getElementById('bt-pcs-acc-10');
+    const elP_acc15 = document.getElementById('bt-pcs-acc-15');
     const elP_bias = document.getElementById('bt-pcs-bias');
 
     const elTotal = document.getElementById('bt-total-tested');
-    const elAccCount = document.getElementById('bt-count-accurate');
+    const elGoodCount = document.getElementById('bt-count-good');
+    const elAcceptCount = document.getElementById('bt-count-acceptable');
     const elWarnCount = document.getElementById('bt-count-warning');
     const elDangCount = document.getElementById('bt-count-danger');
 
     if (elW_mae) elW_mae.textContent = `±${maeW} кг`;
-    if (elW_acc5) elW_acc5.textContent = `${pctW5}%`;
     if (elW_acc10) elW_acc10.textContent = `${pctW10}%`;
+    if (elW_acc15) elW_acc15.textContent = `${pctW15}%`;
     if (elW_bias) {
         const sign = Number(biasWPct) > 0 ? '+' : '';
         elW_bias.textContent = `${sign}${biasWPct}% (${sign}${Math.round(sumDiffW)} кг)`;
@@ -8419,8 +8426,8 @@ function renderBacktestKPIs() {
     }
 
     if (elP_mae) elP_mae.textContent = `±${maePcs} шт`;
-    if (elP_acc5) elP_acc5.textContent = `${pctPcs5}%`;
     if (elP_acc10) elP_acc10.textContent = `${pctPcs10}%`;
+    if (elP_acc15) elP_acc15.textContent = `${pctPcs15}%`;
     if (elP_bias) {
         const sign = Number(biasPcsPct) > 0 ? '+' : '';
         elP_bias.textContent = `${sign}${biasPcsPct}% (${sign}${Math.round(sumDiffPcs)} шт)`;
@@ -8428,7 +8435,8 @@ function renderBacktestKPIs() {
     }
 
     if (elTotal) elTotal.textContent = `${total} рейсов`;
-    if (elAccCount) elAccCount.textContent = `${countAccurate} (${Math.round((countAccurate / total) * 100)}%)`;
+    if (elGoodCount) elGoodCount.textContent = `${countGood} (${Math.round((countGood / total) * 100)}%)`;
+    if (elAcceptCount) elAcceptCount.textContent = `${countAcceptable} (${Math.round((countAcceptable / total) * 100)}%)`;
     if (elWarnCount) elWarnCount.textContent = `${countWarning} (${Math.round((countWarning / total) * 100)}%)`;
     if (elDangCount) elDangCount.textContent = `${countDanger} (${Math.round((countDanger / total) * 100)}%)`;
 }
@@ -8444,12 +8452,14 @@ function renderBacktestTable() {
     let rows = [...lastBacktestResults];
 
     // Фильтрация по статусу
-    if (filterVal === 'warning') {
+    if (filterVal === 'good') {
+        rows = rows.filter(r => r.status === 'good');
+    } else if (filterVal === 'acceptable') {
+        rows = rows.filter(r => r.status === 'acceptable');
+    } else if (filterVal === 'warning') {
         rows = rows.filter(r => r.status === 'warning' || r.status === 'danger');
     } else if (filterVal === 'danger') {
         rows = rows.filter(r => r.status === 'danger');
-    } else if (filterVal === 'accurate') {
-        rows = rows.filter(r => r.status === 'accurate');
     }
 
     // Поиск по тексту
@@ -8497,19 +8507,19 @@ function renderBacktestTable() {
 
         let badgeHtml = '';
         let rowStyle = '';
-        if (r.status === 'accurate') {
-            badgeHtml = `<span class="badge-status-pill badge-green">🟢 ≤5%</span>`;
+        if (r.status === 'good') {
+            badgeHtml = `<span class="badge-status-pill badge-green">🟢 ≤10%</span>`;
         } else if (r.status === 'acceptable') {
-            badgeHtml = `<span class="badge-status-pill badge-cyan">🟢 ≤10%</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-cyan">🟡 ≤15%</span>`;
         } else if (r.status === 'warning') {
-            badgeHtml = `<span class="badge-status-pill badge-gold">🟡 >10%</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-gold">🟠 >15%</span>`;
         } else if (r.status === 'danger') {
             badgeHtml = `<span class="badge-status-pill badge-danger">🔴 >25%</span>`;
             rowStyle = 'background: rgba(239, 68, 68, 0.05);';
         }
 
-        const diffWColor = r.errWeightPctAbs <= 5 ? '#10b981' : (r.errWeightPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
-        const diffPcsColor = r.errPcsPctAbs <= 5 ? '#10b981' : (r.errPcsPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
+        const diffWColor = r.errWeightPctAbs <= 10 ? '#10b981' : (r.errWeightPctAbs <= 15 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
+        const diffPcsColor = r.errPcsPctAbs <= 10 ? '#10b981' : (r.errPcsPctAbs <= 15 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
 
         const paxDetails = (r.rb > 0 || r.rm > 0) ? `<strong>${r.pax}</strong> <span style="font-size: 0.72rem; color: var(--text-muted);">(${r.pax - r.rb - r.rm}/${r.rb}/${r.rm})</span>` : `<strong>${r.pax}</strong>`;
 
@@ -8578,7 +8588,7 @@ function exportBacktestToExcel() {
         'Прогноз Мест (шт)': r.predPcs,
         'Разница Мест (шт)': r.diffPcs,
         'Погрешность Мест (%)': Number(r.diffPcsPct.toFixed(2)),
-        'Статус точности': r.status === 'accurate' ? 'Высокая (≤5%)' : (r.status === 'acceptable' ? 'Норма (≤10%)' : (r.status === 'warning' ? 'Отклонение (10-25%)' : 'Аномалия (>25%)'))
+        'Статус точности': r.status === 'good' ? 'Хорошо (≤10%)' : (r.status === 'acceptable' ? 'Допустимо (10-15%)' : (r.status === 'warning' ? 'Отклонение (15-25%)' : 'Аномалия (>25%)'))
     }));
 
     const ws = XLSX.utils.json_to_sheet(exportData);

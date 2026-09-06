@@ -1112,12 +1112,12 @@
                                 <strong id="bt-weight-mae" class="monospace-val highlight-gold" style="font-size: 0.95rem;">0 кг</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Попадание в ±5%:</span>
-                                <strong id="bt-weight-acc-5" class="monospace-val highlight-green" style="font-size: 0.95rem;">0%</strong>
+                                <span style="color: var(--text-muted);">Попадание в ±10% (Хорошо):</span>
+                                <strong id="bt-weight-acc-10" class="monospace-val highlight-green" style="font-size: 0.95rem;">0%</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Попадание в ±10%:</span>
-                                <strong id="bt-weight-acc-10" class="monospace-val highlight-cyan" style="font-size: 0.95rem;">0%</strong>
+                                <span style="color: var(--text-muted);">Попадание в ±15% (Допустимо):</span>
+                                <strong id="bt-weight-acc-15" class="monospace-val highlight-cyan" style="font-size: 0.95rem;">0%</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; font-size: 0.82rem;">
                                 <span style="color: var(--text-muted);">Суммарный баланс (Bias):</span>
@@ -1136,12 +1136,12 @@
                                 <strong id="bt-pcs-mae" class="monospace-val highlight-gold" style="font-size: 0.95rem;">0 шт</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Попадание в ±5%:</span>
-                                <strong id="bt-pcs-acc-5" class="monospace-val highlight-green" style="font-size: 0.95rem;">0%</strong>
+                                <span style="color: var(--text-muted);">Попадание в ±10% (Хорошо):</span>
+                                <strong id="bt-pcs-acc-10" class="monospace-val highlight-green" style="font-size: 0.95rem;">0%</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Попадание в ±10%:</span>
-                                <strong id="bt-pcs-acc-10" class="monospace-val highlight-cyan" style="font-size: 0.95rem;">0%</strong>
+                                <span style="color: var(--text-muted);">Попадание в ±15% (Допустимо):</span>
+                                <strong id="bt-pcs-acc-15" class="monospace-val highlight-cyan" style="font-size: 0.95rem;">0%</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; font-size: 0.82rem;">
                                 <span style="color: var(--text-muted);">Суммарный баланс (Bias):</span>
@@ -1155,16 +1155,20 @@
                                 <span>📊 СВОДКА ВЫБОРКИ РЕЙСОВ</span>
                                 <span class="badge-role badge-role-admin" style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #10b981;">ИТОГИ</span>
                             </div>
-                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
+                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.82rem;">
                                 <span style="color: var(--text-muted);">Проверено рейсов:</span>
                                 <strong id="bt-total-tested" class="monospace-val" style="font-size: 0.95rem;">0</strong>
                             </div>
-                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Высокая точность (≤10%):</span>
-                                <strong id="bt-count-accurate" class="monospace-val highlight-green" style="font-size: 0.95rem;">0</strong>
+                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.82rem;">
+                                <span style="color: var(--text-muted);">Хорошо (≤10%):</span>
+                                <strong id="bt-count-good" class="monospace-val highlight-green" style="font-size: 0.95rem;">0</strong>
                             </div>
-                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.82rem;">
-                                <span style="color: var(--text-muted);">Отклонения (>10%):</span>
+                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.82rem;">
+                                <span style="color: var(--text-muted);">Допустимо (10–15%):</span>
+                                <strong id="bt-count-acceptable" class="monospace-val highlight-cyan" style="font-size: 0.95rem;">0</strong>
+                            </div>
+                            <div class="backtest-metric-row" style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.82rem;">
+                                <span style="color: var(--text-muted);">Отклонения (>15%):</span>
                                 <strong id="bt-count-warning" class="monospace-val highlight-gold" style="font-size: 0.95rem;">0</strong>
                             </div>
                             <div class="backtest-metric-row" style="display: flex; justify-content: space-between; font-size: 0.82rem;">
@@ -1180,9 +1184,10 @@
                             <label style="font-size: 0.8rem; color: var(--text-muted);">Фильтр строк:</label>
                             <select id="backtest-table-filter" class="form-control" style="width: auto; padding: 5px 12px; font-size: 0.82rem;">
                                 <option value="all">Все проверенные рейсы</option>
-                                <option value="warning">Только с отклонением > 10%</option>
+                                <option value="good">Только хорошие (до ±10%)</option>
+                                <option value="acceptable">Только допустимые (10–15%)</option>
+                                <option value="warning">Только с отклонением > 15%</option>
                                 <option value="danger">Только аномалии > 25%</option>
-                                <option value="accurate">Только точные (до ±5%)</option>
                             </select>
 
                             <input type="text" id="backtest-table-search" placeholder="Поиск по рейсу / направлению..." class="form-control" style="width: 240px; padding: 5px 12px; font-size: 0.82rem;">
@@ -1394,13 +1399,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.126</span> (<span id="app-build-date">06.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.127</span> (<span id="app-build-date">06.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.126"></script>
+    <script src="app.js?v=v12.0.127"></script>
 </body>
 </html>
