@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.124';
+const APP_VERSION = 'v12.0.125';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -5139,30 +5139,43 @@ function toggleAutoBackupsAccordion(e) {
     }
 }
 
-// Загрузка списка серверных автобэкапов
+// Загрузка списка серверных / локальных автобэкапов
 async function loadServerBackupsList() {
     if (!currentUser || currentUser.role !== 'admin') return;
 
     const tbody = document.getElementById('backups-table-body');
     if (!tbody) return;
 
-    try {
-        const response = await fetch('api.php?action=list_backups');
-        const data = await response.json();
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=list_backups');
+            const data = await response.json();
 
-        if (data.success && Array.isArray(data.backups)) {
-            serverBackupsList = data.backups;
-            renderServerBackupsTable();
-        } else {
-            tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">${data.error || 'Ошибка загрузки списка бэкапов'}</td></tr>`;
+            if (data.success && Array.isArray(data.backups)) {
+                serverBackupsList = data.backups;
+                renderServerBackupsTable();
+                return;
+            }
+        } catch (err) {
+            console.warn("Серверная загрузка бэкапов недоступна, переключаемся на локальные бэкапы:", err);
         }
-    } catch (err) {
-        console.error("Ошибка при загрузке бэкапов:", err);
-        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">Не удалось получить список бэкапов с сервера</td></tr>`;
+    }
+
+    // Резервный локальный режим (Offline/LocalStorage)
+    try {
+        const localData = localStorage.getItem('averago_local_backups_db');
+        if (localData) {
+            serverBackupsList = JSON.parse(localData);
+        } else {
+            serverBackupsList = [];
+        }
+        renderServerBackupsTable();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">Ошибка локального хранилища бэкапов</td></tr>`;
     }
 }
 
-// Отрисовка таблицы серверных автобэкапов и сводки в шапке
+// Отрисовка таблицы серверных / локальных автобэкапов и сводки в шапке
 function renderServerBackupsTable() {
     const tbody = document.getElementById('backups-table-body');
     const countBadge = document.getElementById('backups-count-badge');
@@ -5213,23 +5226,78 @@ function renderServerBackupsTable() {
     tbody.innerHTML = html;
 }
 
-// Создание мгновенного серверного бэкапа
+// Создание мгновенного серверного или локального бэкапа
 async function createServerBackupNow() {
     const btn = document.getElementById('btn-create-server-backup');
     if (btn) btn.disabled = true;
 
-    try {
-        const response = await fetch('api.php?action=create_backup');
-        const data = await response.json();
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=create_backup');
+            const data = await response.json();
 
-        if (data.success) {
-            await loadServerBackupsList();
-            showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
-        } else {
-            showAviationAlert(data.error || 'Ошибка создания бэкапа.', true);
+            if (data.success) {
+                await loadServerBackupsList();
+                showAviationAlert(`Резервная копия создана: ${data.filename} (${data.flights_count} рейсов).`, false);
+                if (btn) btn.disabled = false;
+                return;
+            }
+        } catch (err) {
+            console.warn("Серверный бэкап недоступен, выполняем локальный бэкап:", err);
         }
-    } catch (err) {
-        showAviationAlert('Ошибка соединения с сервером: ' + err.message, true);
+    }
+
+    // Локальное создание бэкапа в Offline/Local mode
+    try {
+        const flights = userFlights || [];
+        const dateNow = new Date();
+        const yyyy = dateNow.getFullYear();
+        const mm = String(dateNow.getMonth() + 1).padStart(2, '0');
+        const dd = String(dateNow.getDate()).padStart(2, '0');
+        const hh = String(dateNow.getHours()).padStart(2, '0');
+        const min = String(dateNow.getMinutes()).padStart(2, '0');
+        const ss = String(dateNow.getSeconds()).padStart(2, '0');
+
+        const filename = `aerobag_local_${yyyy}_${mm}_${dd}_${hh}${min}${ss}.json`;
+        const createdAt = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+
+        const backupData = {
+            backup_version: '1.0',
+            backup_type: 'local_offline',
+            exported_at: dateNow.toISOString(),
+            flights_count: flights.length,
+            flights: flights
+        };
+
+        const jsonStr = JSON.stringify(backupData, null, 2);
+        const sizeBytes = new Blob([jsonStr]).size;
+
+        const newBackupItem = {
+            filename: filename,
+            created_at: createdAt,
+            timestamp: Math.floor(dateNow.getTime() / 1000),
+            size: sizeBytes,
+            is_local: true,
+            data: backupData
+        };
+
+        let localList = [];
+        try {
+            const existing = localStorage.getItem('averago_local_backups_db');
+            if (existing) localList = JSON.parse(existing);
+        } catch (e) {}
+
+        localList.unshift(newBackupItem);
+        // Ротация: оставляем 30 последних
+        if (localList.length > 30) localList = localList.slice(0, 30);
+
+        localStorage.setItem('averago_local_backups_db', JSON.stringify(localList));
+        serverBackupsList = localList;
+        renderServerBackupsTable();
+
+        showAviationAlert(`Локальная копия создана: ${filename} (${flights.length} рейсов).`, false);
+    } catch (e) {
+        showAviationAlert('Ошибка создания локального бэкапа: ' + e.message, true);
     } finally {
         if (btn) btn.disabled = false;
     }
@@ -5237,10 +5305,25 @@ async function createServerBackupNow() {
 
 // Скачивание файла бэкапа
 function downloadServerBackup(filename) {
+    const localItem = serverBackupsList.find(b => b.filename === filename && (b.is_local || b.data));
+    if (localItem && localItem.data) {
+        const jsonStr = JSON.stringify(localItem.data, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        return;
+    }
+
     window.location.href = `api.php?action=download_backup&file=${encodeURIComponent(filename)}`;
 }
 
-// Восстановление базы из серверного бэкапа
+// Восстановление базы из серверного / локального бэкапа
 async function restoreServerBackup(filename) {
     const confirmModal = document.getElementById('aviation-confirm-modal');
     const msgEl = document.getElementById('aviation-confirm-message');
@@ -5255,6 +5338,17 @@ async function restoreServerBackup(filename) {
     const handleConfirm = async () => {
         confirmModal.classList.add('hidden');
         btnConfirm.removeEventListener('click', handleConfirm);
+
+        // Проверяем локальный бэкап
+        const localItem = serverBackupsList.find(b => b.filename === filename && (b.is_local || b.data));
+        if (localItem && localItem.data && Array.isArray(localItem.data.flights)) {
+            userFlights = localItem.data.flights;
+            localStorage.setItem('averago_local_flights_db', JSON.stringify(userFlights));
+            renderFlightsTable(userFlights);
+            renderDashboardAnalytics();
+            showAviationAlert(`База успешно восстановлена из локального архива! Загружено ${userFlights.length} рейсов.`, false);
+            return;
+        }
 
         try {
             const response = await fetch('api.php?action=restore_backup', {
@@ -5284,13 +5378,22 @@ async function restoreServerBackup(filename) {
     }
 }
 
-// Удаление резервной копии с сервера
+// Удаление резервной копии с сервера или локального хранилища
 async function deleteServerBackup(filename) {
     const msg = currentLang === 'ru'
         ? `Вы действительно хотите безвозвратно удалить резервную копию "${filename}"?`
         : `Are you sure you want to permanently delete backup "${filename}"?`;
 
     showAviationConfirm(msg, async () => {
+        const localIdx = serverBackupsList.findIndex(b => b.filename === filename && b.is_local);
+        if (localIdx !== -1) {
+            serverBackupsList.splice(localIdx, 1);
+            localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+            renderServerBackupsTable();
+            showAviationAlert(currentLang === 'ru' ? 'Локальная копия успешно удалена.' : 'Local backup deleted.', false);
+            return;
+        }
+
         try {
             const response = await fetch('api.php?action=delete_backup', {
                 method: 'POST',
@@ -5306,7 +5409,15 @@ async function deleteServerBackup(filename) {
                 showAviationAlert(data.error || (currentLang === 'ru' ? 'Ошибка удаления бэкапа.' : 'Delete error.'), true);
             }
         } catch (err) {
-            showAviationAlert('Ошибка при удалении: ' + err.message, true);
+            const idx = serverBackupsList.findIndex(b => b.filename === filename);
+            if (idx !== -1) {
+                serverBackupsList.splice(idx, 1);
+                localStorage.setItem('averago_local_backups_db', JSON.stringify(serverBackupsList));
+                renderServerBackupsTable();
+                showAviationAlert(currentLang === 'ru' ? 'Копия удалена из локального хранилища.' : 'Backup deleted locally.', false);
+            } else {
+                showAviationAlert('Ошибка при удалении: ' + err.message, true);
+            }
         }
     });
 }
