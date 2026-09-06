@@ -1029,7 +1029,7 @@
 
     <!-- Авиационное модальное окно верификации точности прогнозов (Backtesting & Calibration) -->
     <div id="backtest-modal" class="modal-overlay hidden">
-        <div class="modal-content glass aviation-panel backtest-modal-content" style="max-width: 1100px; width: 96%; max-height: 92vh; display: flex; flex-direction: column;">
+        <div class="modal-content glass aviation-panel backtest-modal-content" style="max-width: 1280px; width: 98%; max-height: 94vh; display: flex; flex-direction: column;">
             <div class="hud-corner top-left"></div>
             <div class="hud-corner top-right"></div>
             <div class="hud-corner bottom-left"></div>
@@ -1045,10 +1045,10 @@
 
             <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1;">
                 <!-- Панель фильтров и параметров тестирования -->
-                <div class="backtest-controls-bar" style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; background: rgba(0, 240, 255, 0.03); border: 1px solid rgba(0, 240, 255, 0.15); padding: 12px 16px; border-radius: 6px;">
+                <div class="backtest-controls-bar">
                     <div class="backtest-param-group" style="display: flex; flex-direction: column; gap: 4px;">
                         <label for="backtest-period-select" style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;" data-translate="backtest-label-period">Период анализа:</label>
-                        <select id="backtest-period-select" class="form-control" style="min-width: 170px;">
+                        <select id="backtest-period-select" class="form-control" style="min-width: 180px;">
                             <option value="1">За сутки (1 день)</option>
                             <option value="7">Последняя неделя (7 дней)</option>
                             <option value="30" selected>Последний месяц (30 дней)</option>
@@ -1099,10 +1099,10 @@
                 <!-- Контейнер результатов -->
                 <div id="backtest-results-container" class="backtest-results-container hidden" style="margin-top: 18px;">
                     <!-- Раздельные аналитические карточки KPI: Вес багажа vs Места багажа -->
-                    <div class="backtest-kpi-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px;">
+                    <div class="backtest-kpi-grid">
                         
                         <!-- Карточка 1: ТОЧНОСТЬ ВЕСА БАГАЖА (КГ) -->
-                        <div class="backtest-kpi-card" style="background: rgba(0, 240, 255, 0.04); border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 6px; padding: 14px;">
+                        <div class="backtest-kpi-card kpi-weight">
                             <div class="backtest-kpi-badge" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 0.8rem; color: var(--accent-cyan); border-bottom: 1px solid rgba(0, 240, 255, 0.15); padding-bottom: 6px;">
                                 <span>⚖️ ТОЧНОСТЬ ВЕСА БАГАЖА</span>
                                 <span class="badge-role badge-role-admin" style="font-size: 0.7rem;">КГ</span>
@@ -1126,7 +1126,7 @@
                         </div>
 
                         <!-- Карточка 2: ТОЧНОСТЬ МЕСТ БАГАЖА (ШТ) -->
-                        <div class="backtest-kpi-card" style="background: rgba(255, 183, 0, 0.04); border: 1px solid rgba(255, 183, 0, 0.25); border-radius: 6px; padding: 14px;">
+                        <div class="backtest-kpi-card kpi-pcs">
                             <div class="backtest-kpi-badge" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 0.8rem; color: var(--accent-gold); border-bottom: 1px solid rgba(255, 183, 0, 0.15); padding-bottom: 6px;">
                                 <span>🧳 ТОЧНОСТЬ МЕСТ БАГАЖА</span>
                                 <span class="badge-role badge-role-dispatcher" style="font-size: 0.7rem;">ШТ</span>
@@ -1150,7 +1150,7 @@
                         </div>
 
                         <!-- Карточка 3: ОБЩАЯ СВОДКА И АНОМАЛИИ -->
-                        <div class="backtest-kpi-card" style="background: rgba(16, 185, 129, 0.04); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 14px;">
+                        <div class="backtest-kpi-card kpi-summary">
                             <div class="backtest-kpi-badge" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 0.8rem; color: #10b981; border-bottom: 1px solid rgba(16, 185, 129, 0.15); padding-bottom: 6px;">
                                 <span>📊 СВОДКА ВЫБОРКИ РЕЙСОВ</span>
                                 <span class="badge-role badge-role-admin" style="font-size: 0.7rem; background: rgba(16, 185, 129, 0.2); color: #10b981;">ИТОГИ</span>
@@ -1178,24 +1178,24 @@
                     <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 20px; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
                             <label style="font-size: 0.8rem; color: var(--text-muted);">Фильтр строк:</label>
-                            <select id="backtest-table-filter" class="form-control" style="width: auto; padding: 4px 10px; font-size: 0.8rem;">
+                            <select id="backtest-table-filter" class="form-control" style="width: auto; padding: 5px 12px; font-size: 0.82rem;">
                                 <option value="all">Все проверенные рейсы</option>
                                 <option value="warning">Только с отклонением > 10%</option>
                                 <option value="danger">Только аномалии > 25%</option>
                                 <option value="accurate">Только точные (до ±5%)</option>
                             </select>
 
-                            <input type="text" id="backtest-table-search" placeholder="Поиск по рейсу / направлению..." class="form-control" style="width: 220px; padding: 4px 10px; font-size: 0.8rem;">
+                            <input type="text" id="backtest-table-search" placeholder="Поиск по рейсу / направлению..." class="form-control" style="width: 240px; padding: 5px 12px; font-size: 0.82rem;">
                         </div>
 
-                        <button type="button" id="btn-export-backtest-excel" class="btn btn-secondary aviation-btn" style="padding: 6px 14px; font-size: 0.8rem;">
+                        <button type="button" id="btn-export-backtest-excel" class="btn btn-secondary aviation-btn highlight-gold-btn" style="padding: 6px 16px; font-size: 0.82rem;">
                             <span>📥</span> <span>Экспорт в Excel (.xlsx)</span>
                         </button>
                     </div>
 
                     <!-- Таблица детализации результатов -->
-                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto; border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 4px;">
-                        <table class="flights-table aviation-table backtest-table" style="margin-bottom: 0;">
+                    <div class="table-responsive backtest-table-container">
+                        <table class="flights-table aviation-table backtest-table">
                             <thead>
                                 <tr>
                                     <th style="cursor: pointer;" onclick="sortBacktestTable('date')">Дата ⇕</th>
@@ -1394,13 +1394,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.123</span> (<span id="app-build-date">06.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.124</span> (<span id="app-build-date">06.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.123"></script>
+    <script src="app.js?v=v12.0.124"></script>
 </body>
 </html>

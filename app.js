@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.123';
+const APP_VERSION = 'v12.0.124';
 const APP_BUILD_DATE = '06.09.2026';
 
 // Глобальное состояние
@@ -8349,36 +8349,36 @@ function renderBacktestTable() {
         let badgeHtml = '';
         let rowStyle = '';
         if (r.status === 'accurate') {
-            badgeHtml = `<span class="badge-role" style="background: rgba(16, 185, 129, 0.2); color: #10b981; font-size: 0.72rem; padding: 2px 6px;">🟢 Точно (≤5%)</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-green">🟢 ≤5%</span>`;
         } else if (r.status === 'acceptable') {
-            badgeHtml = `<span class="badge-role" style="background: rgba(0, 240, 255, 0.2); color: var(--accent-cyan); font-size: 0.72rem; padding: 2px 6px;">🟢 Норма (≤10%)</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-cyan">🟢 ≤10%</span>`;
         } else if (r.status === 'warning') {
-            badgeHtml = `<span class="badge-role" style="background: rgba(255, 183, 0, 0.2); color: var(--accent-gold); font-size: 0.72rem; padding: 2px 6px;">🟡 Отклонение</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-gold">🟡 >10%</span>`;
         } else if (r.status === 'danger') {
-            badgeHtml = `<span class="badge-role" style="background: rgba(239, 68, 68, 0.25); color: #ef4444; font-size: 0.72rem; padding: 2px 6px;">🔴 Аномалия</span>`;
+            badgeHtml = `<span class="badge-status-pill badge-danger">🔴 >25%</span>`;
             rowStyle = 'background: rgba(239, 68, 68, 0.05);';
         }
 
-        const diffWColor = r.errWeightPctAbs <= 5 ? '#10b981' : (r.errWeightPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#ef4444'));
-        const diffPcsColor = r.errPcsPctAbs <= 5 ? '#10b981' : (r.errPcsPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#ef4444'));
+        const diffWColor = r.errWeightPctAbs <= 5 ? '#10b981' : (r.errWeightPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errWeightPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
+        const diffPcsColor = r.errPcsPctAbs <= 5 ? '#10b981' : (r.errPcsPctAbs <= 10 ? 'var(--accent-cyan)' : (r.errPcsPctAbs <= 25 ? 'var(--accent-gold)' : '#f87171'));
 
-        const paxDetails = (r.rb > 0 || r.rm > 0) ? `${r.pax} <span style="font-size: 0.75rem; color: var(--text-muted);">(${r.pax - r.rb - r.rm}/${r.rb}/${r.rm})</span>` : `${r.pax}`;
+        const paxDetails = (r.rb > 0 || r.rm > 0) ? `<strong>${r.pax}</strong> <span style="font-size: 0.72rem; color: var(--text-muted);">(${r.pax - r.rb - r.rm}/${r.rb}/${r.rm})</span>` : `<strong>${r.pax}</strong>`;
 
         html += `
             <tr style="${rowStyle}">
                 <td class="monospace-val" style="font-size: 0.8rem;">${r.dateFormatted}</td>
-                <td><strong>${escapeHtml(r.airline)} ${escapeHtml(r.flight)}</strong></td>
-                <td class="cyan-val">${escapeHtml(r.route)}</td>
+                <td><strong class="font-mono">${escapeHtml(r.airline)} ${escapeHtml(r.flight)}</strong></td>
+                <td class="cyan-val" style="font-weight: 600;">${escapeHtml(r.route)}</td>
                 <td>${paxDetails}</td>
-                <td class="monospace-val" style="color: var(--accent-gold); font-weight: 600;">${Math.round(r.factWeight)} кг</td>
-                <td class="monospace-val" style="color: var(--accent-cyan); font-weight: 600;">${Math.round(r.predWeight)} кг</td>
+                <td class="monospace-val highlight-gold" style="font-weight: 600;">${Math.round(r.factWeight)} кг</td>
+                <td class="monospace-val highlight-cyan" style="font-weight: 600;">${Math.round(r.predWeight)} кг</td>
                 <td class="monospace-val" style="color: ${diffWColor}; font-weight: 700;">
-                    ${signW}${Math.round(r.diffWeight)} кг <span style="font-size: 0.72rem;">(${signW}${r.diffWeightPct.toFixed(1)}%)</span>
+                    ${signW}${Math.round(r.diffWeight)} кг <span style="font-size: 0.72rem; font-weight: normal;">(${signW}${r.diffWeightPct.toFixed(1)}%)</span>
                 </td>
-                <td class="monospace-val" style="color: var(--accent-gold);">${r.factPcs} шт</td>
-                <td class="monospace-val" style="color: var(--accent-cyan);">${r.predPcs} шт</td>
-                <td class="monospace-val" style="color: ${diffPcsColor};">
-                    ${signPcs}${r.diffPcs} шт <span style="font-size: 0.72rem;">(${signPcs}${r.diffPcsPct.toFixed(1)}%)</span>
+                <td class="monospace-val highlight-gold">${r.factPcs} шт</td>
+                <td class="monospace-val highlight-cyan">${r.predPcs} шт</td>
+                <td class="monospace-val" style="color: ${diffPcsColor}; font-weight: 600;">
+                    ${signPcs}${r.diffPcs} шт <span style="font-size: 0.72rem; font-weight: normal;">(${signPcs}${r.diffPcsPct.toFixed(1)}%)</span>
                 </td>
                 <td style="text-align: center;">${badgeHtml}</td>
             </tr>

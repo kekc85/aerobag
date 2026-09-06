@@ -5394,3 +5394,167 @@ body.light-theme .airport-filter-row.row-arrival:hover {
     transition: transform 0.2s ease;
 }
 
+/* --- Стили для модуля тестирования и валидации точности прогнозов (Backtesting UI) --- */
+.backtest-modal-content {
+    border: 1px solid rgba(0, 240, 255, 0.35) !important;
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.15), inset 0 0 20px rgba(0, 240, 255, 0.05) !important;
+}
+
+.backtest-controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: flex-end;
+    background: rgba(0, 240, 255, 0.03);
+    border: 1px solid rgba(0, 240, 255, 0.18);
+    padding: 12px 16px;
+    border-radius: 6px;
+}
+
+.backtest-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+@media (max-width: 960px) {
+    .backtest-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.backtest-kpi-card {
+    border-radius: 6px;
+    padding: 14px 16px;
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.backtest-kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.backtest-kpi-card.kpi-weight {
+    background: rgba(0, 240, 255, 0.04);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+.backtest-kpi-card.kpi-pcs {
+    background: rgba(255, 183, 0, 0.04);
+    border: 1px solid rgba(255, 183, 0, 0.25);
+}
+
+.backtest-kpi-card.kpi-summary {
+    background: rgba(16, 185, 129, 0.04);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.backtest-table-container {
+    max-height: 440px;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid rgba(0, 240, 255, 0.22);
+    border-radius: 4px;
+    background: rgba(4, 12, 24, 0.7);
+}
+
+.backtest-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-bottom: 0;
+}
+
+.backtest-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #061324 !important;
+    padding: 9px 12px !important;
+    font-size: 0.74rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap !important;
+    border-bottom: 2px solid rgba(0, 240, 255, 0.35) !important;
+    user-select: none;
+    color: #e2e8f0;
+}
+
+.backtest-table td {
+    padding: 8px 12px !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+    line-height: 1.25;
+}
+
+.backtest-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.backtest-table tbody tr:hover {
+    background: rgba(0, 240, 255, 0.07) !important;
+}
+
+.badge-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+.badge-status-pill.badge-green {
+    background: rgba(16, 185, 129, 0.18);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.badge-status-pill.badge-cyan {
+    background: rgba(0, 240, 255, 0.18);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+}
+
+.badge-status-pill.badge-gold {
+    background: rgba(255, 183, 0, 0.18);
+    color: var(--accent-gold);
+    border: 1px solid rgba(255, 183, 0, 0.35);
+}
+
+.badge-status-pill.badge-danger {
+    background: rgba(239, 68, 68, 0.22);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+body.light-theme .backtest-modal-content {
+    border-color: rgba(2, 132, 199, 0.35) !important;
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15) !important;
+}
+
+body.light-theme .backtest-table-container {
+    background: #ffffff;
+    border-color: rgba(2, 132, 199, 0.25);
+}
+
+body.light-theme .backtest-table th {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid rgba(2, 132, 199, 0.4) !important;
+}
+
+body.light-theme .backtest-table td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-theme .backtest-table tbody tr:hover {
+    background: rgba(2, 132, 199, 0.08) !important;
+}
+
+
