@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.134';
-const APP_BUILD_DATE = '06.09.2026';
+const APP_VERSION = 'v12.0.135';
+const APP_BUILD_DATE = '07.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -2538,49 +2538,33 @@ function initLoadPlanningData() {
         });
     }
 
-    ['lir-pax', 'lir-pcs', 'lir-weight'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && !el.dataset.hasRecalcListener) {
-            el.dataset.hasRecalcListener = 'true';
-            
-            el.addEventListener('focus', () => {
-                setTimeout(() => {
-                    if (typeof el.select === 'function') el.select();
-                }, 10);
-            });
-
-            el.addEventListener('input', () => {
-                recalculateLoadPlanning();
-                debouncedSaveCompartmentsToPrediction();
-            });
-
-            ['change', 'blur'].forEach(evt => {
-                el.addEventListener(evt, () => {
-                    let v = el.value.trim();
-                    if (v === '' || isNaN(v) || parseFloat(v) < 0) {
-                        el.value = '0';
-                    } else {
-                        el.value = String(parseFloat(v));
-                    }
-                    recalculateLoadPlanning();
-                    saveCompartmentsToPrediction();
-                });
-            });
-        }
-    });
-
+    // Единая регистрация обработчиков для всех полей ввода таблицы загрузки (LIR и BULK)
     document.querySelectorAll('.table-input').forEach(input => {
         if (!input.dataset.hasKeyNavListener) {
             input.dataset.hasKeyNavListener = 'true';
-            
+
+            // Умное выделение: при первом клике или входе по Tab выделяем число для мгновенной замены,
+            // но при повторном клике внутри поля позволяем свободно ставить курсор в любую позицию
+            let isMouseDown = false;
+            input.addEventListener('mousedown', () => {
+                isMouseDown = (document.activeElement !== input);
+            });
+
             input.addEventListener('focus', () => {
-                setTimeout(() => {
-                    if (typeof input.select === 'function') input.select();
-                }, 10);
+                if (!isMouseDown) {
+                    input.select();
+                }
+            });
+
+            input.addEventListener('mouseup', () => {
+                if (isMouseDown) {
+                    isMouseDown = false;
+                    input.select();
+                }
             });
 
             input.addEventListener('keydown', (e) => {
-                if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
+                if (['-', '+', 'e', 'E'].includes(e.key)) {
                     e.preventDefault();
                     return;
                 }
@@ -2596,6 +2580,16 @@ function initLoadPlanningData() {
                             input.blur();
                         }
                     }
+                } else if (e.key === 'Tab' && e.shiftKey) {
+                    e.preventDefault();
+                    const curTab = parseInt(input.getAttribute('tabindex'), 10);
+                    if (curTab && curTab > 8) {
+                        const prevEl = document.querySelector(`[tabindex="${curTab - 1}"]`);
+                        if (prevEl) {
+                            prevEl.focus();
+                            if (typeof prevEl.select === 'function') prevEl.select();
+                        }
+                    }
                 }
             });
 
@@ -2603,15 +2597,20 @@ function initLoadPlanningData() {
                 if (input.classList.contains('bulk-pcs-input')) {
                     const bulkId = input.id.replace('bulk-pcs-', '');
                     const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    // Если изменились места и вес не был заблокирован пользователем, держим разблокированным
-                    if (weightInput && weightInput.getAttribute('data-locked') !== 'true') {
-                        weightInput.classList.remove('weight-locked');
+                    // Если пользователь очистил места или ввел 0, сбрасываем ручную фиксацию веса
+                    if (input.value.trim() === '' || input.value === '0') {
+                        if (weightInput) {
+                            weightInput.removeAttribute('data-locked');
+                            weightInput.classList.remove('weight-locked');
+                        }
                     }
                 } else if (input.classList.contains('bulk-weight-input')) {
-                    // При ручном вводе веса фиксируем отсек
-                    if (input.value.trim() !== '') {
+                    if (input.value.trim() !== '' && input.value !== '0') {
                         input.setAttribute('data-locked', 'true');
                         input.classList.add('weight-locked');
+                    } else {
+                        input.removeAttribute('data-locked');
+                        input.classList.remove('weight-locked');
                     }
                 }
 
@@ -2622,17 +2621,19 @@ function initLoadPlanningData() {
             ['change', 'blur'].forEach(evt => {
                 input.addEventListener(evt, () => {
                     let v = input.value.trim();
-                    if (v === '' || isNaN(v) || parseInt(v, 10) < 0) {
+                    if (v === '' || isNaN(v) || parseFloat(v) < 0) {
                         input.value = '0';
                     } else {
-                        input.value = String(parseInt(v, 10));
+                        if (input.id === 'lir-weight') {
+                            input.value = String(parseFloat(v));
+                        } else {
+                            input.value = String(parseInt(v, 10));
+                        }
                     }
 
-                    if (input.classList.contains('bulk-weight-input')) {
-                        if (input.value === '0') {
-                            input.removeAttribute('data-locked');
-                            input.classList.remove('weight-locked');
-                        }
+                    if (input.classList.contains('bulk-weight-input') && input.value === '0') {
+                        input.removeAttribute('data-locked');
+                        input.classList.remove('weight-locked');
                     }
 
                     recalculateLoadPlanning();
