@@ -39,18 +39,20 @@ jobs:
             echo "::error::Секрет BEGET_FTP_USERNAME пустой или не задан в GitHub Secrets!"
             exit 1
           fi
+          CLEAN_USER=$(echo "$RAW_USER" | tr -d '\r\n' | sed -e 's|^[[:space:]]*||' -e 's|[[:space:]]*$||')
           
           echo "CLEAN_SERVER=${CLEAN_SERVER}" >> $GITHUB_ENV
           echo "CLEAN_DIR=${CLEAN_DIR}" >> $GITHUB_ENV
+          echo "CLEAN_USER=${CLEAN_USER}" >> $GITHUB_ENV
           echo "Target Server: ${CLEAN_SERVER}"
           echo "Target Directory: ${CLEAN_DIR}"
-          echo "Target User: ${RAW_USER}"
+          echo "Target User: ${CLEAN_USER}"
 
       - name: 📂 Sync files to Beget
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ env.CLEAN_SERVER }}
-          username: ${{ secrets.BEGET_FTP_USERNAME }}
+          username: ${{ env.CLEAN_USER }}
           password: ${{ secrets.BEGET_FTP_PASSWORD }}
           server-dir: ${{ env.CLEAN_DIR }}
           protocol: ftp
