@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.139';
+const APP_VERSION = 'v12.0.140';
 const APP_BUILD_DATE = '09.09.2026';
 
 // Глобальное состояние
@@ -2597,12 +2597,10 @@ function initLoadPlanningData() {
                 if (input.classList.contains('bulk-pcs-input')) {
                     const bulkId = input.id.replace('bulk-pcs-', '');
                     const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    // Если пользователь очистил места или ввел 0, сбрасываем ручную фиксацию веса
-                    if (input.value.trim() === '' || input.value === '0') {
-                        if (weightInput) {
-                            weightInput.removeAttribute('data-locked');
-                            weightInput.classList.remove('weight-locked');
-                        }
+                    // При любом изменении количества мест (ввод, стрелочки спиннера, очистка) сбрасываем фиксацию веса
+                    if (weightInput) {
+                        weightInput.removeAttribute('data-locked');
+                        weightInput.classList.remove('weight-locked');
                     }
                 } else if (input.classList.contains('bulk-weight-input')) {
                     if (input.value.trim() !== '' && input.value !== '0') {
@@ -2631,7 +2629,14 @@ function initLoadPlanningData() {
                         }
                     }
 
-                    if (input.classList.contains('bulk-weight-input') && input.value === '0') {
+                    if (input.classList.contains('bulk-pcs-input')) {
+                        const bulkId = input.id.replace('bulk-pcs-', '');
+                        const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
+                        if (weightInput) {
+                            weightInput.removeAttribute('data-locked');
+                            weightInput.classList.remove('weight-locked');
+                        }
+                    } else if (input.classList.contains('bulk-weight-input') && input.value === '0') {
                         input.removeAttribute('data-locked');
                         input.classList.remove('weight-locked');
                     }
