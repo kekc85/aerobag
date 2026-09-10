@@ -114,7 +114,7 @@ class DcsScraper:
         self.is_logged_in = True
         return {'success': True, 'message': 'Авторизация в Lydia DCS успешно пройдена.'}
 
-    def scan_flights(self, start_date, end_date, locations=None, only_finalized=True):
+    def scan_flights(self, start_date, end_date, locations=None, only_finalized=True, client_flight_keys=None):
         if not self.is_logged_in:
             lres = self.login()
             if not lres.get('success'):
@@ -250,22 +250,29 @@ class DcsScraper:
                 }
                 all_flights.append(flight_item)
 
-        # Сверка с существующей базой baggage_db.json
+        # Сверка с существующей базой и переданными клиентскими ключами
+        existing_keys = set(client_flight_keys or [])
         db_path = os.path.join(BASE_DIR, 'baggage_db.json')
-        existing_keys = set()
         if os.path.exists(db_path):
             try:
                 with open(db_path, 'r', encoding='utf-8') as f:
                     db_json = json.load(f)
                     if isinstance(db_json, list):
                         for item in db_json:
-                            k = f"{item.get('flight_no','')}_{item.get('date','')}_{item.get('from','')}_{item.get('to','')}"
-                            existing_keys.add(k)
+                            fn_dig = re.sub(r'\D', '', str(item.get('flight_no', '')))
+                            f_date = str(item.get('date', ''))[:10]
+                            f_from = str(item.get('from', '')).upper().strip()
+                            f_to = str(item.get('to', '')).upper().strip()
+                            existing_keys.add(f"{fn_dig}_{f_date}_{f_from}_{f_to}")
             except Exception as e:
                 print("DB read check error:", e)
 
         for flt in all_flights:
-            k = f"{flt['flight_no']}_{flt['flight_date']}_{flt['departure_code']}_{flt['dest_code']}"
+            fn_dig = re.sub(r'\D', '', str(flt.get('flight_no', '')))
+            f_date = str(flt.get('flight_date', ''))[:10]
+            f_from = str(flt.get('departure_code', '')).upper().strip()
+            f_to = str(flt.get('dest_code', '')).upper().strip()
+            k = f"{fn_dig}_{f_date}_{f_from}_{f_to}"
             flt['already_in_db'] = (k in existing_keys)
 
         return {
@@ -413,7 +420,9 @@ class AeroBagRequestHandler(http.server.SimpleHTTPRequestHandler):
                 only_fin = payload.get('only_finalized', True)
                 if isinstance(only_fin, str): only_fin = (only_fin.lower() in ['true', '1', 'yes'])
 
-                res = scraper.scan_flights(s_date, e_date, locs, only_fin)
+                client_keys = payload.get('client_flight_keys', [])
+
+                res = scraper.scan_flights(s_date, e_date, locs, only_fin, client_keys)
                 self._send_json(res)
                 return
 

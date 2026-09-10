@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.150';
+const APP_VERSION = 'v12.0.152';
 const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
@@ -3295,7 +3295,7 @@ async function saveUserFlights() {
 
     if (isOfflineMode) return;
 
-    // 2. Если сервеная часть активна, проуем тихо синхронизировать
+    // 2. Если серверная часть активна, пробуем тихо синхронизировать
     try {
         const response = await fetch('api.php?action=save_flights', {
             method: 'POST',
@@ -3313,6 +3313,13 @@ async function saveUserFlights() {
         console.warn("Серверный API недоступен, работаем в локальном режиме:", e);
     }
 }
+
+// Экспорт базы рейсов и методов синхронизации в window
+window.userFlights = userFlights;
+window.saveUserFlights = saveUserFlights;
+window.loadUserFlights = loadUserFlights;
+window.loadUserFlightsSilent = loadUserFlightsSilent;
+window.getUserFlights = function() { return userFlights; };
 
 // Получение ключа истории прогнозов для текущего авторизованного пользователя
 function getUserHistoryStorageKey() {

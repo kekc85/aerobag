@@ -512,19 +512,47 @@ switch ($action) {
         // Сверяем найденные рейсы с текущей базой AeroBag, чтобы пометить уже существующие
         if (!empty($scanResult['flights'])) {
             $existingFlights = [];
-            $dbPath = __DIR__ . '/baggage_db.json';
-            if (file_exists($dbPath)) {
-                $dbJson = json_decode(file_get_contents($dbPath), true);
-                if (is_array($dbJson)) {
-                    foreach ($dbJson as $item) {
-                        $key = ($item['flight_no'] ?? '') . '_' . ($item['date'] ?? '') . '_' . ($item['from'] ?? '') . '_' . ($item['to'] ?? '');
-                        $existingFlights[$key] = true;
+            
+            // 1. Проверяем MySQL БД (основной источник истины)
+            $configPath = __DIR__ . '/db_config.php';
+            if (file_exists($configPath)) {
+                require_once $configPath;
+                if (defined('DB_USER') && DB_USER !== 'your_db_username') {
+                    try {
+                        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                        ]);
+                        $stmt = $pdo->query("SELECT flight_no, flight_date, airport_from, airport_to FROM flights");
+                        while ($row = $stmt->fetch()) {
+                            $fNoDigits = preg_replace('/\D/', '', $row['flight_no'] ?? '');
+                            $fDate = substr($row['flight_date'] ?? '', 0, 10);
+                            $fFrom = strtoupper(trim($row['airport_from'] ?? ''));
+                            $fTo = strtoupper(trim($row['airport_to'] ?? ''));
+                            
+                            $key = $fNoDigits . '_' . $fDate . '_' . $fFrom . '_' . $fTo;
+                            $existingFlights[$key] = true;
+                        }
+                    } catch (Exception $e) {
+                        // Фолбэк
                     }
                 }
             }
 
+            // 2. Дополнительно проверяем переданные клиентом локальные рейсы (если переданы)
+            if (!empty($_POST['client_flight_keys']) && is_array($_POST['client_flight_keys'])) {
+                foreach ($_POST['client_flight_keys'] as $cKey) {
+                    $existingFlights[$cKey] = true;
+                }
+            }
+
             foreach ($scanResult['flights'] as &$flt) {
-                $key = $flt['flight_no'] . '_' . $flt['flight_date'] . '_' . $flt['departure_code'] . '_' . $flt['dest_code'];
+                $fltDigits = preg_replace('/\D/', '', $flt['flight_no'] ?? '');
+                $fltDate = $flt['flight_date'] ?? '';
+                $fltFrom = strtoupper(trim($flt['departure_code'] ?? ''));
+                $fltTo = strtoupper(trim($flt['dest_code'] ?? ''));
+
+                $key = $fltDigits . '_' . $fltDate . '_' . $fltFrom . '_' . $fltTo;
                 $flt['already_in_db'] = isset($existingFlights[$key]);
             }
         }
@@ -566,32 +594,9 @@ switch ($action) {
             ];
         }
 
-        // 2. Обновляем локальный JSON baggage_db.json
-        $dbPath = __DIR__ . '/baggage_db.json';
-        $currentDb = file_exists($dbPath) ? json_decode(file_get_contents($dbPath), true) : [];
-        if (!is_array($currentDb)) $currentDb = [];
+        $savedCount = count($formatted);
 
-        $map = [];
-        foreach ($currentDb as $idx => $item) {
-            $k = ($item['flight_no'] ?? '') . '_' . ($item['date'] ?? '') . '_' . ($item['from'] ?? '') . '_' . ($item['to'] ?? '');
-            $map[$k] = $idx;
-        }
-
-        $savedCount = 0;
-        foreach ($formatted as $item) {
-            $k = $item['flight_no'] . '_' . $item['date'] . '_' . $item['from'] . '_' . $item['to'];
-            if (isset($map[$k])) {
-                $currentDb[$map[$k]] = array_merge($currentDb[$map[$k]], $item);
-            } else {
-                $currentDb[] = $item;
-                $map[$k] = count($currentDb) - 1;
-            }
-            $savedCount++;
-        }
-
-        file_put_contents($dbPath, json_encode($currentDb, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-
-        // 3. Если настроен MySQL, сохраняем через PDO
+        // 2. Если настроен MySQL, сохраняем через PDO
         $configPath = __DIR__ . '/db_config.php';
         $mysqlSaved = false;
         if (file_exists($configPath)) {
@@ -636,7 +641,7 @@ switch ($action) {
                     }
                     $mysqlSaved = true;
                 } catch (Exception $e) {
-                    // Ошибка MySQL не блокирует сохранение в JSON
+                    // Ошибка MySQL
                 }
             }
         }

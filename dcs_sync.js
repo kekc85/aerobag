@@ -237,6 +237,46 @@
         });
     };
 
+    function getActiveDbFlights() {
+        if (typeof window.userFlights !== 'undefined' && Array.isArray(window.userFlights)) {
+            return window.userFlights;
+        }
+        if (typeof userFlights !== 'undefined' && Array.isArray(userFlights)) {
+            return userFlights;
+        }
+        try {
+            const saved = localStorage.getItem('averago_user_flights_local');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) return parsed;
+            }
+        } catch (e) {}
+        return [];
+    }
+
+    function isFlightAlreadyInDb(flt) {
+        const dbList = getActiveDbFlights();
+        if (dbList && dbList.length > 0) {
+            const fltDigits = String(flt.flight_no).replace(/\D/g, '');
+            const fltDate = (flt.flight_date || '').substring(0, 10);
+            const fltFrom = (flt.departure_code || '').toUpperCase().trim();
+            const fltTo = (flt.dest_code || '').toUpperCase().trim();
+
+            const found = dbList.some(item => {
+                const itemDigits = String(item.flight_no || item.flt_no || '').replace(/\D/g, '');
+                const itemDate = (item.date || item.flight_date || '').substring(0, 10);
+                const itemFrom = (item.from || item.airport_from || '').toUpperCase().trim();
+                const itemTo = (item.to || item.airport_to || '').toUpperCase().trim();
+
+                return itemDigits === fltDigits && itemDate === fltDate && itemFrom === fltFrom && itemTo === fltTo;
+            });
+
+            return found;
+        }
+
+        return !!flt.already_in_db;
+    }
+
     window.startDcsScan = async function() {
         if (isScanning) return;
 
@@ -304,6 +344,15 @@
             const seenIds = new Set();
             let lastScanError = '';
 
+            const dbList = getActiveDbFlights();
+            const clientFlightKeys = dbList.map(item => {
+                const itemDigits = String(item.flight_no || item.flt_no || '').replace(/\D/g, '');
+                const itemDate = (item.date || item.flight_date || '').substring(0, 10);
+                const itemFrom = (item.from || item.airport_from || '').toUpperCase().trim();
+                const itemTo = (item.to || item.airport_to || '').toUpperCase().trim();
+                return `${itemDigits}_${itemDate}_${itemFrom}_${itemTo}`;
+            });
+
             for (let i = 0; i < totalStations; i++) {
                 const locCode = checkedStations[i];
                 const locName = stationNames[locCode] || locCode;
@@ -320,7 +369,8 @@
                             start_date: startDateDcs,
                             end_date: endDateDcs,
                             locations: [locCode],
-                            only_finalized: onlyFinalize
+                            only_finalized: onlyFinalize,
+                            client_flight_keys: clientFlightKeys
                         })
                     });
 
@@ -378,7 +428,9 @@
         let newCount = 0;
 
         flights.forEach((flt, idx) => {
-            const isNew = !flt.already_in_db;
+            const inDb = isFlightAlreadyInDb(flt);
+            flt.already_in_db = inDb;
+            const isNew = !inDb;
             if (isNew) newCount++;
 
             const tr = document.createElement('tr');
@@ -435,7 +487,7 @@
         document.querySelectorAll('.dcs-flight-cb').forEach(cb => {
             const idx = parseInt(cb.dataset.idx, 10);
             const flt = scannedFlights[idx];
-            cb.checked = flt && !flt.already_in_db;
+            cb.checked = flt && !isFlightAlreadyInDb(flt);
         });
         updateDcsSelectedCount();
     };
