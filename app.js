@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.137';
-const APP_BUILD_DATE = '07.09.2026';
+const APP_VERSION = 'v12.0.138';
+const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -1713,7 +1713,22 @@ const translations = {
         'btn-collapse': 'Свернуть',
         'footer-build-label': 'Сборка',
         'footer-developer': 'Разработчик: Andrey Zubkov',
-        'btn-manual': 'Руководство'
+        'btn-manual': 'Руководство',
+
+        // Системный журнал аудита и логирования ошибок
+        'logs-title': '[ СИСТЕМНЫЙ ЖУРНАЛ И ОШИБКИ ]',
+        'logs-subtext': 'Аудит действий пользователей, авторизации, операций с базой и автоматический перехват ошибок JavaScript.',
+        'label-log-retention': 'Хранение логов:',
+        'btn-refresh-logs': 'Обновить',
+        'btn-export-logs': 'Экспорт',
+        'btn-clear-logs': 'Очистить',
+        'th-log-time': 'Время',
+        'th-log-level': 'Уровень',
+        'th-log-cat': 'Категория',
+        'th-log-user': 'Пользователь / IP',
+        'th-log-msg': 'Событие / Ошибка',
+        'th-log-details': 'Детали',
+        'modal-log-title': '[ ДЕТАЛИ И КОНТЕКСТ СОБЫТИЯ ]'
     },
     en: {
         'app-title': 'AeroBag Predictor: Baggage Weight Calculator',
@@ -1940,7 +1955,22 @@ const translations = {
         'btn-collapse': 'Collapse',
         'footer-build-label': 'Build',
         'footer-developer': 'Developer: Andrey Zubkov',
-        'btn-manual': 'Manual'
+        'btn-manual': 'Manual',
+
+        // System Audit and Error Logging
+        'logs-title': '[ SYSTEM AUDIT & ERROR LOGS ]',
+        'logs-subtext': 'User actions audit, authorization, database operations and automatic JavaScript error interception.',
+        'label-log-retention': 'Log Retention:',
+        'btn-refresh-logs': 'Refresh',
+        'btn-export-logs': 'Export',
+        'btn-clear-logs': 'Clear',
+        'th-log-time': 'Time',
+        'th-log-level': 'Level',
+        'th-log-cat': 'Category',
+        'th-log-user': 'User / IP',
+        'th-log-msg': 'Event / Error',
+        'th-log-details': 'Details',
+        'modal-log-title': '[ LOG EVENT CONTEXT DETAILS ]'
     }
 };
 
@@ -4720,6 +4750,7 @@ function setupTabs() {
             populateAirportDropdowns();
             loadUsersList();
             loadServerBackupsList();
+            loadSystemLogs();
         }
     }
 
@@ -5505,6 +5536,459 @@ window.createServerBackupNow = createServerBackupNow;
 window.downloadServerBackup = downloadServerBackup;
 window.restoreServerBackup = restoreServerBackup;
 window.deleteServerBackup = deleteServerBackup;
+
+// --------------------------------------------------------------------------
+// ГЛОБАЛЬНЫЙ ПЕРЕХВАТЧИК КЛИЕНТСКИХ ОШИБОК JAVASCRIPT
+// --------------------------------------------------------------------------
+
+const recentReportedErrors = new Set();
+
+function reportClientError(message, details = null, level = 'ERROR') {
+    const errorKey = `${message}_${JSON.stringify(details || '')}`;
+    if (recentReportedErrors.has(errorKey)) return; // Дедупликация
+    recentReportedErrors.add(errorKey);
+    setTimeout(() => recentReportedErrors.delete(errorKey), 10000); // Очистка ключа через 10 сек
+
+    // Локальное сохранение в оффлайн-журнал (LocalStorage)
+    try {
+        let localLogs = [];
+        const existing = localStorage.getItem('averago_local_system_logs');
+        if (existing) localLogs = JSON.parse(existing);
+        if (!Array.isArray(localLogs)) localLogs = [];
+
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const hh = String(now.getHours()).padStart(2, '0');
+        const min = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+
+        localLogs.unshift({
+            id: 'local_err_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            level: level,
+            category: 'CLIENT_JS',
+            message: String(message),
+            details: details ? (typeof details === 'string' ? details : JSON.stringify(details, null, 2)) : null,
+            username: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.username : 'CLIENT',
+            role: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.role : 'guest',
+            ip_address: '127.0.0.1 (Local)',
+            created_at: `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
+        });
+
+        if (localLogs.length > 500) localLogs = localLogs.slice(0, 500);
+        localStorage.setItem('averago_local_system_logs', JSON.stringify(localLogs));
+    } catch (e) {}
+
+    // Отправка на сервер
+    if (typeof isOfflineMode !== 'undefined' && !isOfflineMode) {
+        try {
+            fetch('api.php?action=log_client_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    level: level,
+                    message: message,
+                    details: details
+                })
+            }).catch(() => {});
+        } catch (e) {}
+    }
+}
+
+// Глобальный перехват необработанных ошибок
+window.addEventListener('error', function(e) {
+    if (!e) return;
+    const msg = e.message || 'Unknown Error';
+    const stack = e.error && e.error.stack ? e.error.stack : `${e.filename || 'app.js'}:${e.lineno || 0}:${e.colno || 0}`;
+    reportClientError(`JS Error: ${msg}`, { filename: e.filename, lineno: e.lineno, colno: e.colno, stack: stack }, 'ERROR');
+});
+
+// Глобальный перехват отклоненных промисов
+window.addEventListener('unhandledrejection', function(e) {
+    if (!e) return;
+    const reason = e.reason;
+    const msg = (reason && reason.message) ? reason.message : String(reason || 'Unhandled Promise Rejection');
+    const stack = (reason && reason.stack) ? reason.stack : null;
+    reportClientError(`Unhandled Rejection: ${msg}`, { stack: stack }, 'ERROR');
+});
+
+// --------------------------------------------------------------------------
+// МОДУЛЬ АУДИТА, ЛОГИРОВАНИЯ И МОНИТОРИНГА ОШИБОК (7 / 15 / 30 ДНЕЙ)
+// --------------------------------------------------------------------------
+
+let systemLogsList = [];
+let currentLogFilters = {
+    level: 'all',
+    category: 'all',
+    search: ''
+};
+let currentLogRetentionDays = 7;
+
+// Переключение раскрытия/складывания панели системных логов
+function toggleSystemLogsAccordion(e) {
+    if (e) {
+        if (e.target && (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('a'))) {
+            return;
+        }
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('system-logs-panel');
+    const toggleBtn = document.getElementById('btn-toggle-logs-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) {
+            iconEl.textContent = isCollapsed ? '▼' : '▲';
+        }
+    }
+
+    if (!isCollapsed) {
+        loadSystemLogs();
+    }
+}
+
+// Загрузка списка логов с сервера или локального хранилища
+async function loadSystemLogs() {
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    const tbody = document.getElementById('system-logs-table-body');
+    if (!tbody) return;
+
+    const queryParams = new URLSearchParams({
+        level: currentLogFilters.level,
+        category: currentLogFilters.category,
+        search: currentLogFilters.search,
+        limit: '300'
+    });
+
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch(`api.php?action=get_logs&${queryParams.toString()}`);
+            const data = await response.json();
+
+            if (data.success && Array.isArray(data.logs)) {
+                systemLogsList = data.logs;
+                if (data.retention_days) {
+                    currentLogRetentionDays = data.retention_days;
+                    const retentionSelect = document.getElementById('select-log-retention');
+                    if (retentionSelect) retentionSelect.value = String(data.retention_days);
+                }
+                updateLogsSummaryBadges(data.stats_24h, data.total_all || data.total);
+                renderLogsTable();
+                return;
+            }
+        } catch (err) {
+            console.warn("Серверная загрузка логов недоступна, переключаемся на локальные логи:", err);
+        }
+    }
+
+    // Резервный локальный режим (LocalStorage)
+    try {
+        let localLogs = [];
+        const stored = localStorage.getItem('averago_local_system_logs');
+        if (stored) localLogs = JSON.parse(stored);
+        if (!Array.isArray(localLogs)) localLogs = [];
+
+        // Фильтрация локальных логов
+        let filtered = localLogs;
+        if (currentLogFilters.level !== 'all') {
+            filtered = filtered.filter(l => l.level === currentLogFilters.level);
+        }
+        if (currentLogFilters.category !== 'all') {
+            filtered = filtered.filter(l => l.category === currentLogFilters.category);
+        }
+        if (currentLogFilters.search) {
+            const s = currentLogFilters.search.toLowerCase();
+            filtered = filtered.filter(l => 
+                (l.message && l.message.toLowerCase().includes(s)) ||
+                (l.username && l.username.toLowerCase().includes(s)) ||
+                (l.ip_address && l.ip_address.toLowerCase().includes(s))
+            );
+        }
+
+        systemLogsList = filtered;
+
+        // Подсчет сводки для оффлайна
+        const errorsCount = localLogs.filter(l => l.level === 'ERROR').length;
+        const warnsCount = localLogs.filter(l => l.level === 'WARNING').length;
+        updateLogsSummaryBadges({ errors: errorsCount, warnings: warnsCount }, localLogs.length);
+
+        renderLogsTable();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">Ошибка чтения системных логов</td></tr>`;
+    }
+}
+
+// Обновление бейджей сводки в шапке панели логов
+function updateLogsSummaryBadges(stats24h, totalCount) {
+    const errBadge = document.getElementById('logs-badge-errors');
+    const warnBadge = document.getElementById('logs-badge-warnings');
+    const totalBadge = document.getElementById('logs-badge-total');
+
+    const errCount = (stats24h && stats24h.errors !== undefined) ? stats24h.errors : 0;
+    const warnCount = (stats24h && stats24h.warnings !== undefined) ? stats24h.warnings : 0;
+    const tot = totalCount !== undefined ? totalCount : systemLogsList.length;
+
+    if (errBadge) {
+        errBadge.textContent = currentLang === 'ru' ? `🔴 ${errCount} ошибок` : `🔴 ${errCount} errors`;
+        errBadge.style.opacity = errCount > 0 ? '1' : '0.6';
+    }
+    if (warnBadge) {
+        warnBadge.textContent = currentLang === 'ru' ? `🟡 ${warnCount} пред.` : `🟡 ${warnCount} warns`;
+        warnBadge.style.opacity = warnCount > 0 ? '1' : '0.6';
+    }
+    if (totalBadge) {
+        totalBadge.textContent = currentLang === 'ru' ? `📄 ${tot} всего` : `📄 ${tot} total`;
+    }
+}
+
+// Отрисовка таблицы системных логов
+function renderLogsTable() {
+    const tbody = document.getElementById('system-logs-table-body');
+    if (!tbody) return;
+
+    if (systemLogsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text">${currentLang === 'ru' ? 'Записи в системном журнале не найдены.' : 'No log records found.'}</td></tr>`;
+        return;
+    }
+
+    let html = '';
+    systemLogsList.forEach(log => {
+        const lvl = (log.level || 'INFO').toUpperCase();
+        let levelClass = 'badge-level-info';
+        let rowClass = '';
+        if (lvl === 'ERROR') {
+            levelClass = 'badge-level-error';
+            rowClass = 'log-row-error';
+        } else if (lvl === 'WARNING') {
+            levelClass = 'badge-level-warning';
+            rowClass = 'log-row-warning';
+        }
+
+        const cat = (log.category || 'SYSTEM').toUpperCase();
+        let catClass = 'cat-' + cat.toLowerCase();
+
+        const userStr = escapeHtml(log.username || 'SYSTEM');
+        const ipStr = escapeHtml(log.ip_address || '-');
+        const timeStr = escapeHtml(log.created_at || '-');
+        const msgStr = escapeHtml(log.message || '-');
+        const hasDetails = Boolean(log.details);
+
+        html += `
+            <tr class="${rowClass}">
+                <td class="monospace-val" style="font-size: 0.76rem;">${timeStr}</td>
+                <td><span class="badge-log-level ${levelClass}">${lvl}</span></td>
+                <td><span class="badge-log-cat ${catClass}">${cat}</span></td>
+                <td>
+                    <div style="line-height: 1.2;">
+                        <strong style="font-size: 0.8rem;">${userStr}</strong>
+                        <div class="monospace-val" style="font-size: 0.7rem; color: var(--text-muted);">${ipStr}</div>
+                    </div>
+                </td>
+                <td class="log-msg-cell" title="${msgStr}">${msgStr}</td>
+                <td style="text-align: right;">
+                    ${hasDetails ? `<button type="button" class="btn-log-details" onclick="openLogDetailsModal('${escapeHtml(String(log.id))}')" title="Просмотр контекста">Детали 🔍</button>` : '<span style="opacity: 0.3; font-size: 0.75rem;">—</span>'}
+                </td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = html;
+}
+
+// Фильтрация логов
+function handleFilterLogs() {
+    const lvlEl = document.getElementById('filter-log-level');
+    const catEl = document.getElementById('filter-log-category');
+    if (lvlEl) currentLogFilters.level = lvlEl.value;
+    if (catEl) currentLogFilters.category = catEl.value;
+    loadSystemLogs();
+}
+
+let searchLogsTimeout = null;
+function handleSearchLogs(val) {
+    currentLogFilters.search = val.trim();
+    clearTimeout(searchLogsTimeout);
+    searchLogsTimeout = setTimeout(() => {
+        loadSystemLogs();
+    }, 300);
+}
+
+function handleRefreshLogs(e) {
+    if (e) e.stopPropagation();
+    loadSystemLogs();
+    showAviationAlert(currentLang === 'ru' ? 'Журнал логов обновлен.' : 'Logs refreshed.', false);
+}
+
+// Смена периода ротации логов (7 / 15 / 30 дней)
+async function handleLogRetentionChange(days) {
+    const numDays = parseInt(days, 10);
+    if (![7, 15, 30].includes(numDays)) return;
+
+    if (!isOfflineMode) {
+        try {
+            const response = await fetch('api.php?action=set_log_retention', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ days: numDays })
+            });
+            const data = await response.json();
+            if (data.success) {
+                currentLogRetentionDays = numDays;
+                showAviationAlert(data.message || `Период ротации установлен на ${numDays} дней.`, false);
+                await loadSystemLogs();
+                return;
+            } else {
+                showAviationAlert(data.error || 'Ошибка смены периода ротации.', true);
+            }
+        } catch (err) {
+            console.warn("Сбой сервера при установке ротации логов:", err);
+        }
+    }
+
+    currentLogRetentionDays = numDays;
+    showAviationAlert(`Период ротации установлен на ${numDays} дней (Локально).`, false);
+}
+
+// Очистка всех логов с подтверждением
+function handleClearLogsClick(e) {
+    if (e) e.stopPropagation();
+
+    const msg = currentLang === 'ru'
+        ? 'Вы уверены, что хотите полностью очистить журнал системных логов и ошибок? Это действие необратимо.'
+        : 'Are you sure you want to completely purge the system audit and error logs? This action cannot be undone.';
+
+    showAviationConfirm(msg, async () => {
+        if (!isOfflineMode) {
+            try {
+                const response = await fetch('api.php?action=clear_logs');
+                const data = await response.json();
+                if (data.success) {
+                    showAviationAlert(data.message || 'Журнал логов очищен.', false);
+                    await loadSystemLogs();
+                    return;
+                } else {
+                    showAviationAlert(data.error || 'Ошибка очистки логов.', true);
+                }
+            } catch (err) {
+                console.warn("Сбой сервера при очистке логов, очищаем локально:", err);
+            }
+        }
+
+        // Локальная очистка
+        localStorage.removeItem('averago_local_system_logs');
+        systemLogsList = [];
+        renderLogsTable();
+        updateLogsSummaryBadges({ errors: 0, warnings: 0 }, 0);
+        showAviationAlert(currentLang === 'ru' ? 'Журнал логов очищен (Локально).' : 'Logs purged locally.', false);
+    });
+}
+
+// Экспорт логов
+function handleExportLogsPrompt(e) {
+    if (e) e.stopPropagation();
+
+    if (!isOfflineMode) {
+        window.location.href = `api.php?action=export_logs&format=json&level=${encodeURIComponent(currentLogFilters.level)}&category=${encodeURIComponent(currentLogFilters.category)}`;
+        return;
+    }
+
+    // Локальный экспорт
+    try {
+        const stored = localStorage.getItem('averago_local_system_logs') || '[]';
+        const blob = new Blob([stored], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `aerobag_local_logs_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        showAviationAlert('Ошибка экспорта логов: ' + e.message, true);
+    }
+}
+
+// Открытие модалки деталей лога
+function openLogDetailsModal(logId) {
+    const log = systemLogsList.find(l => String(l.id) === String(logId));
+    if (!log) return;
+
+    const modal = document.getElementById('modal-log-details');
+    const metaEl = document.getElementById('log-modal-meta');
+    const msgEl = document.getElementById('log-modal-message');
+    const preEl = document.getElementById('log-modal-details-pre');
+    const iconEl = document.getElementById('log-modal-icon');
+
+    if (!modal) return;
+
+    const lvl = (log.level || 'INFO').toUpperCase();
+    if (iconEl) {
+        iconEl.textContent = lvl === 'ERROR' ? '🚨' : (lvl === 'WARNING' ? '⚠️' : '📋');
+    }
+
+    if (metaEl) {
+        metaEl.innerHTML = `
+            <div><span style="color:var(--text-muted)">ВРЕМЯ:</span> <strong class="monospace-val">${escapeHtml(log.created_at || '-')}</strong></div>
+            <div><span style="color:var(--text-muted)">УРОВЕНЬ:</span> <strong class="badge-log-level ${lvl === 'ERROR' ? 'badge-level-error' : (lvl === 'WARNING' ? 'badge-level-warning' : 'badge-level-info')}">${lvl}</strong></div>
+            <div><span style="color:var(--text-muted)">КАТЕГОРИЯ:</span> <strong class="badge-log-cat cat-${(log.category||'system').toLowerCase()}">${escapeHtml(log.category || '-')}</strong></div>
+            <div><span style="color:var(--text-muted)">ПОЛЬЗОВАТЕЛЬ:</span> <strong class="highlight-cyan">${escapeHtml(log.username || 'SYSTEM')} (${escapeHtml(log.role || '-')})</strong></div>
+            <div><span style="color:var(--text-muted)">IP АДРЕС:</span> <strong class="monospace-val">${escapeHtml(log.ip_address || '-')}</strong></div>
+        `;
+    }
+
+    if (msgEl) {
+        msgEl.textContent = log.message || '—';
+    }
+
+    if (preEl) {
+        if (log.details) {
+            if (typeof log.details === 'object') {
+                preEl.textContent = JSON.stringify(log.details, null, 2);
+            } else {
+                try {
+                    const parsed = JSON.parse(log.details);
+                    preEl.textContent = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    preEl.textContent = String(log.details);
+                }
+            }
+        } else {
+            preEl.textContent = 'Нет дополнительных контекстных данных.';
+        }
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeLogDetailsModal() {
+    const modal = document.getElementById('modal-log-details');
+    if (modal) modal.classList.add('hidden');
+}
+
+// Экспорт функций логов в window
+window.toggleSystemLogsAccordion = toggleSystemLogsAccordion;
+window.handleFilterLogs = handleFilterLogs;
+window.handleSearchLogs = handleSearchLogs;
+window.handleRefreshLogs = handleRefreshLogs;
+window.handleLogRetentionChange = handleLogRetentionChange;
+window.handleClearLogsClick = handleClearLogsClick;
+window.handleExportLogsPrompt = handleExportLogsPrompt;
+window.openLogDetailsModal = openLogDetailsModal;
+window.closeLogDetailsModal = closeLogDetailsModal;
+window.reportClientError = reportClientError;
 
 function escapeHtml(str) {
     if (!str) return '';

@@ -5557,4 +5557,210 @@ body.light-theme .backtest-table tbody tr:hover {
     background: rgba(2, 132, 199, 0.08) !important;
 }
 
+/* ==========================================================================
+   СИСТЕМА АУДИТА, ЛОГИРОВАНИЯ И МОНИТОРИНГА ОШИБОК (HUD LOGGING)
+   ========================================================================== */
+
+.system-logs-section {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.system-logs-section.collapsed .system-logs-body {
+    display: none;
+}
+
+.system-logs-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s ease;
+}
+
+.system-logs-header:hover {
+    background: rgba(0, 240, 255, 0.03);
+}
+
+/* Бейджи уровней логов */
+.badge-log-level {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.badge-log-level.badge-level-error {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.2);
+}
+
+.badge-log-level.badge-level-warning {
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.15);
+}
+
+.badge-log-level.badge-level-info {
+    background: rgba(0, 240, 255, 0.12);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+}
+
+/* Бейджи категорий логов */
+.badge-log-cat {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.badge-log-cat.cat-auth {
+    background: rgba(168, 85, 247, 0.15);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.35);
+}
+
+.badge-log-cat.cat-database {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border-color: rgba(14, 165, 233, 0.35);
+}
+
+.badge-log-cat.cat-backup {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border-color: rgba(34, 197, 94, 0.35);
+}
+
+.badge-log-cat.cat-client_js {
+    background: rgba(236, 72, 153, 0.15);
+    color: #f472b6;
+    border-color: rgba(236, 72, 153, 0.35);
+}
+
+.badge-log-cat.cat-system {
+    background: rgba(234, 179, 8, 0.15);
+    color: #facc15;
+    border-color: rgba(234, 179, 8, 0.35);
+}
+
+.badge-log-cat.cat-import {
+    background: rgba(20, 184, 166, 0.15);
+    color: #2dd4bf;
+    border-color: rgba(20, 184, 166, 0.35);
+}
+
+/* Таблица системных логов */
+.system-logs-table {
+    width: 100%;
+    table-layout: fixed;
+}
+
+.system-logs-table th,
+.system-logs-table td {
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    vertical-align: middle;
+}
+
+.system-logs-table td.log-msg-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+}
+
+.system-logs-table tr.log-row-error {
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.system-logs-table tr.log-row-warning {
+    background: rgba(245, 158, 11, 0.04);
+}
+
+.system-logs-table tr:hover {
+    background: rgba(0, 240, 255, 0.06) !important;
+}
+
+/* Кнопка деталей лога */
+.btn-log-details {
+    padding: 3px 8px;
+    font-size: 0.72rem;
+    font-family: var(--font-mono);
+    border-radius: 4px;
+    background: rgba(0, 240, 255, 0.1);
+    color: var(--accent-cyan);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-log-details:hover {
+    background: var(--accent-cyan);
+    color: #040814;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+/* Светлая тема для логов */
+body.light-theme .badge-log-level.badge-level-error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #dc2626;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+body.light-theme .badge-log-level.badge-level-warning {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+body.light-theme .badge-log-level.badge-level-info {
+    background: rgba(2, 132, 199, 0.12);
+    color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.35);
+}
+
+body.light-theme .logs-filter-bar {
+    background: #f8fafc;
+    border-color: rgba(2, 132, 199, 0.2);
+}
+
+body.light-theme .system-logs-table tr.log-row-error {
+    background: rgba(254, 242, 242, 0.7);
+}
+
+body.light-theme .system-logs-table tr.log-row-warning {
+    background: rgba(254, 252, 232, 0.7);
+}
+
+body.light-theme .system-logs-table tr:hover {
+    background: rgba(2, 132, 199, 0.08) !important;
+}
+
+body.light-theme .btn-log-details {
+    background: rgba(2, 132, 199, 0.1);
+    color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.3);
+}
+
+body.light-theme .btn-log-details:hover {
+    background: #0284c7;
+    color: #ffffff;
+}
+
+
 

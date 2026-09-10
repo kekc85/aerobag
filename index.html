@@ -977,6 +977,107 @@
                     </div>
                 </section>
 
+                <!-- Секция 3: Системный журнал аудита и логирования ошибок (Ротация 7 / 15 / 30 дней) -->
+                <section class="panel glass aviation-panel system-logs-section collapsed" id="system-logs-panel" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container system-logs-header" onclick="toggleSystemLogsAccordion(event)" style="padding-bottom: 6px;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2 class="panel-title" style="margin: 0;" data-translate="logs-title">[ SYSTEM AUDIT & ERROR LOGS ]</h2>
+                            <div class="logs-summary-badges" style="display: flex; align-items: center; gap: 8px;">
+                                <span id="logs-badge-errors" class="badge-role badge-role-admin" style="font-size: 0.72rem; background: rgba(239, 68, 68, 0.2); border-color: rgba(239, 68, 68, 0.5); color: #ef4444;">🔴 0 ошибок</span>
+                                <span id="logs-badge-warnings" class="badge-role badge-role-dispatcher" style="font-size: 0.72rem; background: rgba(245, 158, 11, 0.2); border-color: rgba(245, 158, 11, 0.5); color: #f59e0b;">🟡 0 пред.</span>
+                                <span id="logs-badge-total" class="badge-role" style="font-size: 0.72rem; background: rgba(0, 240, 255, 0.15); border-color: rgba(0, 240, 255, 0.4); color: var(--accent-cyan);">📄 0 всего</span>
+                            </div>
+                        </div>
+                        <div class="table-actions" style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btn-refresh-logs" class="btn btn-secondary aviation-btn" style="padding: 6px 12px;" title="Обновить журнал логов" onclick="handleRefreshLogs(event)">
+                                <span>🔄</span> <span data-translate="btn-refresh-logs">Обновить</span>
+                            </button>
+                            <button type="button" id="btn-export-logs" class="btn btn-secondary aviation-btn highlight-gold-btn" style="padding: 6px 12px;" title="Скачать выгрузку логов" onclick="handleExportLogsPrompt(event)">
+                                <span>📥</span> <span data-translate="btn-export-logs">Экспорт</span>
+                            </button>
+                            <button type="button" id="btn-clear-logs" class="btn btn-danger aviation-btn" style="padding: 6px 12px;" title="Очистить все логи" onclick="handleClearLogsClick(event)">
+                                <span>🗑️</span> <span data-translate="btn-clear-logs">Очистить</span>
+                            </button>
+                            <button type="button" id="btn-toggle-logs-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
+                                <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Скрываемое тело панели логов -->
+                    <div class="system-logs-body" style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                            <p class="dash-subtext" style="margin: 0;" data-translate="logs-subtext">Аудит действий пользователей, авторизации, операций с базой и автоматический перехват ошибок JavaScript.</p>
+                            
+                            <!-- Настройка глубины хранения логов (7 / 15 / 30 дней) -->
+                            <div class="log-retention-control" style="display: flex; align-items: center; gap: 8px;">
+                                <label for="select-log-retention" style="font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono); text-transform: uppercase;" data-translate="label-log-retention">Хранение логов:</label>
+                                <select id="select-log-retention" class="form-control" style="width: auto; padding: 4px 10px; font-size: 0.8rem; font-family: var(--font-mono);" onchange="handleLogRetentionChange(this.value)">
+                                    <option value="7">7 дней (по умолчанию)</option>
+                                    <option value="15">15 дней</option>
+                                    <option value="30">30 дней</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Панель фильтрации и поиска по логам -->
+                        <div class="logs-filter-bar" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; background: rgba(10, 20, 40, 0.4); padding: 10px 14px; border-radius: 6px; border: 1px solid rgba(0, 240, 255, 0.15);">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label for="filter-log-level" style="font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono);">УРОВЕНЬ:</label>
+                                <select id="filter-log-level" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onchange="handleFilterLogs()">
+                                    <option value="all">Все уровни</option>
+                                    <option value="ERROR">🔴 Ошибки (ERROR)</option>
+                                    <option value="WARNING">🟡 Предупреждения (WARN)</option>
+                                    <option value="INFO">🔵 Инфо / События (INFO)</option>
+                                </select>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <label for="filter-log-category" style="font-size: 0.78rem; color: var(--text-muted); font-family: var(--font-mono);">КАТЕГОРИЯ:</label>
+                                <select id="filter-log-category" class="form-control" style="width: auto; padding: 4px 8px; font-size: 0.8rem;" onchange="handleFilterLogs()">
+                                    <option value="all">Все категории</option>
+                                    <option value="AUTH">🔐 Авторизация (AUTH)</option>
+                                    <option value="DATABASE">🗄️ База рейсов (DATABASE)</option>
+                                    <option value="BACKUP">💾 Бэкапы (BACKUP)</option>
+                                    <option value="CLIENT_JS">💻 Ошибки JS (CLIENT_JS)</option>
+                                    <option value="SYSTEM">⚙️ Система (SYSTEM)</option>
+                                    <option value="IMPORT">📥 Импорт (IMPORT)</option>
+                                </select>
+                            </div>
+
+                            <div style="flex: 1; min-width: 200px;">
+                                <input type="text" id="input-search-logs" class="form-control" placeholder="Поиск по сообщению, пользователю или IP..." style="padding: 4px 10px; font-size: 0.8rem;" oninput="handleSearchLogs(this.value)">
+                            </div>
+                        </div>
+
+                        <!-- Таблица логов -->
+                        <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                            <table id="system-logs-table" class="flights-table aviation-table system-logs-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 140px;" data-translate="th-log-time">Время</th>
+                                        <th style="width: 90px;" data-translate="th-log-level">Уровень</th>
+                                        <th style="width: 110px;" data-translate="th-log-cat">Категория</th>
+                                        <th style="width: 140px;" data-translate="th-log-user">Пользователь / IP</th>
+                                        <th data-translate="th-log-msg">Событие / Ошибка</th>
+                                        <th style="width: 90px; text-align: right;" data-translate="th-log-details">Детали</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="system-logs-table-body">
+                                    <tr>
+                                        <td colspan="6" class="empty-table-text">Загрузка системного журнала...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Нижняя секция: Таблица рейсов в базе -->
                 <section class="panel glass table-section aviation-panel">
                     <div class="hud-corner top-left"></div>
@@ -1398,14 +1499,48 @@
         </div>
     </div>
 
+    <!-- Модальное окно просмотра деталей лога / ошибки (HUD) -->
+    <div id="modal-log-details" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel" style="max-width: 760px; width: 94%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="log-modal-icon" style="font-size: 1.2rem;">📋</span>
+                    <span id="log-modal-title" class="modal-title-text" data-translate="modal-log-title">[ LOG EVENT CONTEXT DETAILS ]</span>
+                </div>
+                <button type="button" id="btn-close-log-modal" class="btn-modal-close" style="background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; padding: 2px 8px;" onclick="closeLogDetailsModal()">✕</button>
+            </div>
+            
+            <div class="modal-body" style="padding: 16px 20px; overflow-y: auto; flex: 1;">
+                <div id="log-modal-meta" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-bottom: 14px; background: rgba(0,0,0,0.25); padding: 10px 14px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.8rem;">
+                    <!-- Метаданные (Время, Уровень, Категория, Пользователь, IP) -->
+                </div>
+                
+                <h4 style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent-cyan); margin-bottom: 6px; text-transform: uppercase;">Сообщение:</h4>
+                <div id="log-modal-message" style="background: rgba(10, 20, 40, 0.6); border: 1px solid rgba(0, 240, 255, 0.2); padding: 10px 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.85rem; color: #fff; margin-bottom: 14px; word-break: break-word;"></div>
+
+                <h4 style="font-family: var(--font-mono); font-size: 0.82rem; color: var(--accent-gold); margin-bottom: 6px; text-transform: uppercase;">Контекст и стек ошибки (Details / JSON / Stack):</h4>
+                <pre id="log-modal-details-pre" style="background: rgba(0, 5, 15, 0.85); border: 1px solid rgba(255, 183, 0, 0.25); padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 0.78rem; color: #38bdf8; max-height: 280px; overflow: auto; white-space: pre-wrap; word-break: break-all; margin: 0;"></pre>
+            </div>
+            
+            <div class="modal-footer" style="padding: 12px 20px 20px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary aviation-btn" onclick="closeLogDetailsModal()">[ ЗАКРЫТЬ ]</button>
+            </div>
+        </div>
+    </div>
+
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.137</span> (<span id="app-build-date">07.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.138</span> (<span id="app-build-date">10.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.137"></script>
+    <script src="app.js?v=v12.0.138"></script>
 </body>
 </html>
