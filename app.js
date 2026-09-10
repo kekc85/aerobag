@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.140';
+const APP_VERSION = 'v12.0.141';
 const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
@@ -2601,12 +2601,10 @@ function initLoadPlanningData() {
                 if (input.classList.contains('bulk-pcs-input')) {
                     const bulkId = input.id.replace('bulk-pcs-', '');
                     const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    // Если пользователь очистил места или ввел 0, сбрасываем ручную фиксацию веса
-                    if (input.value.trim() === '' || input.value === '0') {
-                        if (weightInput) {
-                            weightInput.removeAttribute('data-locked');
-                            weightInput.classList.remove('weight-locked');
-                        }
+                    // При любом изменении количества мест (ввод, стрелочки спиннера, очистка) сбрасываем фиксацию веса
+                    if (weightInput) {
+                        weightInput.removeAttribute('data-locked');
+                        weightInput.classList.remove('weight-locked');
                     }
                 } else if (input.classList.contains('bulk-weight-input')) {
                     if (input.value.trim() !== '' && input.value !== '0') {
@@ -2635,7 +2633,14 @@ function initLoadPlanningData() {
                         }
                     }
 
-                    if (input.classList.contains('bulk-weight-input') && input.value === '0') {
+                    if (input.classList.contains('bulk-pcs-input')) {
+                        const bulkId = input.id.replace('bulk-pcs-', '');
+                        const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
+                        if (weightInput) {
+                            weightInput.removeAttribute('data-locked');
+                            weightInput.classList.remove('weight-locked');
+                        }
+                    } else if (input.classList.contains('bulk-weight-input') && input.value === '0') {
                         input.removeAttribute('data-locked');
                         input.classList.remove('weight-locked');
                     }
@@ -4238,23 +4243,6 @@ function setupEventListeners() {
         }
     });
 
-    // Функция жесткого сброса при вводе более 1000 человек
-    const attachPaxMaxLimit = (id) => {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const enforce = () => {
-            if (el.value === '') return;
-            let val = parseInt(el.value, 10);
-            if (isNaN(val) || val < 0) {
-                el.value = 0;
-            } else if (val > 1000) {
-                el.value = 1000;
-            }
-        };
-        ['input', 'change', 'keyup', 'blur'].forEach(evt => el.addEventListener(evt, enforce));
-    };
-
-    ['input-pax', 'manual-men', 'manual-women', 'manual-rb', 'manual-rm'].forEach(attachPaxMaxLimit);
 
     // Обработчик переключения на кастомный аэропорт
     const manualFrom = document.getElementById('manual-from');
@@ -7392,9 +7380,9 @@ function formatDateStr(dateStr) {
     return dateStr;
 }
 
-// Валидация числовых полей ввода и автоочистка ведущих нулей
+// Валидация числовых полей ввода и автоочистка ведущих нулей (стандарт надежности без таймеров и мерцания)
 function setupNumericInputValidation() {
-    // Инпуты количества пассажиров и целых чисел в форме ручного ввода
+    // Инпуты целых чисел
     const integerInputs = [
         'input-pax',
         'manual-men',
@@ -7406,46 +7394,58 @@ function setupNumericInputValidation() {
 
     integerInputs.forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el || el.dataset.hasNumericValidation) return;
+        el.dataset.hasNumericValidation = 'true';
 
-        // При фокусе выделяем число для мгновенной перезаписи при необходимости
-        el.addEventListener('focus', () => {
-            setTimeout(() => {
-                if (typeof el.select === 'function') {
-                    el.select();
-                }
-            }, 10);
+        // Умное выделение без таймеров и конфликтов с кликом мыши
+        let isMouseDown = false;
+        el.addEventListener('mousedown', () => {
+            isMouseDown = (document.activeElement !== el);
         });
 
-        // Блокируем ввод запрещенных символов
+        el.addEventListener('focus', () => {
+            if (!isMouseDown) {
+                el.select();
+            }
+        });
+
+        el.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                el.select();
+            }
+        });
+
+        // Блокируем ввод запрещенных символов на аппаратном уровне
         el.addEventListener('keydown', (e) => {
             if (['-', '+', '.', ',', 'e', 'E'].includes(e.key)) {
                 e.preventDefault();
             }
         });
 
-        // Очистка от нечисловых символов при вставке
-        el.addEventListener('input', (e) => {
-            let val = e.target.value;
-            if (/[^0-9]/.test(val)) {
-                e.target.value = val.replace(/[^0-9]/g, '');
-            }
-        });
-
-        // Нормализация при уходе из поля (удаление ведущих нулей, минимум 1 для PAX)
-        el.addEventListener('blur', (e) => {
-            let val = e.target.value.trim();
-            if (val === '' || isNaN(val)) {
-                e.target.value = (id === 'input-pax') ? '150' : '0';
-            } else {
-                let num = parseInt(val, 10);
-                if (id === 'input-pax' && num < 1) {
-                    num = 1;
-                } else if (num < 0) {
-                    num = 0;
+        // Нормализация при завершении ввода (уход из поля или change)
+        ['change', 'blur'].forEach(evt => {
+            el.addEventListener(evt, () => {
+                let val = el.value.trim();
+                if (val === '' || isNaN(val)) {
+                    el.value = (id === 'input-pax') ? '150' : '0';
+                } else {
+                    let num = parseInt(val, 10);
+                    if (id === 'input-pax') {
+                        if (num < 1) num = 1;
+                        if (num > 1000) num = 1000;
+                    } else if (['manual-men', 'manual-women', 'manual-rb', 'manual-rm'].includes(id)) {
+                        if (num < 0) num = 0;
+                        if (num > 1000) num = 1000;
+                    } else if (id === 'manual-bag-pcs') {
+                        if (num < 0) num = 0;
+                        if (num > 2000) num = 2000;
+                    } else if (num < 0) {
+                        num = 0;
+                    }
+                    el.value = String(num);
                 }
-                e.target.value = String(num);
-            }
+            });
         });
     });
 
@@ -7457,39 +7457,46 @@ function setupNumericInputValidation() {
 
     floatInputs.forEach(id => {
         const el = document.getElementById(id);
-        if (!el) return;
+        if (!el || el.dataset.hasNumericValidation) return;
+        el.dataset.hasNumericValidation = 'true';
+
+        let isMouseDown = false;
+        el.addEventListener('mousedown', () => {
+            isMouseDown = (document.activeElement !== el);
+        });
 
         el.addEventListener('focus', () => {
-            setTimeout(() => {
-                if (typeof el.select === 'function') {
-                    el.select();
-                }
-            }, 10);
-        });
-
-        el.addEventListener('input', (e) => {
-            let val = e.target.value;
-            if (/[^0-9.]/.test(val)) {
-                let clean = val.replace(/[^0-9.]/g, '');
-                const parts = clean.split('.');
-                if (parts.length > 2) {
-                    clean = parts[0] + '.' + parts.slice(1).join('');
-                }
-                e.target.value = clean;
+            if (!isMouseDown) {
+                el.select();
             }
         });
 
-        el.addEventListener('blur', (e) => {
-            let val = e.target.value.trim();
-            if (val === '' || val === '.' || isNaN(parseFloat(val))) {
-                e.target.value = '0';
-            } else {
-                let clean = val;
-                if (clean.length > 1 && clean.startsWith('0') && clean[1] !== '.') {
-                    clean = clean.replace(/^0+/, '') || '0';
-                }
-                e.target.value = clean;
+        el.addEventListener('mouseup', () => {
+            if (isMouseDown) {
+                isMouseDown = false;
+                el.select();
             }
+        });
+
+        // Блокируем ввод запрещенных символов для веса
+        el.addEventListener('keydown', (e) => {
+            if (['-', '+', 'e', 'E'].includes(e.key)) {
+                e.preventDefault();
+            }
+        });
+
+        ['change', 'blur'].forEach(evt => {
+            el.addEventListener(evt, () => {
+                let val = el.value.trim().replace(',', '.');
+                if (val === '' || val === '.' || isNaN(parseFloat(val))) {
+                    el.value = '0';
+                } else {
+                    let num = parseFloat(val);
+                    if (num < 0) num = 0;
+                    if (num > 50000) num = 50000;
+                    el.value = String(Math.round(num * 10) / 10);
+                }
+            });
         });
     });
 }
