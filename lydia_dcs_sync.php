@@ -204,20 +204,21 @@ class LydiaDcsClient {
             // Для каждого завершенного рейса извлекаем детальный манифест
             foreach ($flights as &$flt) {
                 $manifest = $this->getFlightManifest($flt['flight_no_raw'], $flt['departure_date_raw'], $flt['dest_code'], $flt['departure_code']);
-                if ($manifest['success']) {
-                    $flt['manifest'] = $manifest['data'];
-                    $flt['men'] = $manifest['data']['men'];
-                    $flt['women'] = $manifest['data']['women'];
-                    $flt['vz'] = $manifest['data']['vz'];
-                    $flt['rb'] = $manifest['data']['rb'];
-                    $flt['rm'] = $manifest['data']['rm'];
-                    $flt['pax'] = $manifest['data']['pax'];
-                    $flt['bag_pcs'] = $manifest['data']['bag_pcs'];
-                    $flt['bag_weight'] = $manifest['data']['bag_weight'];
-                    $flt['hb_pcs'] = $manifest['data']['hb_pcs'];
-                    $flt['hb_weight'] = $manifest['data']['hb_weight'];
-                    $flt['zones'] = $manifest['data']['zones'];
-                }
+                $mData = ($manifest['success'] && !empty($manifest['data'])) ? $manifest['data'] : [];
+
+                $flt['manifest'] = $mData;
+                $flt['men'] = $mData['men'] ?? 0;
+                $flt['women'] = $mData['women'] ?? 0;
+                $flt['vz'] = $mData['vz'] ?? 0;
+                $flt['rb'] = $mData['rb'] ?? 0;
+                $flt['rm'] = $mData['rm'] ?? 0;
+                $flt['pax'] = $mData['pax'] ?? 0;
+                $flt['bag_pcs'] = $mData['bag_pcs'] ?? 0;
+                $flt['bag_weight'] = $mData['bag_weight'] ?? 0.0;
+                $flt['hb_pcs'] = $mData['hb_pcs'] ?? 0;
+                $flt['hb_weight'] = $mData['hb_weight'] ?? 0.0;
+                $flt['zones'] = $mData['zones'] ?? [];
+
                 $allFoundFlights[] = $flt;
             }
         }
@@ -331,7 +332,8 @@ class LydiaDcsClient {
             'departureDate' => $departureDate,
             'manifestoSort' => '0',
             'destCode' => $destCode,
-            'departure' => $departure
+            'departure' => $departure,
+            '_token' => $this->token
         ];
 
         $url = $this->baseUrl . '/ADSDCS/ajax/manifest/ajaxManifestFlightInfo.jsp';
