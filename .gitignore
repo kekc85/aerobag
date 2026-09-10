@@ -15,3 +15,9 @@ Thumbs.db
 
 # Agent skills (локальные)
 .agents/
+
+# DCS credentials and session cookies (local only, never commit)
+dcs_config.php
+dcs_session*.json
+dcs_cookies*.txt
+

@@ -43,6 +43,8 @@ try {
         html = html.replace(/<span id="app-version-tag">[^<]*<\/span>/, `<span id="app-version-tag">${vStr}</span>`);
         html = html.replace(/<span id="app-build-date">[^<]*<\/span>/, `<span id="app-build-date">${dateFormatted}</span>`);
         html = html.replace(/src="app\.js\?v=[^"]*"/, `src="app.js?v=${vStr}"`);
+        html = html.replace(/src="dcs_sync\.js\?v=[^"]*"/, `src="dcs_sync.js?v=${vStr}"`);
+        html = html.replace(/href="style\.css\?v=[^"]*"/, `href="style.css?v=${vStr}"`);
         fs.writeFileSync(indexHtmlPath, html, 'utf-8');
     }
 

@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.137';
-const APP_BUILD_DATE = '07.09.2026';
+const APP_VERSION = 'v12.0.140';
+const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -1711,6 +1711,8 @@ const translations = {
         'chk-strict-arrivals': 'Включить строгий фильтр по прилетам',
         'btn-expand': 'Развернуть',
         'btn-collapse': 'Свернуть',
+        'dcs-sync-btn-title': 'Синхронизация с Lydia DCS',
+        'dcs-sync-btn-sub': 'Парсинг закрытых рейсов в 1 клик',
         'footer-build-label': 'Сборка',
         'footer-developer': 'Разработчик: Andrey Zubkov',
         'btn-manual': 'Руководство'
@@ -1938,6 +1940,8 @@ const translations = {
         'chk-strict-arrivals': 'Enable strict arrivals filter',
         'btn-expand': 'Expand',
         'btn-collapse': 'Collapse',
+        'dcs-sync-btn-title': 'Sync with Lydia DCS',
+        'dcs-sync-btn-sub': '1-Click finalized flights & manifests ingestion',
         'footer-build-label': 'Build',
         'footer-developer': 'Developer: Andrey Zubkov',
         'btn-manual': 'Manual'

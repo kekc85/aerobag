@@ -5557,4 +5557,545 @@ body.light-theme .backtest-table tbody tr:hover {
     background: rgba(2, 132, 199, 0.08) !important;
 }
 
+/* ==========================================================================
+   LYDIA DCS SYNCHRONIZATION MODULE STYLES
+   ========================================================================== */
+
+.btn-dcs-sync-trigger {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 18px;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.15) 0%, rgba(2, 132, 199, 0.28) 100%);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    border-radius: 8px;
+    color: #e0f2fe;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: left;
+    box-shadow: 0 4px 15px rgba(0, 240, 255, 0.08);
+}
+
+.btn-dcs-sync-trigger:hover {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(2, 132, 199, 0.45) 100%);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.25);
+    transform: translateY(-1px);
+}
+
+.btn-dcs-icon {
+    font-size: 1.6rem;
+}
+
+.btn-dcs-text strong {
+    display: block;
+    font-size: 0.95rem;
+    color: var(--accent-cyan);
+    letter-spacing: 0.3px;
+}
+
+.btn-dcs-text small {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+/* Модальное окно DCS */
+.dcs-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(4, 9, 20, 0.85);
+    backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.dcs-modal-container {
+    width: 100%;
+    max-width: 1260px;
+    max-height: 90vh;
+    background: #0b1329;
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.7), 0 0 30px rgba(0, 240, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: dcsModalFadeIn 0.25s ease-out;
+}
+
+@keyframes dcsModalFadeIn {
+    from { opacity: 0; transform: scale(0.97) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dcs-modal-header {
+    padding: 16px 24px;
+    background: rgba(15, 23, 42, 0.9);
+    border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dcs-header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.dcs-logo-icon {
+    font-size: 1.8rem;
+}
+
+.dcs-header-title h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #f8fafc;
+    font-weight: 700;
+}
+
+.dcs-header-title p {
+    margin: 2px 0 0 0;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.dcs-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.dcs-modal-close:hover {
+    color: #f87171;
+}
+
+.dcs-modal-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Фильтры сканирования */
+.dcs-filter-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.dcs-filter-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.dcs-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-width: 140px;
+}
+
+.dcs-filter-group label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.dcs-input {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: #fff;
+    font-size: 0.88rem;
+}
+
+.dcs-input:focus {
+    border-color: var(--accent-cyan);
+    outline: none;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+}
+
+.dcs-pill-group {
+    display: flex;
+    gap: 6px;
+}
+
+.dcs-pill {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dcs-pill:hover, .dcs-pill.active {
+    background: rgba(14, 165, 233, 0.25);
+    border-color: var(--accent-cyan);
+    color: #fff;
+}
+
+/* Станции вылета чипсы */
+.dcs-stations-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.dcs-stations-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.dcs-stations-toggle a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.dcs-stations-toggle a:hover {
+    text-decoration: underline;
+}
+
+.dcs-stations-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dcs-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.78rem;
+    color: #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dcs-chip:has(input:checked) {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.dcs-chip input {
+    cursor: pointer;
+}
+
+.dcs-action-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dcs-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    cursor: pointer;
+}
+
+.dcs-btn-scan {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border: 1px solid rgba(0, 240, 255, 0.5);
+    border-radius: 6px;
+    color: #fff;
+    padding: 10px 20px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+}
+
+.dcs-btn-scan:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.dcs-btn-scan:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Индикатор прогресса */
+.dcs-progress-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(0, 240, 255, 0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.dcs-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(0, 240, 255, 0.2);
+    border-top-color: var(--accent-cyan);
+    border-radius: 50%;
+    animation: dcsSpin 0.8s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes dcsSpin {
+    to { transform: rotate(360deg); }
+}
+
+.dcs-progress-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dcs-progress-text-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#dcsProgressText {
+    font-size: 0.88rem;
+    color: #f1f5f9;
+    font-weight: 500;
+}
+
+#dcsProgressPercent {
+    font-size: 0.9rem;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
+}
+
+.dcs-progress-bar-wrap {
+    height: 10px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 5px;
+    overflow: hidden;
+    position: relative;
+}
+
+.dcs-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #0284c7 0%, #00f0ff 100%);
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
+    transition: width 0.35s ease-in-out;
+    border-radius: 4px;
+}
+
+/* Таблица результатов */
+.dcs-results-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dcs-results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.85rem;
+    color: #e2e8f0;
+}
+
+.dcs-select-tools {
+    display: flex;
+    gap: 6px;
+}
+
+.dcs-btn-mini {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.dcs-btn-mini:hover {
+    border-color: var(--accent-cyan);
+    color: #fff;
+}
+
+.dcs-table-wrapper {
+    max-height: 420px;
+    overflow-x: auto;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.dcs-preview-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.dcs-preview-table th {
+    background: rgba(15, 23, 42, 0.95);
+    color: var(--text-secondary);
+    padding: 9px 12px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
+}
+
+.dcs-preview-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    white-space: nowrap;
+}
+
+.dcs-row-new {
+    background: rgba(16, 185, 129, 0.04);
+}
+
+.dcs-row-new:hover {
+    background: rgba(16, 185, 129, 0.1) !important;
+}
+
+.dcs-row-existing {
+    opacity: 0.75;
+}
+
+.dcs-row-existing:hover {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
+.dcs-flt-badge {
+    display: inline-block;
+    background: rgba(2, 132, 199, 0.25);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.dcs-status-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.dcs-status-tag.new {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.dcs-status-tag.exist {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+/* Подвал модального окна */
+.dcs-modal-footer {
+    padding: 14px 24px;
+    background: rgba(15, 23, 42, 0.9);
+    border-top: 1px solid rgba(0, 240, 255, 0.2);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.dcs-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: #cbd5e1;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.dcs-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.dcs-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: 1px solid rgba(52, 211, 153, 0.5);
+    border-radius: 6px;
+    padding: 8px 20px;
+    color: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.2s;
+}
+
+.dcs-btn-primary:hover {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+    transform: translateY(-1px);
+}
+
+.dcs-btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+
 
