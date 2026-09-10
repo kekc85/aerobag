@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.155';
+const APP_VERSION = 'v12.0.156';
 const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
@@ -5627,7 +5627,15 @@ let currentLogRetentionDays = 7;
 // Переключение раскрытия/складывания панели системных логов
 function toggleSystemLogsAccordion(e) {
     if (e) {
-        if (e.target && (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('a'))) {
+        // Игнорируем клики по вспомогательным кнопкам действий, но разрешаем клик по кнопке переключения
+        if (e.target && !e.target.closest('#btn-toggle-logs-collapse') && (
+            e.target.closest('#btn-refresh-logs') || 
+            e.target.closest('#btn-export-logs') || 
+            e.target.closest('#btn-clear-logs') || 
+            e.target.closest('select') || 
+            e.target.closest('input') || 
+            e.target.closest('a')
+        )) {
             return;
         }
         e.stopPropagation();
