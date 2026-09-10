@@ -10,13 +10,13 @@ echo                       FLIGHT OPS CONTROL SYSTEM
 echo ======================================================================
 echo.
 echo  [SYSTEM INITIALIZATION]
-echo  - Starting local HTTP web server on port 8080...
+echo  - Starting local HTTP and Lydia DCS server on port 8080...
 echo  - Launching browser at http://localhost:8080...
 echo.
 
 cd /d "%~dp0"
 
-powershell -Command "Start-Process python -ArgumentList '-m http.server 8080' -WindowStyle Hidden"
+powershell -Command "Start-Process python -ArgumentList 'dcs_server.py' -WindowStyle Hidden"
 timeout /t 1 > nul
 start "" "http://localhost:8080"
 
