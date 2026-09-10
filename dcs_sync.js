@@ -302,6 +302,7 @@
 
             const totalStations = checkedStations.length;
             const seenIds = new Set();
+            let lastScanError = '';
 
             for (let i = 0; i < totalStations; i++) {
                 const locCode = checkedStations[i];
@@ -313,6 +314,7 @@
                 try {
                     const resp = await fetch(endpoint, {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             start_date: startDateDcs,
@@ -330,8 +332,12 @@
                                 scannedFlights.push(flt);
                             }
                         }
+                    } else if (data && !data.success && data.error) {
+                        lastScanError = data.error;
+                        console.warn(`Error scanning station ${locCode}:`, data.error);
                     }
                 } catch (locErr) {
+                    lastScanError = locErr.message;
                     console.warn(`Error scanning station ${locCode}:`, locErr);
                 }
 
@@ -342,7 +348,7 @@
             updateProgress(`Сбор завершен! Всего найдено рейсов: ${scannedFlights.length}`, 100);
             await new Promise(r => setTimeout(r, 450));
 
-            renderDcsTable(scannedFlights);
+            renderDcsTable(scannedFlights, lastScanError);
 
         } catch (err) {
             console.error('DCS Scan Error:', err);
@@ -354,12 +360,15 @@
         }
     };
 
-    function renderDcsTable(flights) {
+    function renderDcsTable(flights, lastError) {
         const tbody = document.getElementById('dcsTableBody');
         tbody.innerHTML = '';
 
         if (flights.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 24px; color: #a0aec0;">Рейсов со статусом Finalize за выбранный период не найдено.</td></tr>`;
+            const errorMsg = lastError 
+                ? `Внимание: ${lastError}` 
+                : `Рейсов со статусом Finalize за выбранный период не найдено.`;
+            tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; padding: 24px; color: ${lastError ? '#f87171' : '#a0aec0'};">${errorMsg}</td></tr>`;
             document.getElementById('dcsResultsSection').style.display = 'block';
             document.getElementById('dcsFoundCount').innerText = '0';
             document.getElementById('dcsNewCount').innerText = '0 новых';
@@ -451,6 +460,7 @@
 
             const resp = await fetch(endpoint, {
                 method: 'POST',
+                credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ flights: selectedFlights })
             });
