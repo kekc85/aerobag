@@ -181,4 +181,6 @@
 - Внедрена система аудита действий, системного логирования и мониторинга ошибок:
   * Backend (`api.php`): Таблица `system_logs` (уровни INFO, WARNING, ERROR; категории AUTH, DATABASE, BACKUP, CLIENT_JS, SYSTEM, IMPORT), защищенная аварийная директория `logs/emergency.log` с `.htaccess`, ротация логов (7 по умолч., 15, 30 дней), эндпоинты `get_logs`, `set_log_retention`, `clear_logs`, `export_logs` (JSON/TXT), `log_client_error`.
   * Frontend (`index.html`, `style.css`, `app.js`): Складываемый аккордеон в панели «Администрирование» со сводными бейджами ошибок/предупреждений за 24ч, фильтрацией по уровню/категории, живым поиском, селектором ротации (7/15/30 дн.), модальным окном детализации контекста/JSON/стека, глобальным перехватом JS-ошибок (`window.onerror`, `unhandledrejection`) и 100% автономной оффлайн-поддержкой (`averago_local_system_logs`).
+- Выполнен релиз сборки v12.0.154 и успешный деплой в ветки `main` и `production`. CI/CD пайплайн GitHub Actions синхронизирует боевой сервер Beget.
+
 
