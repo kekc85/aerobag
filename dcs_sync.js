@@ -66,9 +66,9 @@
                             <div class="dcs-filter-group dcs-quick-dates">
                                 <label>Быстрый выбор</label>
                                 <div class="dcs-pill-group">
-                                    <button type="button" class="dcs-pill" onclick="window.setDcsQuickDate('today')">Сегодня</button>
-                                    <button type="button" class="dcs-pill active" onclick="window.setDcsQuickDate('yesterday')">Вчера и Сегодня</button>
-                                    <button type="button" class="dcs-pill" onclick="window.setDcsQuickDate('3days')">3 дня</button>
+                                    <button type="button" class="dcs-pill" onclick="window.setDcsQuickDate('today', event)">Сегодня</button>
+                                    <button type="button" class="dcs-pill active" onclick="window.setDcsQuickDate('yesterday', event)">Вчера и Сегодня</button>
+                                    <button type="button" class="dcs-pill" onclick="window.setDcsQuickDate('3days', event)">3 дня</button>
                                 </div>
                             </div>
                         </div>
@@ -193,7 +193,7 @@
         }
     };
 
-    window.setDcsQuickDate = function(type) {
+    window.setDcsQuickDate = function(type, evt) {
         const startInput = document.getElementById('dcsStartDate');
         const endInput = document.getElementById('dcsEndDate');
         if (!startInput || !endInput) return;
@@ -223,8 +223,11 @@
 
         // Подсветка кнопок
         document.querySelectorAll('.dcs-pill').forEach(btn => btn.classList.remove('active'));
-        if (event && event.target && event.target.classList.contains('dcs-pill')) {
-            event.target.classList.add('active');
+        if (evt && evt.target && evt.target.classList && evt.target.classList.contains('dcs-pill')) {
+            evt.target.classList.add('active');
+        } else {
+            const defaultBtn = document.querySelector(`.dcs-pill[onclick*="'${type}'"]`);
+            if (defaultBtn) defaultBtn.classList.add('active');
         }
     };
 
