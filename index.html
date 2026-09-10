@@ -35,9 +35,10 @@
                     <span class="logo-accent">AeroBag</span> Predictor
                 </div>
                 <span class="logo-sub" data-translate="logo-sub">FLIGHT OPS CONTROL</span>
-                <div class="header-status-indicator">
-                    <span class="status-pulse"></span>
-                    <span class="status-text" data-translate="status-dispatch">ДИСПЕТЧЕР ОНЛАЙН</span>
+                <div class="header-status-indicator" id="header-status-indicator" title="Состояние системы и соединения с базой">
+                    <span class="status-pulse" id="status-pulse-dot"></span>
+                    <span class="status-text" id="status-text-label" data-translate="status-dispatch">ДИСПЕТЧЕР ОНЛАЙН</span>
+                    <span class="status-ping-badge" id="header-server-ping" style="display: none;">32ms</span>
                 </div>
             </div>
 
@@ -977,6 +978,218 @@
                     </div>
                 </section>
 
+                <!-- Секция 3: Telegram-уведомления и мониторинг сбоев -->
+                <section class="panel glass aviation-panel telegram-section collapsed" id="telegram-panel" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container telegram-header" onclick="toggleTelegramAccordion(event)" style="padding-bottom: 6px; cursor: pointer;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2 class="panel-title" style="margin: 0;" data-translate="telegram-title">[ TELEGRAM ALERTING & OBSERVABILITY ]</h2>
+                            <div class="telegram-summary-badges" style="display: flex; align-items: center; gap: 8px;">
+                                <span id="telegram-status-badge" class="badge-role badge-role-dispatcher" style="font-size: 0.72rem;">⚪ Отключено</span>
+                                <span id="telegram-chat-badge" class="badge-role badge-role-admin" style="font-size: 0.72rem; display: none;">ID: —</span>
+                            </div>
+                        </div>
+                        <div class="table-actions" style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btn-toggle-telegram-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
+                                <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Скрываемое тело панели Telegram -->
+                    <div class="telegram-body" style="margin-top: 12px;">
+                        <p class="dash-subtext" style="margin-bottom: 14px;" data-translate="telegram-subtext">Мгновенная отправка алертов о критических ошибках и сбоях системы диспетчеров прямо в Telegram администратора.</p>
+
+                        <form id="form-telegram-settings" onsubmit="handleSaveTelegramConfig(event)">
+                            <div class="telegram-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                                <!-- Поле: Bot Token -->
+                                <div class="form-group" style="margin: 0;">
+                                    <label for="input-telegram-token" style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span data-translate="label-telegram-token">Токен Telegram-бота (Bot Token):</span>
+                                        <span style="font-size: 0.72rem; color: var(--accent-cyan);">От @BotFather</span>
+                                    </label>
+                                    <div class="password-input-wrapper" style="position: relative; display: flex; align-items: center;">
+                                        <input type="password" id="input-telegram-token" class="form-control" placeholder="1234567890:AAHfj..." autocomplete="off" style="padding-right: 40px; font-family: var(--font-mono); font-size: 0.85rem;">
+                                        <button type="button" class="btn-toggle-pwd" onclick="togglePasswordVisibility('input-telegram-token', this)" title="Показать/скрыть токен" style="position: absolute; right: 8px; background: none; border: none; cursor: pointer; font-size: 1rem; color: var(--text-muted);">👁️</button>
+                                    </div>
+                                </div>
+
+                                <!-- Поле: Chat ID -->
+                                <div class="form-group" style="margin: 0;">
+                                    <label for="input-telegram-chatid" style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span data-translate="label-telegram-chatid">ID чата / группы (Chat ID):</span>
+                                        <span style="font-size: 0.72rem; color: var(--accent-gold);">Личный или группы (-100...)</span>
+                                    </label>
+                                    <input type="text" id="input-telegram-chatid" class="form-control" placeholder="например, 123456789 или -100123456789" autocomplete="off" style="font-family: var(--font-mono); font-size: 0.85rem;">
+                                </div>
+                            </div>
+
+                            <!-- Чекбокс активности и кнопки управления -->
+                            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding-top: 8px; border-top: 1px solid rgba(0, 240, 255, 0.15);">
+                                <label class="aviation-checkbox-container" style="cursor: pointer; display: inline-flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="chk-telegram-enable">
+                                    <strong style="color: var(--accent-cyan); font-size: 0.88rem;" data-translate="chk-telegram-enable">Включить автоматическую отправку алертов об ошибках</strong>
+                                </label>
+
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <button type="button" id="btn-test-telegram" class="btn btn-secondary aviation-btn highlight-cyan-btn" onclick="handleTestTelegramConnection(event)">
+                                        <span>🧪</span> <span data-translate="btn-test-telegram">Тест соединения</span>
+                                    </button>
+                                    <button type="submit" id="btn-save-telegram" class="btn btn-primary aviation-btn">
+                                        <span>💾</span> <span data-translate="btn-save-telegram">Сохранить настройки</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Инструкция-шпаргалка -->
+                        <div class="telegram-hint-box" style="margin-top: 14px; padding: 10px 14px; background: rgba(0, 240, 255, 0.05); border: 1px dashed rgba(0, 240, 255, 0.25); border-radius: 6px; font-size: 0.78rem; color: var(--text-secondary); line-height: 1.5;">
+                            💡 <strong>Как быстро настроить бота:</strong>
+                            1. Откройте в Telegram <code>@BotFather</code> и отправьте команду <code>/newbot</code>. Скопируйте полученный <strong>API Token</strong>.
+                            2. Отправьте боту любое сообщение в личку (или добавьте в группу диспетчеров).
+                            3. Узнайте свой <strong>Chat ID</strong> через бота <code>@userinfobot</code> или <code>@getmyid_bot</code> и вставьте в поле выше.
+                            4. Нажмите <strong>«Тест соединения»</strong> для проверки отправки.
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Секция 4: Журнал аудита действий (Audit Trail) -->
+                <section class="panel glass aviation-panel audit-section collapsed" id="audit-panel" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container audit-header" onclick="toggleAuditAccordion(event)" style="padding-bottom: 6px; cursor: pointer;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2 class="panel-title" style="margin: 0;" data-translate="audit-title">[ SECURITY AUDIT TRAIL & ACTIVITY LOG ]</h2>
+                            <div class="audit-summary-badges" style="display: flex; align-items: center; gap: 8px;">
+                                <span id="audit-count-badge" class="badge-role badge-role-admin" style="font-size: 0.72rem;">📋 0 записей</span>
+                            </div>
+                        </div>
+                        <div class="table-actions" style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btn-refresh-audit" class="btn btn-secondary aviation-btn" onclick="handleRefreshAuditLogs(event)" title="Обновить журнал аудита">
+                                <span>🔄</span> <span data-translate="btn-refresh">Обновить</span>
+                            </button>
+                            <button type="button" id="btn-toggle-audit-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
+                                <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Скрываемое тело панели аудита -->
+                    <div class="audit-body" style="margin-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                            <p class="dash-subtext" style="margin: 0;" data-translate="audit-subtext">Фиксация всех значимых действий пользователей, изменений рейсов, бэкапов и попыток авторизации.</p>
+                            
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <select id="audit-filter-type" class="form-control" style="font-size: 0.8rem; padding: 4px 10px; width: auto;" onchange="handleFilterAuditLogs()">
+                                    <option value="ALL">Все типы событий</option>
+                                    <option value="AUTH_LOGIN">Входы (AUTH_LOGIN)</option>
+                                    <option value="AUTH_FAILED">Отказы входа (AUTH_FAILED)</option>
+                                    <option value="USER_CREATE">Создание пользователей</option>
+                                    <option value="PASSWORD_CHANGE">Смена паролей</option>
+                                    <option value="FLIGHT_SAVE">Импорт рейсов</option>
+                                    <option value="FLIGHT_DELETE">Удаление рейсов</option>
+                                    <option value="BACKUP_CREATE">Создание бэкапов</option>
+                                    <option value="BACKUP_RESTORE">Восстановление базы</option>
+                                    <option value="SETTINGS_UPDATE">Настройки системы</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                            <table id="audit-table" class="flights-table aviation-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 140px;" data-translate="th-audit-time">Время</th>
+                                        <th style="width: 130px;" data-translate="th-audit-user">Пользователь</th>
+                                        <th style="width: 150px;" data-translate="th-audit-event">Событие</th>
+                                        <th data-translate="th-audit-desc">Описание действия</th>
+                                        <th style="width: 120px;" data-translate="th-audit-ip">IP-адрес</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-table-body">
+                                    <tr>
+                                        <td colspan="5" class="empty-table-text">Загрузка журнала аудита...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Секция 5: Диагностика и технические метрики системы (System Diagnostics) -->
+                <section class="panel glass aviation-panel diagnostics-section collapsed" id="diagnostics-panel" style="margin-bottom: 20px;">
+                    <div class="hud-corner top-left"></div>
+                    <div class="hud-corner top-right"></div>
+                    <div class="hud-corner bottom-left"></div>
+                    <div class="hud-corner bottom-right"></div>
+                    
+                    <div class="table-header-container diagnostics-header" onclick="toggleDiagnosticsAccordion(event)" style="padding-bottom: 6px; cursor: pointer;">
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <h2 class="panel-title" style="margin: 0;" data-translate="diagnostics-title">[ SYSTEM HEALTH & DATABASE DIAGNOSTICS ]</h2>
+                            <div class="diagnostics-summary-badges" style="display: flex; align-items: center; gap: 8px;">
+                                <span id="diag-db-size-badge" class="badge-role badge-role-dispatcher" style="font-size: 0.72rem;">DB: — MB</span>
+                                <span id="diag-php-badge" class="badge-role badge-role-admin" style="font-size: 0.72rem;">PHP: —</span>
+                            </div>
+                        </div>
+                        <div class="table-actions" style="display: flex; align-items: center; gap: 8px;">
+                            <button type="button" id="btn-refresh-diagnostics" class="btn btn-secondary aviation-btn" onclick="handleRefreshDiagnostics(event)" title="Обновить диагностику">
+                                <span>🔄</span> <span data-translate="btn-refresh">Обновить</span>
+                            </button>
+                            <button type="button" id="btn-toggle-diagnostics-collapse" class="btn btn-secondary aviation-btn btn-collapse-toggle" title="Развернуть/свернуть панель">
+                                <span class="collapse-icon">▼</span> <span class="collapse-text" data-translate="btn-expand">Развернуть</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Скрываемое тело панели диагностики -->
+                    <div class="diagnostics-body" style="margin-top: 12px;">
+                        <p class="dash-subtext" style="margin-bottom: 14px;" data-translate="diagnostics-subtext">Сводные технические метрики производительности, целостности базы данных и системного окружения хостинга.</p>
+
+                        <div class="diagnostics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                            <div class="diag-card glass aviation-subpanel" style="padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(0, 240, 255, 0.2);">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Объем базы MySQL</span>
+                                <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+                                    <strong id="diag-val-db-size" style="font-size: 1.4rem; color: var(--accent-cyan); font-family: var(--font-mono);">0.00</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-secondary);">MB</span>
+                                </div>
+                                <span id="diag-val-db-flights" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; display: block;">0 рейсов в базе</span>
+                            </div>
+
+                            <div class="diag-card glass aviation-subpanel" style="padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.2);">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Резервные копии</span>
+                                <div style="display: flex; align-items: baseline; gap: 6px; margin-top: 4px;">
+                                    <strong id="diag-val-backup-count" style="font-size: 1.4rem; color: var(--accent-gold); font-family: var(--font-mono);">0</strong>
+                                    <span style="font-size: 0.8rem; color: var(--text-secondary);">файлов</span>
+                                </div>
+                                <span id="diag-val-backup-size" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; display: block;">Объем: 0 MB</span>
+                            </div>
+
+                            <div class="diag-card glass aviation-subpanel" style="padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Диапазон истории</span>
+                                <div style="margin-top: 4px;">
+                                    <strong id="diag-val-date-range" style="font-size: 0.92rem; color: var(--accent-green, #10b981); font-family: var(--font-mono);">-</strong>
+                                </div>
+                                <span id="diag-val-airlines" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; display: block;">АК: —</span>
+                            </div>
+
+                            <div class="diag-card glass aviation-subpanel" style="padding: 12px 14px; border-radius: 8px; border: 1px solid rgba(139, 92, 246, 0.2);">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;">Окружение сервера</span>
+                                <div style="margin-top: 4px;">
+                                    <strong id="diag-val-server-env" style="font-size: 0.92rem; color: #a78bfa; font-family: var(--font-mono);">PHP / Linux</strong>
+                                </div>
+                                <span id="diag-val-log-size" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; display: block;">Лог ошибок: 0 KB</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- Нижняя секция: Таблица рейсов в базе -->
                 <section class="panel glass table-section aviation-panel">
                     <div class="hud-corner top-left"></div>
@@ -1399,13 +1612,13 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.137</span> (<span id="app-build-date">07.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.138</span> (<span id="app-build-date">10.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.137"></script>
+    <script src="app.js?v=v12.0.138"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.137';
-const APP_BUILD_DATE = '07.09.2026';
+const APP_VERSION = 'v12.0.138';
+const APP_BUILD_DATE = '10.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -4436,9 +4436,15 @@ async function checkAuthStatus() {
                 updateUserHeaderUI();
                 updateTabsRoleAccess();
                 
+                initClientErrorTelemetry();
+                startHealthCheckPolling();
+
                 if (currentUser.role === 'admin') {
                     loadUsersList();
                     loadServerBackupsList();
+                    loadTelegramSettings();
+                    loadAuditLogs();
+                    loadSystemDiagnostics();
                 }
                 await loadUserFlights();
                 return true;
@@ -4720,6 +4726,9 @@ function setupTabs() {
             populateAirportDropdowns();
             loadUsersList();
             loadServerBackupsList();
+            loadTelegramSettings();
+            loadAuditLogs();
+            loadSystemDiagnostics();
         }
     }
 
@@ -5505,6 +5514,473 @@ window.createServerBackupNow = createServerBackupNow;
 window.downloadServerBackup = downloadServerBackup;
 window.restoreServerBackup = restoreServerBackup;
 window.deleteServerBackup = deleteServerBackup;
+
+// --------------------------------------------------------------------------
+// МОДУЛЬ НАБЛЮДАЕМОСТИ, HEALTH CHECK, TELEGRAM ALERTING & AUDIT TRAIL
+// --------------------------------------------------------------------------
+
+let auditLogsList = [];
+let telegramConfig = { bot_token: '', chat_id: '', is_enabled: false };
+let isHealthPollingActive = false;
+
+// 1. Глобальный перехват ошибок на клиенте с отправкой телеметрии
+function initClientErrorTelemetry() {
+    window.addEventListener('error', (event) => {
+        try {
+            const errorMsg = event.message || (event.error && event.error.message) || 'Script error';
+            const stack = (event.error && event.error.stack) || `${event.filename || ''}:${event.lineno || ''}:${event.colno || ''}`;
+            sendErrorLogToServer(errorMsg, stack, 'client_uncaught_error');
+        } catch (e) {}
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+        try {
+            const reason = event.reason;
+            const errorMsg = reason ? (reason.message || String(reason)) : 'Unhandled Promise Rejection';
+            const stack = (reason && reason.stack) || '';
+            sendErrorLogToServer(errorMsg, stack, 'client_unhandled_rejection');
+        } catch (e) {}
+    });
+}
+
+// Отправка ошибки на сервер
+async function sendErrorLogToServer(message, stack, source) {
+    if (isOfflineMode) return;
+    try {
+        let activeFlightContext = '-';
+        if (typeof selectedFlight !== 'undefined' && selectedFlight) {
+            activeFlightContext = `${selectedFlight.airline || ''}-${selectedFlight.flight_no || ''} ${selectedFlight.from || ''}->${selectedFlight.to || ''} (${selectedFlight.date || ''})`;
+        }
+
+        const payload = {
+            message: String(message),
+            stack: String(stack || ''),
+            source: source || 'client_js',
+            flight_context: activeFlightContext,
+            url: window.location.href,
+            username: (currentUser && currentUser.username) ? currentUser.username : 'anonymous'
+        };
+
+        if (navigator.sendBeacon) {
+            const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+            navigator.sendBeacon('api.php?action=log_error', blob);
+        } else {
+            fetch('api.php?action=log_error', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                keepalive: true
+            }).catch(() => {});
+        }
+    } catch (e) {}
+}
+
+// 2. Периодический Health Check и живой пинг в шапке
+async function performSystemHealthCheck() {
+    const pingBadge = document.getElementById('header-server-ping');
+    const pulseDot = document.getElementById('status-pulse-dot');
+    const statusLabel = document.getElementById('status-text-label');
+
+    if (isOfflineMode) {
+        if (pingBadge) {
+            pingBadge.style.display = 'inline-block';
+            pingBadge.textContent = 'OFFLINE';
+            pingBadge.className = 'status-ping-badge ping-slow';
+        }
+        if (statusLabel) statusLabel.textContent = currentLang === 'ru' ? 'АВТОНОМНЫЙ РЕЖИМ' : 'OFFLINE MODE';
+        return;
+    }
+
+    const t0 = performance.now();
+    try {
+        const response = await fetch('api.php?action=health', { cache: 'no-store' });
+        const latency = Math.round(performance.now() - t0);
+        const data = await response.json();
+
+        if (data && data.success && data.status === 'healthy') {
+            if (pingBadge) {
+                pingBadge.style.display = 'inline-block';
+                pingBadge.textContent = `${latency}ms`;
+                pingBadge.className = 'status-ping-badge ' + (latency < 100 ? 'ping-fast' : (latency < 300 ? 'ping-medium' : 'ping-slow'));
+            }
+            if (statusLabel) statusLabel.textContent = currentLang === 'ru' ? 'ДИСПЕТЧЕР ОНЛАЙН' : 'DISPATCHER ONLINE';
+            if (pulseDot) pulseDot.style.background = '#00f0ff';
+        } else {
+            if (pingBadge) {
+                pingBadge.style.display = 'inline-block';
+                pingBadge.textContent = 'DEGRADED';
+                pingBadge.className = 'status-ping-badge ping-medium';
+            }
+        }
+    } catch (err) {
+        if (pingBadge) {
+            pingBadge.style.display = 'inline-block';
+            pingBadge.textContent = 'DISCONNECTED';
+            pingBadge.className = 'status-ping-badge ping-slow';
+        }
+        if (statusLabel) statusLabel.textContent = currentLang === 'ru' ? 'СВЯЗЬ ПОТЕРЯНА' : 'DISCONNECTED';
+        if (pulseDot) pulseDot.style.background = '#ef4444';
+    }
+}
+
+function startHealthCheckPolling() {
+    if (isHealthPollingActive) return;
+    isHealthPollingActive = true;
+    performSystemHealthCheck();
+    setInterval(performSystemHealthCheck, 60000); // Каждые 60 секунд
+}
+
+// 3. Управление Telegram-настройками
+function toggleTelegramAccordion(e) {
+    if (e) {
+        if (e.target && (e.target.closest('#btn-test-telegram') || e.target.closest('#btn-save-telegram') || e.target.closest('input') || e.target.closest('button.btn-toggle-pwd'))) {
+            return;
+        }
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('telegram-panel');
+    const toggleBtn = document.getElementById('btn-toggle-telegram-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) iconEl.textContent = isCollapsed ? '▼' : '▲';
+    }
+}
+
+async function loadTelegramSettings() {
+    if (!currentUser || currentUser.role !== 'admin' || isOfflineMode) return;
+    try {
+        const response = await fetch('api.php?action=get_telegram_settings');
+        const data = await response.json();
+        if (data.success && data.config) {
+            telegramConfig = data.config;
+            const tokenInput = document.getElementById('input-telegram-token');
+            const chatInput = document.getElementById('input-telegram-chatid');
+            const chkEnable = document.getElementById('chk-telegram-enable');
+            const statusBadge = document.getElementById('telegram-status-badge');
+            const chatBadge = document.getElementById('telegram-chat-badge');
+
+            if (tokenInput) tokenInput.value = data.config.bot_token || '';
+            if (chatInput) chatInput.value = data.config.chat_id || '';
+            if (chkEnable) chkEnable.checked = Boolean(data.config.is_enabled);
+
+            if (statusBadge) {
+                if (data.config.is_enabled && data.config.bot_token && data.config.chat_id) {
+                    statusBadge.textContent = '🟢 АКТИВЕН';
+                    statusBadge.className = 'badge-role badge-role-dispatcher';
+                } else {
+                    statusBadge.textContent = '⚪ ОТКЛЮЧЕН';
+                    statusBadge.className = 'badge-role';
+                }
+            }
+            if (chatBadge) {
+                if (data.config.chat_id) {
+                    chatBadge.style.display = 'inline-block';
+                    chatBadge.textContent = `ID: ${data.config.chat_id}`;
+                } else {
+                    chatBadge.style.display = 'none';
+                }
+            }
+        }
+    } catch (e) {}
+}
+
+async function handleSaveTelegramConfig(e) {
+    if (e) e.preventDefault();
+    if (!currentUser || currentUser.role !== 'admin') return;
+
+    const tokenInput = document.getElementById('input-telegram-token');
+    const chatInput = document.getElementById('input-telegram-chatid');
+    const chkEnable = document.getElementById('chk-telegram-enable');
+    const saveBtn = document.getElementById('btn-save-telegram');
+
+    const botToken = tokenInput ? tokenInput.value.trim() : '';
+    const chatId = chatInput ? chatInput.value.trim() : '';
+    const isEnabled = chkEnable ? chkEnable.checked : false;
+
+    if (isEnabled && (!botToken || !chatId)) {
+        showAviationAlert(currentLang === 'ru' ? 'Для включения уведомлений укажите Токен бота и ID чата.' : 'Please provide Bot Token and Chat ID.', true);
+        return;
+    }
+
+    if (saveBtn) saveBtn.disabled = true;
+
+    try {
+        const response = await fetch('api.php?action=save_telegram_settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                bot_token: botToken,
+                chat_id: chatId,
+                is_enabled: isEnabled
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showAviationAlert(currentLang === 'ru' ? 'Настройки Telegram успешно сохранены.' : 'Telegram settings saved.', false);
+            await loadTelegramSettings();
+        } else {
+            showAviationAlert(data.error || 'Ошибка сохранения настроек.', true);
+        }
+    } catch (err) {
+        showAviationAlert('Ошибка сети: ' + err.message, true);
+    } finally {
+        if (saveBtn) saveBtn.disabled = false;
+    }
+}
+
+async function handleTestTelegramConnection(e) {
+    if (e) e.preventDefault();
+    const tokenInput = document.getElementById('input-telegram-token');
+    const chatInput = document.getElementById('input-telegram-chatid');
+    const testBtn = document.getElementById('btn-test-telegram');
+
+    const botToken = tokenInput ? tokenInput.value.trim() : '';
+    const chatId = chatInput ? chatInput.value.trim() : '';
+
+    if (!botToken || !chatId) {
+        showAviationAlert(currentLang === 'ru' ? 'Введите Токен бота и ID чата для проверки.' : 'Please enter Bot Token and Chat ID to test.', true);
+        return;
+    }
+
+    if (testBtn) {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<span>⏳</span> ' + (currentLang === 'ru' ? 'Отправка...' : 'Sending...');
+    }
+
+    try {
+        const response = await fetch('api.php?action=test_telegram', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                bot_token: botToken,
+                chat_id: chatId
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            showAviationAlert(currentLang === 'ru' ? '✅ Тестовое сообщение успешно доставлено в Telegram!' : '✅ Test message sent to Telegram!', false);
+        } else {
+            showAviationAlert('❌ ' + (data.error || 'Ошибка отправки в Telegram.'), true);
+        }
+    } catch (err) {
+        showAviationAlert('Ошибка сети: ' + err.message, true);
+    } finally {
+        if (testBtn) {
+            testBtn.disabled = false;
+            testBtn.innerHTML = '<span>🧪</span> <span data-translate="btn-test-telegram">' + (currentLang === 'ru' ? 'Тест соединения' : 'Test Connection') + '</span>';
+        }
+    }
+}
+
+// 4. Журнал аудита действий (Audit Trail)
+function toggleAuditAccordion(e) {
+    if (e) {
+        if (e.target && (e.target.closest('#btn-refresh-audit') || e.target.closest('#audit-filter-type'))) {
+            return;
+        }
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('audit-panel');
+    const toggleBtn = document.getElementById('btn-toggle-audit-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) iconEl.textContent = isCollapsed ? '▼' : '▲';
+    }
+
+    if (!isCollapsed && auditLogsList.length === 0) {
+        loadAuditLogs();
+    }
+}
+
+async function loadAuditLogs() {
+    if (!currentUser || currentUser.role !== 'admin' || isOfflineMode) return;
+    const tbody = document.getElementById('audit-table-body');
+    const filterSelect = document.getElementById('audit-filter-type');
+    const countBadge = document.getElementById('audit-count-badge');
+
+    const eventType = filterSelect ? filterSelect.value : 'ALL';
+    const url = `api.php?action=get_audit_logs&event_type=${encodeURIComponent(eventType)}&limit=150`;
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success && Array.isArray(data.logs)) {
+            auditLogsList = data.logs;
+            renderAuditLogsTable(data.logs);
+            if (countBadge) countBadge.textContent = `📋 ${data.logs.length} записей`;
+        }
+    } catch (e) {
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="5" class="empty-table-text">${currentLang === 'ru' ? 'Ошибка загрузки журнала аудита.' : 'Audit logs loading error.'}</td></tr>`;
+        }
+    }
+}
+
+function handleFilterAuditLogs() {
+    loadAuditLogs();
+}
+
+function handleRefreshAuditLogs(e) {
+    if (e) e.stopPropagation();
+    loadAuditLogs();
+}
+
+function renderAuditLogsTable(logs) {
+    const tbody = document.getElementById('audit-table-body');
+    if (!tbody) return;
+
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="empty-table-text">${currentLang === 'ru' ? 'Записи аудита отсутствуют.' : 'No audit records found.'}</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = logs.map(item => {
+        const timeStr = item.created_at ? item.created_at.substring(0, 19) : '-';
+        const userStr = escapeHtml(item.username || '-');
+        const descStr = escapeHtml(item.event_desc || '-');
+        const ipStr = escapeHtml(item.ip_address || '-');
+        const eventType = item.event_type || 'EVENT';
+
+        let badgeClass = 'audit-badge audit-badge-default';
+        if (eventType.includes('LOGIN')) badgeClass = 'audit-badge audit-badge-auth-login';
+        else if (eventType.includes('FAILED') || eventType.includes('BLOCKED')) badgeClass = 'audit-badge audit-badge-auth-failed';
+        else if (eventType.includes('USER')) badgeClass = 'audit-badge audit-badge-user-create';
+        else if (eventType.includes('FLIGHT')) badgeClass = 'audit-badge audit-badge-flight-save';
+        else if (eventType.includes('BACKUP')) badgeClass = 'audit-badge audit-badge-backup-create';
+
+        return `<tr>
+            <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">${timeStr}</td>
+            <td><strong>${userStr}</strong></td>
+            <td><span class="${badgeClass}">${escapeHtml(eventType)}</span></td>
+            <td style="font-size: 0.84rem;">${descStr}</td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${ipStr}</td>
+        </tr>`;
+    }).join('');
+}
+
+// 5. Диагностика системы и метрики
+function toggleDiagnosticsAccordion(e) {
+    if (e) {
+        if (e.target && e.target.closest('#btn-refresh-diagnostics')) return;
+        e.stopPropagation();
+    }
+    const panel = document.getElementById('diagnostics-panel');
+    const toggleBtn = document.getElementById('btn-toggle-diagnostics-collapse');
+    if (!panel) return;
+
+    panel.classList.toggle('collapsed');
+    const isCollapsed = panel.classList.contains('collapsed');
+
+    if (toggleBtn) {
+        const textEl = toggleBtn.querySelector('.collapse-text');
+        const iconEl = toggleBtn.querySelector('.collapse-icon');
+        if (textEl) {
+            textEl.textContent = isCollapsed 
+                ? (translations[currentLang]['btn-expand'] || (currentLang === 'ru' ? 'Развернуть' : 'Expand'))
+                : (translations[currentLang]['btn-collapse'] || (currentLang === 'ru' ? 'Свернуть' : 'Collapse'));
+        }
+        if (iconEl) iconEl.textContent = isCollapsed ? '▼' : '▲';
+    }
+
+    if (!isCollapsed) {
+        loadSystemDiagnostics();
+    }
+}
+
+async function loadSystemDiagnostics() {
+    if (!currentUser || currentUser.role !== 'admin' || isOfflineMode) return;
+    try {
+        const response = await fetch('api.php?action=system_diagnostics');
+        const data = await response.json();
+        if (data.success) {
+            renderSystemDiagnostics(data);
+        }
+    } catch (e) {}
+}
+
+function handleRefreshDiagnostics(e) {
+    if (e) e.stopPropagation();
+    loadSystemDiagnostics();
+}
+
+function renderSystemDiagnostics(data) {
+    const dbSizeEl = document.getElementById('diag-val-db-size');
+    const dbFlightsEl = document.getElementById('diag-val-db-flights');
+    const backupCountEl = document.getElementById('diag-val-backup-count');
+    const backupSizeEl = document.getElementById('diag-val-backup-size');
+    const dateRangeEl = document.getElementById('diag-val-date-range');
+    const airlinesEl = document.getElementById('diag-val-airlines');
+    const serverEnvEl = document.getElementById('diag-val-server-env');
+    const logSizeEl = document.getElementById('diag-val-log-size');
+    const badgeDbSize = document.getElementById('diag-db-size-badge');
+    const badgePhp = document.getElementById('diag-php-badge');
+
+    if (data.database) {
+        if (dbSizeEl) dbSizeEl.textContent = Number(data.database.size_mb || 0).toFixed(2);
+        if (dbFlightsEl) dbFlightsEl.textContent = `${data.database.total_flights || 0} рейсов в базе`;
+        if (badgeDbSize) badgeDbSize.textContent = `DB: ${Number(data.database.size_mb || 0).toFixed(2)} MB`;
+
+        if (dateRangeEl) {
+            const minD = data.database.min_date || '-';
+            const maxD = data.database.max_date || '-';
+            dateRangeEl.textContent = minD === maxD ? minD : `${minD} — ${maxD}`;
+        }
+
+        if (airlinesEl && Array.isArray(data.database.airlines)) {
+            const topAirlines = data.database.airlines.slice(0, 4).map(a => `${a.airline} (${a.cnt})`).join(', ');
+            airlinesEl.textContent = topAirlines ? `АК: ${topAirlines}` : 'АК: —';
+        }
+    }
+
+    if (data.backups) {
+        if (backupCountEl) backupCountEl.textContent = data.backups.count || 0;
+        if (backupSizeEl) backupSizeEl.textContent = `Объем: ${Number(data.backups.size_mb || 0).toFixed(2)} MB`;
+    }
+
+    if (data.logs) {
+        if (logSizeEl) logSizeEl.textContent = `Лог: ${data.logs.errors_size_kb || 0} KB | Аудит: ${data.logs.audit_events_count || 0}`;
+    }
+
+    if (data.server) {
+        if (serverEnvEl) serverEnvEl.textContent = `PHP ${data.server.php_version} (${data.server.os || 'Linux'})`;
+        if (badgePhp) badgePhp.textContent = `PHP ${data.server.php_version}`;
+    }
+}
+
+// Экспорт в глобальную область window
+window.toggleTelegramAccordion = toggleTelegramAccordion;
+window.handleSaveTelegramConfig = handleSaveTelegramConfig;
+window.handleTestTelegramConnection = handleTestTelegramConnection;
+window.toggleAuditAccordion = toggleAuditAccordion;
+window.handleRefreshAuditLogs = handleRefreshAuditLogs;
+window.handleFilterAuditLogs = handleFilterAuditLogs;
+window.toggleDiagnosticsAccordion = toggleDiagnosticsAccordion;
+window.handleRefreshDiagnostics = handleRefreshDiagnostics;
 
 function escapeHtml(str) {
     if (!str) return '';
