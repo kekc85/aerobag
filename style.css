@@ -59,17 +59,20 @@ body.light-theme {
     --primary: #0284c7;
     --primary-hover: #0369a1;
     --primary-glow: rgba(2, 132, 199, 0.18);
+    --accent-cyan: #0284c7;
+    --accent-gold: #d97706;
+    --accent-green: #15803d;
     
     --secondary: #d97706;
     --secondary-hover: #b45309;
     --secondary-glow: rgba(217, 119, 6, 0.18);
     
-    --success: #10b981;
-    --success-glow: rgba(16, 185, 129, 0.18);
+    --success: #15803d;
+    --success-glow: rgba(22, 163, 74, 0.18);
     
     --purple-glow: 0 4px 16px rgba(2, 132, 199, 0.08);
     --blue-glow: 0 4px 18px rgba(2, 132, 199, 0.12);
-    --green-glow: 0 4px 16px rgba(16, 185, 129, 0.08);
+    --green-glow: 0 4px 16px rgba(22, 163, 74, 0.08);
 }
 
 /* Сброс стилей */
@@ -555,29 +558,41 @@ input[type="date"].form-control {
     font-weight: 600;
 }
 
+html.light-theme input[type="date"].form-control,
+html.light-theme body input[type="date"].form-control,
 body.light-theme input[type="date"].form-control {
-    color-scheme: light;
+    color-scheme: light !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
 }
 
 /* Светлая тема */
+html.light-theme .form-control,
+html.light-theme body .form-control,
 body.light-theme .form-control {
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
-    color: var(--text-primary);
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: var(--text-primary) !important;
+    color-scheme: light !important;
 }
 
+html.light-theme .form-control:focus,
 body.light-theme .form-control:focus {
-    border-color: #0284c7;
-    box-shadow: 0 0 0 1px #0284c7, 0 0 10px rgba(2, 132, 199, 0.18);
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 1px #0284c7, 0 0 10px rgba(2, 132, 199, 0.18) !important;
 }
 
+html.light-theme select.form-control,
 body.light-theme select.form-control {
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
 }
 
+html.light-theme .form-control option,
 body.light-theme .form-control option {
-    background-color: #ffffff;
-    color: #0f172a;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
 }
 
 .form-row {
@@ -1609,21 +1624,54 @@ body.light-theme .flights-table strong {
 }
 
 /* Кнопки */
+/* Кнопки в светлой теме */
+html.light-theme .btn-secondary,
 body.light-theme .btn-secondary {
-    background-color: #ff9f00; /* Яркий янтарный авиационный цвет */
-    border: 1px solid #e08b00;
-    color: #0c1220; /* Темно-синий текст для максимального контраста */
-    box-shadow: 0 2px 8px rgba(255, 159, 0, 0.2);
-    font-family: var(--font-mono);
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    font-family: var(--font-mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    font-weight: 700 !important;
 }
 
+html.light-theme .btn-secondary:hover,
 body.light-theme .btn-secondary:hover {
-    background-color: #e08b00;
-    border-color: #c47900;
-    color: #0c1220;
-    box-shadow: 0 4px 14px rgba(255, 159, 0, 0.35);
+    background-color: #e2e8f0 !important;
+    border-color: #0284c7 !important;
+    color: #0284c7 !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Специальные акцентные кнопки в светлой теме */
+html.light-theme #btn-transfer-preliminary,
+body.light-theme #btn-transfer-preliminary,
+html.light-theme #btn-add-flight-submit,
+body.light-theme #btn-add-flight-submit,
+html.light-theme #btn-load-sample,
+body.light-theme #btn-load-sample {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    border: 1px solid #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+    font-family: var(--font-mono) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    font-weight: 700 !important;
+}
+
+html.light-theme #btn-transfer-preliminary:hover,
+body.light-theme #btn-transfer-preliminary:hover,
+html.light-theme #btn-add-flight-submit:hover,
+body.light-theme #btn-add-flight-submit:hover,
+html.light-theme #btn-load-sample:hover,
+body.light-theme #btn-load-sample:hover {
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%) !important;
+    border-color: #0ea5e9 !important;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35) !important;
+    color: #ffffff !important;
 }
 
 /* Элегантная кнопка Danger в светлой теме */
@@ -1988,8 +2036,8 @@ html body .super-input-gold {
     height: 28px !important;
     width: 100% !important;
     max-width: 100% !important;
-    background-color: #040814 !important;
-    border: 1.5px solid rgba(0, 242, 255, 0.4) !important;
+    background-color: #040814;
+    border: 1.5px solid rgba(0, 242, 255, 0.4);
     text-align: center !important;
     border-radius: 4px !important;
     margin: 0 auto !important;
@@ -2003,11 +2051,34 @@ html body table.fixed-load-table td input.super-input-gold.weight-locked {
     box-shadow: 0 0 10px rgba(255, 183, 0, 0.5) !important;
 }
 
+html.light-theme body table.fixed-load-table td input.super-input-cyan,
+html.light-theme body table.fixed-load-table td input.super-input-gold,
+html.light-theme body .super-input-cyan,
+html.light-theme body .super-input-gold,
+html.light-theme .super-input-cyan,
+html.light-theme .super-input-gold,
+body.light-theme table.fixed-load-table td input.super-input-cyan,
+body.light-theme table.fixed-load-table td input.super-input-gold,
 body.light-theme .super-input-cyan,
-body.light-theme .super-input-gold {
+body.light-theme .super-input-gold,
+body.light-theme .table-input {
     background-color: #ffffff !important;
+    color: #0284c7 !important;
+    border: 1.5px solid #0284c7 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    text-shadow: none !important;
 }
 
+html.light-theme body table.fixed-load-table td input.super-input-gold,
+html.light-theme body .super-input-gold,
+html.light-theme .super-input-gold,
+body.light-theme table.fixed-load-table td input.super-input-gold,
+body.light-theme .super-input-gold {
+    color: #b45309 !important;
+    border-color: #d97706 !important;
+}
+
+html.light-theme body table.fixed-load-table td input.super-input-gold.weight-locked,
 body.light-theme table.fixed-load-table td input.super-input-gold.weight-locked {
     border: 1.5px solid #d97706 !important;
     box-shadow: 0 0 12px rgba(217, 119, 6, 0.45) !important;
@@ -3617,24 +3688,39 @@ body.light-theme .history-row-clickable:hover {
     box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2);
 }
 
+html.light-theme .active-flight-badge,
 body.light-theme .active-flight-badge {
-    background: #e0f2fe;
-    border-color: #0284c7;
-    color: #0f172a;
+    background: #e0f2fe !important;
+    border: 1px solid #0284c7 !important;
+    color: #0f172a !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
 }
 
+html.light-theme .active-flight-badge .badge-route,
 body.light-theme .active-flight-badge .badge-route {
-    color: #0369a1;
+    color: #0369a1 !important;
+    font-weight: 800 !important;
 }
 
+html.light-theme .active-flight-badge .badge-flight-no,
+body.light-theme .active-flight-badge .badge-flight-no {
+    color: #0f172a !important;
+    font-weight: 800 !important;
+}
+
+html.light-theme .active-flight-badge .badge-flight-date,
 body.light-theme .active-flight-badge .badge-flight-date {
-    color: #d97706;
+    color: #b45309 !important;
+    font-weight: 800 !important;
 }
 
+html.light-theme .flight-day-tag,
 body.light-theme .flight-day-tag {
-    color: #d97706;
+    color: #b45309 !important;
+    font-weight: 700 !important;
 }
 
+html.light-theme .history-row-clickable.selected-history-row,
 body.light-theme .history-row-clickable.selected-history-row {
     background: #e0f2fe !important;
     border-left: 4px solid #0284c7 !important;
@@ -7104,4 +7190,169 @@ body.light-theme .dcs-btn-primary {
     border: 1px solid #059669;
     color: #ffffff;
     box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+/* ==========================================================================
+   КОМПЛЕКСНОЕ ПРЕМИАЛЬНОЕ ОФОРМЛЕНИЕ ДЛЯ СВЕТЛОЙ ТЕМЫ (DAYLIGHT COCKPIT)
+   ========================================================================== */
+
+/* 1. Единый премиальный стиль для всех зеленых индикаторов/статусов/кнопок */
+html.light-theme .status-pill.active,
+html.light-theme #telegram-status-badge,
+html.light-theme #diagnostics-status-badge,
+html.light-theme .badge-status-pill.badge-green,
+body.light-theme .status-pill.active,
+body.light-theme #telegram-status-badge,
+body.light-theme #diagnostics-status-badge,
+body.light-theme .badge-status-pill.badge-green {
+    background-color: #dcfce7 !important;
+    border: 1px solid #86efac !important;
+    color: #15803d !important;
+    box-shadow: 0 1px 2px rgba(22, 163, 74, 0.08) !important;
+    text-shadow: none !important;
+    font-weight: 700 !important;
+}
+
+/* 2. Чистые белые карточки подпанелей, фильтров и диагностики */
+html.light-theme .filter-card,
+html.light-theme .aviation-subpanel,
+html.light-theme .diag-card,
+body.light-theme .filter-card,
+body.light-theme .aviation-subpanel,
+body.light-theme .diag-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* 3. Строки фильтра городов (Вылеты / Прилеты) */
+html.light-theme .airport-filter-row,
+body.light-theme .airport-filter-row {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light-theme .airport-filter-row:hover,
+body.light-theme .airport-filter-row:hover {
+    background: #f0f9ff !important;
+    border-color: #0284c7 !important;
+}
+
+html.light-theme .airport-filter-row.row-arrival,
+body.light-theme .airport-filter-row.row-arrival {
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+}
+
+html.light-theme .airport-filter-row.row-arrival:hover,
+body.light-theme .airport-filter-row.row-arrival:hover {
+    background: #fef3c7 !important;
+    border-color: #d97706 !important;
+}
+
+html.light-theme .airport-filter-row .row-city-name,
+body.light-theme .airport-filter-row .row-city-name {
+    color: #0f172a !important;
+    font-weight: 700 !important;
+}
+
+html.light-theme .airport-filter-row .row-airport-codes,
+body.light-theme .airport-filter-row .row-airport-codes {
+    background: #e0f2fe !important;
+    border: 1px solid #0284c7 !important;
+    color: #0369a1 !important;
+    font-weight: 800 !important;
+}
+
+html.light-theme .airport-filter-row.row-arrival .row-airport-codes,
+body.light-theme .airport-filter-row.row-arrival .row-airport-codes {
+    background: #fef3c7 !important;
+    border: 1px solid #d97706 !important;
+    color: #92400e !important;
+    font-weight: 800 !important;
+}
+
+html.light-theme .airport-filter-row .btn-row-remove,
+body.light-theme .airport-filter-row .btn-row-remove {
+    color: #94a3b8 !important;
+}
+
+html.light-theme .airport-filter-row .btn-row-remove:hover,
+body.light-theme .airport-filter-row .btn-row-remove:hover {
+    color: #ffffff !important;
+    background: #ef4444 !important;
+}
+
+/* 4. Панель фильтрации системных логов и заголовки */
+html.light-theme .logs-filter-bar,
+body.light-theme .logs-filter-bar {
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+html.light-theme .logs-filter-bar label,
+body.light-theme .logs-filter-bar label {
+    color: #475569 !important;
+    font-weight: 700 !important;
+}
+
+/* 5. Кнопки с плюсом и иконками (отличная видимость символа '+') */
+.btn-primary,
+.btn-primary span,
+body.light-theme .btn-primary,
+body.light-theme .btn-primary span,
+html.light-theme .btn-primary,
+html.light-theme .btn-primary span {
+    color: #ffffff !important;
+}
+
+/* 6. Чекбокс и бейджи в секции Telegram */
+html.light-theme #chk-telegram-enable + strong,
+body.light-theme #chk-telegram-enable + strong {
+    color: #0f172a !important;
+}
+
+html.light-theme label[for="input-telegram-token"] span:last-child,
+body.light-theme label[for="input-telegram-token"] span:last-child {
+    background: #e0f2fe !important;
+    border: 1px solid #0284c7 !important;
+    color: #0369a1 !important;
+    padding: 2px 7px !important;
+    border-radius: 4px !important;
+    font-weight: 700 !important;
+}
+
+html.light-theme label[for="input-telegram-chatid"] span:last-child,
+body.light-theme label[for="input-telegram-chatid"] span:last-child {
+    background: #fef3c7 !important;
+    border: 1px solid #d97706 !important;
+    color: #92400e !important;
+    padding: 2px 7px !important;
+    border-radius: 4px !important;
+    font-weight: 700 !important;
+}
+
+html.light-theme .telegram-hint-box,
+body.light-theme .telegram-hint-box {
+    background: #f8fafc !important;
+    border: 1px dashed #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+/* 7. Кнопки коэффициентов пассажиров (ФАКТ 100% / БРОНЬ 97%) */
+html.light-theme .btn-ratio-pax,
+body.light-theme .btn-ratio-pax {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0369a1 !important;
+    font-weight: 700 !important;
+}
+
+html.light-theme .btn-ratio-pax.active,
+body.light-theme .btn-ratio-pax.active {
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
 }
