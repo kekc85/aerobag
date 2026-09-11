@@ -1,11 +1,17 @@
 <?php
 // AeroBag Predictor - Backend API for MySQL Synchronization, RBAC & Automated Backups
 if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+
+    ini_set('session.gc_maxlifetime', 2592000); // 30 дней
+    ini_set('session.cookie_lifetime', 2592000);
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => 2592000,
         'path' => '/',
         'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure' => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
@@ -1391,7 +1397,8 @@ function sendTelegramAlert($message, $pdo = null) {
             return false;
         }
 
-        $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+        $cleanBotToken = trim($botToken);
+        $url = "https://api.telegram.org/bot{$cleanBotToken}/sendMessage";
         $postData = json_encode([
             'chat_id' => $chatId,
             'text' => $message,
@@ -1847,6 +1854,8 @@ function handleHealthCheck($pdo) {
             'timestamp' => date('Y-m-d H:i:s')
         ]
     ]);
+}
+
 function sendJsonResponse($data, $statusCode = 200) {
     http_response_code($statusCode);
     echo json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -1923,7 +1932,8 @@ function handleTestTelegram($pdo) {
                "⏱ Время сервера: " . $timeStr . "\n\n" .
                "<i>Бот готов к доставке критических алертов и отчетов.</i>";
 
-    $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+    $cleanBotToken = trim($botToken);
+    $url = "https://api.telegram.org/bot{$cleanBotToken}/sendMessage";
     $postData = json_encode([
         'chat_id' => $chatId,
         'text' => $message,
