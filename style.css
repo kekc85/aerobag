@@ -1917,14 +1917,60 @@ body.light-theme .status-pulse {
 }
 
 /* Переопределения для светлой темы */
+html.light-theme .modal-overlay,
+html.light-theme body .modal-overlay,
 body.light-theme .modal-overlay {
-    background-color: rgba(248, 250, 252, 0.85);
+    background-color: rgba(15, 23, 42, 0.55) !important;
+    backdrop-filter: blur(8px) !important;
 }
 
+html.light-theme .modal-content,
+html.light-theme body .modal-content,
 body.light-theme .modal-content {
-    background-color: #ffffff;
-    border-color: #ef4444;
-    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.15);
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25) !important;
+    color: #0f172a !important;
+}
+
+html.light-theme .modal-header,
+html.light-theme body .modal-header,
+body.light-theme .modal-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+html.light-theme .modal-title-text,
+html.light-theme body .modal-title-text,
+body.light-theme .modal-title-text {
+    color: #0284c7 !important;
+}
+
+html.light-theme .modal-body,
+html.light-theme body .modal-body,
+body.light-theme .modal-body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+}
+
+html.light-theme .modal-footer,
+html.light-theme body .modal-footer,
+body.light-theme .modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+}
+
+html.light-theme .btn-modal-close,
+html.light-theme body .btn-modal-close,
+body.light-theme .btn-modal-close {
+    color: #64748b !important;
+}
+
+html.light-theme .btn-modal-close:hover,
+html.light-theme body .btn-modal-close:hover,
+body.light-theme .btn-modal-close:hover {
+    color: #ef4444 !important;
 }
 
 /* Контейнер для HUD-уведомлений */
@@ -5263,20 +5309,34 @@ body.light-theme .weekday-flights-count {
     color: #34d399 !important;
 }
 
+html.light-theme .backtest-modal-content,
+html.light-theme body .backtest-modal-content,
 body.light-theme .backtest-modal-content {
-    background: #ffffff;
-    border-color: #0284c7;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25) !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .backtest-controls-bar,
+html.light-theme body .backtest-controls-bar,
 body.light-theme .backtest-controls-bar {
-    background: #f8fafc;
-    border-color: #cbd5e1;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
+html.light-theme .backtest-kpi-card,
+html.light-theme body .backtest-kpi-card,
 body.light-theme .backtest-kpi-card {
-    background: #f1f5f9;
-    border-color: #cbd5e1;
+    background: #f8fafc !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+html.light-theme .backtest-progress-container,
+html.light-theme body .backtest-progress-container,
+body.light-theme .backtest-progress-container {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
 /* ==========================================================================
@@ -5968,26 +6028,38 @@ body.light-theme #btn-reset-filters-default:hover {
     border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
+html.light-theme .backtest-modal-content,
+html.light-theme body .backtest-modal-content,
 body.light-theme .backtest-modal-content {
-    border-color: rgba(2, 132, 199, 0.35) !important;
-    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15) !important;
+    background: #ffffff !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25) !important;
 }
 
+html.light-theme .backtest-table-container,
+html.light-theme body .backtest-table-container,
 body.light-theme .backtest-table-container {
-    background: #ffffff;
-    border-color: rgba(2, 132, 199, 0.25);
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
+html.light-theme .backtest-table th,
+html.light-theme body .backtest-table th,
 body.light-theme .backtest-table th {
     background: #f1f5f9 !important;
     color: #0f172a !important;
-    border-bottom: 2px solid rgba(2, 132, 199, 0.4) !important;
+    border-bottom: 2px solid #cbd5e1 !important;
 }
 
+html.light-theme .backtest-table td,
+html.light-theme body .backtest-table td,
 body.light-theme .backtest-table td {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .backtest-table tbody tr:hover,
+html.light-theme body .backtest-table tbody tr:hover,
 body.light-theme .backtest-table tbody tr:hover {
     background: rgba(2, 132, 199, 0.08) !important;
 }
@@ -7666,4 +7738,29 @@ body.light-theme .btn-ratio-pax.active {
     background: #0284c7 !important;
     border-color: #0284c7 !important;
     color: #ffffff !important;
+}
+
+/* 8. Детализация контекста логов (Audit Log Context Details Modal) */
+html.light-theme #log-modal-meta,
+html.light-theme body #log-modal-meta,
+body.light-theme #log-modal-meta {
+    background: #f1f5f9 !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #334155 !important;
+}
+
+html.light-theme #log-modal-message,
+html.light-theme body #log-modal-message,
+body.light-theme #log-modal-message {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+}
+
+html.light-theme #log-modal-details-pre,
+html.light-theme body #log-modal-details-pre,
+body.light-theme #log-modal-details-pre {
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0369a1 !important;
 }
