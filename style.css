@@ -2236,32 +2236,48 @@ body.light-theme .modal-body p {
     color: #475569 !important;
 }
 
+html.light-theme .fixed-load-table th,
+html.light-theme body .fixed-load-table th,
 body.light-theme .fixed-load-table th {
     background: #e2e8f0 !important;
     color: #0f172a !important;
     border-color: #cbd5e1 !important;
 }
 
+html.light-theme .fixed-load-table td,
+html.light-theme body .fixed-load-table td,
 body.light-theme .fixed-load-table td {
     background: #ffffff !important;
     color: #0f172a !important;
     border-color: #cbd5e1 !important;
 }
 
+html.light-theme .fixed-load-table .header-main-title th,
+html.light-theme body .fixed-load-table .header-main-title th,
 body.light-theme .fixed-load-table .header-main-title th {
     background: linear-gradient(90deg, rgba(2, 132, 199, 0.15), rgba(2, 132, 199, 0.05)) !important;
     color: #0284c7 !important;
 }
 
-body.light-theme .header-sub-title th {
+html.light-theme .header-sub-title th,
+html.light-theme body .header-sub-title th,
+body.light-theme .header-sub-title th,
+html.light-theme .subtitle-cell,
+body.light-theme .subtitle-cell {
     background: rgba(2, 132, 199, 0.1) !important;
     color: #0284c7 !important;
     border-color: #93c5fd !important;
 }
 
-body.light-theme .header-blocks th {
-    background: rgba(241, 245, 249, 0.9) !important;
+html.light-theme .header-blocks th,
+html.light-theme body .header-blocks th,
+body.light-theme .header-blocks th,
+html.light-theme .header-subcols th,
+html.light-theme body .header-subcols th,
+body.light-theme .header-subcols th {
+    background: rgba(241, 245, 249, 0.95) !important;
     color: #334155 !important;
+    border-color: #cbd5e1 !important;
 }
 
 /* Белоснежные стильные поля ввода и яркие числа для Светлой темы */
@@ -6999,197 +7015,233 @@ body.light-theme .dcs-filter-group label {
     font-weight: 700 !important;
 }
 
+html.light-theme .dcs-input,
 body.light-theme .dcs-input {
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    color: #0f172a;
-    font-weight: 600;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-input:focus,
 body.light-theme .dcs-input:focus {
-    border-color: #0284c7;
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
 }
 
+html.light-theme .dcs-pill,
 body.light-theme .dcs-pill {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-weight: 600;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-pill:hover,
+html.light-theme .dcs-pill.active,
 body.light-theme .dcs-pill:hover,
 body.light-theme .dcs-pill.active {
-    background: #0284c7;
-    border-color: #0284c7;
-    color: #ffffff;
+    background: #0284c7 !important;
+    border-color: #0284c7 !important;
+    color: #ffffff !important;
 }
 
+html.light-theme .dcs-stations-header,
 body.light-theme .dcs-stations-header {
-    color: #0f172a;
-    font-weight: 700;
+    color: #0f172a !important;
+    font-weight: 700 !important;
 }
 
+html.light-theme .dcs-stations-toggle a,
 body.light-theme .dcs-stations-toggle a {
-    color: #0284c7;
-    font-weight: 700;
+    color: #0284c7 !important;
+    font-weight: 700 !important;
 }
 
+html.light-theme .dcs-stations-toggle a:hover,
 body.light-theme .dcs-stations-toggle a:hover {
-    color: #0369a1;
+    color: #0369a1 !important;
 }
 
+html.light-theme .dcs-chip,
 body.light-theme .dcs-chip {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
     color: #1e293b !important;
-    font-weight: 600;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-chip:hover,
 body.light-theme .dcs-chip:hover {
-    background: #e2e8f0;
-    border-color: #0284c7;
+    background: #e2e8f0 !important;
+    border-color: #0284c7 !important;
     color: #0284c7 !important;
 }
 
+html.light-theme .dcs-chip:has(input:checked),
 body.light-theme .dcs-chip:has(input:checked) {
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-    border-color: #0369a1;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    border-color: #0369a1 !important;
     color: #ffffff !important;
-    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+    box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
 }
 
+html.light-theme .dcs-chip input,
 body.light-theme .dcs-chip input {
-    accent-color: #0284c7;
+    accent-color: #0284c7 !important;
 }
 
+html.light-theme .dcs-action-row,
 body.light-theme .dcs-action-row {
-    border-top: 1px solid #e2e8f0;
+    border-top: 1px solid #e2e8f0 !important;
 }
 
+html.light-theme .dcs-checkbox-label,
 body.light-theme .dcs-checkbox-label {
-    color: #0f172a;
-    font-weight: 600;
+    color: #0f172a !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-checkbox-label input,
 body.light-theme .dcs-checkbox-label input {
-    accent-color: #0284c7;
+    accent-color: #0284c7 !important;
 }
 
+html.light-theme .dcs-btn-scan,
 body.light-theme .dcs-btn-scan {
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-    border: 1px solid #0284c7;
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+    border: 1px solid #0284c7 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25) !important;
 }
 
+html.light-theme .dcs-btn-scan:hover,
 body.light-theme .dcs-btn-scan:hover {
-    background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
-    border-color: #075985;
+    background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
+    border-color: #075985 !important;
 }
 
+html.light-theme .dcs-progress-box,
 body.light-theme .dcs-progress-box {
-    background: #f8fafc;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    background: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
 }
 
+html.light-theme .dcs-spinner,
 body.light-theme .dcs-spinner {
-    border-color: rgba(2, 132, 199, 0.2);
-    border-top-color: #0284c7;
+    border-color: rgba(2, 132, 199, 0.2) !important;
+    border-top-color: #0284c7 !important;
 }
 
+html.light-theme #dcsProgressText,
 body.light-theme #dcsProgressText {
     color: #0f172a !important;
-    text-shadow: none;
-    font-weight: 600;
+    text-shadow: none !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme #dcsProgressPercent,
 body.light-theme #dcsProgressPercent {
     color: #0284c7 !important;
-    text-shadow: none;
-    font-weight: 800;
+    text-shadow: none !important;
+    font-weight: 800 !important;
 }
 
+html.light-theme .dcs-progress-bar-wrap,
 body.light-theme .dcs-progress-bar-wrap {
-    background: #e2e8f0;
-    border: 1px solid #cbd5e1;
+    background: #e2e8f0 !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
+html.light-theme .dcs-progress-bar,
 body.light-theme .dcs-progress-bar {
-    background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%);
-    box-shadow: 0 0 10px rgba(2, 132, 199, 0.4);
+    background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%) !important;
+    box-shadow: 0 0 10px rgba(2, 132, 199, 0.4) !important;
 }
 
+html.light-theme .dcs-results-header,
 body.light-theme .dcs-results-header {
-    color: #0f172a;
-    font-weight: 600;
+    color: #0f172a !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-btn-mini,
 body.light-theme .dcs-btn-mini {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-weight: 600;
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
 }
 
+html.light-theme .dcs-btn-mini:hover,
 body.light-theme .dcs-btn-mini:hover {
-    background: #e2e8f0;
-    border-color: #0284c7;
-    color: #0284c7;
+    background: #e2e8f0 !important;
+    border-color: #0284c7 !important;
+    color: #0284c7 !important;
 }
 
+html.light-theme .dcs-table-wrapper,
 body.light-theme .dcs-table-wrapper {
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
+html.light-theme .dcs-preview-table th,
 body.light-theme .dcs-preview-table th {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-bottom: 2px solid #cbd5e1;
-    font-weight: 700;
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-bottom: 2px solid #cbd5e1 !important;
+    font-weight: 700 !important;
 }
 
+html.light-theme .dcs-preview-table td,
 body.light-theme .dcs-preview-table td {
-    border-bottom: 1px solid #f1f5f9;
-    color: #0f172a;
+    border-bottom: 1px solid #f1f5f9 !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .dcs-row-new,
 body.light-theme .dcs-row-new {
-    background: rgba(16, 185, 129, 0.08);
+    background: rgba(16, 185, 129, 0.08) !important;
 }
 
+html.light-theme .dcs-row-new:hover,
 body.light-theme .dcs-row-new:hover {
     background: rgba(16, 185, 129, 0.16) !important;
 }
 
+html.light-theme .dcs-row-existing:hover,
 body.light-theme .dcs-row-existing:hover {
     background: rgba(0, 0, 0, 0.03) !important;
 }
 
+html.light-theme .dcs-flt-badge,
 body.light-theme .dcs-flt-badge {
-    background: #e0f2fe;
-    border: 1px solid #0284c7;
-    color: #0369a1;
-    font-weight: 800;
+    background: #e0f2fe !important;
+    border: 1px solid #0284c7 !important;
+    color: #0369a1 !important;
+    font-weight: 800 !important;
 }
 
+html.light-theme .dcs-status-tag.new,
 body.light-theme .dcs-status-tag.new {
-    background: #dcfce7;
-    color: #15803d;
-    border: 1px solid #86efac;
+    background: #dcfce7 !important;
+    color: #15803d !important;
+    border: 1px solid #86efac !important;
 }
 
+html.light-theme .dcs-status-tag.exist,
 body.light-theme .dcs-status-tag.exist {
-    background: #fef3c7;
-    color: #b45309;
-    border: 1px solid #fde68a;
+    background: #fef3c7 !important;
+    color: #b45309 !important;
+    border: 1px solid #fde68a !important;
 }
 
+html.light-theme .dcs-modal-footer,
 body.light-theme .dcs-modal-footer {
-    background: #f8fafc;
-    border-top: 1px solid #e2e8f0;
+    background: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
 }
 
 body.light-theme .dcs-btn-secondary {
