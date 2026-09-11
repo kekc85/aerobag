@@ -1906,7 +1906,6 @@ function handleSaveTelegramSettings($pdo) {
 }
 
 function handleTestTelegram($pdo) {
-    requireAdmin();
     $input = json_decode(file_get_contents('php://input'), true);
     $botToken = trim($input['bot_token'] ?? '');
     $chatId = trim($input['chat_id'] ?? '');

@@ -158,4 +158,5 @@
   * Документация: Обновлено руководство USER_MANUAL.md (Часть II: Разделы 9-19) и USER_MANUAL.docx.
 - Подготовлен и верифицирован релиз сборки v12.0.158: все модули (Lydia DCS Sync, Telegram Alerting, System Logs & Error Tracking, Health Diagnostics, HUD Ping Badge) объединены, протестированы и задеплоены в ветки `main` и `production`. Пайплайн GitHub Actions выполняет автодеплой на боевой сервер Beget.
 - Исправлена видимость токена Telegram (внедрен глобальный togglePasswordVisibility с переключением 👁️/🙈), повышена контрастность кнопки синхронизации с Lydia DCS для светлой темы (body.light-theme .btn-dcs-sync-trigger), устранены некорректные вызовы checkAdminRole в пользу requireAdmin в api.php.
+- Улучшена контрастность чипсов станций вылета (светлый текст #f1f5f9, яркая подсветка #00f2ff) и процентов прогресс-бара (#00f2ff, 1.05rem, text-shadow) в модальном окне Lydia DCS, устранена блокировка теста Telegram в браузере (прямая отправка через cURL на сервере Beget с детальным выводом ошибок Telegram API), очищены дубликаты стилей в style.css.
 

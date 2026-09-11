@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.160';
+const APP_VERSION = 'v12.0.161';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
@@ -9666,6 +9666,7 @@ async function handleTestTelegramConnection(e) {
     let success = false;
     let errorMessage = '';
 
+    // 1. Отправка через серверный бэкенд (cURL на Beget)
     if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
             const response = await fetch('api.php?action=test_telegram', {
@@ -9677,24 +9678,27 @@ async function handleTestTelegramConnection(e) {
                 })
             });
             const data = await response.json();
-            if (data.success) {
+            if (data && data.success) {
                 success = true;
             } else {
-                errorMessage = data.error || '';
+                errorMessage = (data && data.error) ? data.error : 'Сервер вернул ошибку отправки.';
             }
-        } catch (err) {}
+        } catch (err) {
+            errorMessage = 'Ошибка связи с сервером: ' + err.message;
+        }
     }
 
-    if (!success && (!errorMessage || isOfflineMode || window.location.protocol === 'file:')) {
+    // 2. Если строго локальный режим без PHP-сервера
+    if (!success && !errorMessage && (isOfflineMode || window.location.protocol === 'file:')) {
         try {
             const nowStr = new Date().toLocaleString('ru-RU');
             const userName = (currentUser && currentUser.username) ? currentUser.username : 'Администратор';
             const text = `🚀 <b>ТЕСТОВОЕ СООБЩЕНИЕ AEROBAG PREDICTOR</b>\n\n` +
                 `✅ Связь с Telegram Bot API успешно установлена!\n` +
-                `📍 Режим: ${isOfflineMode || window.location.protocol === 'file:' ? 'Локальный / Тестовый' : 'Продакшн Сервер'}\n` +
+                `📍 Режим: Локальный / Автономный\n` +
                 `👤 Инициатор: <b>${escapeHtml(userName)}</b>\n` +
                 `⏱ Время: ${nowStr}\n\n` +
-                `<i>Бот готов к моментальной доставке алертов и отчетов.</i>`;
+                `<i>Бот готов к моментальной доставке алертов.</i>`;
 
             const directRes = await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/sendMessage`, {
                 method: 'POST',
@@ -9713,7 +9717,7 @@ async function handleTestTelegramConnection(e) {
                 errorMessage = (directData && directData.description) ? directData.description : 'Ошибка Telegram Bot API';
             }
         } catch (netErr) {
-            errorMessage = 'Ошибка подключения к api.telegram.org: ' + netErr.message;
+            errorMessage = 'Прямое подключение к Telegram API из браузера заблокировано: ' + netErr.message;
         }
     }
 
