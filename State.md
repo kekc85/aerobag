@@ -157,3 +157,7 @@
   * Frontend: Индикатор сетевой задержки (HUD ping badge 60s polling), панель Telegram Alerting с вводом токена/chatId, кнопкой теста и глазом 👁️/🙈, панель System Logs & Audit Trail с фильтрами и пагинацией, панель System Diagnostics с карточками метрик и статусов. 100% локальная/оффлайн-совместимость.
   * Документация: Обновлено руководство USER_MANUAL.md (Часть II: Разделы 9-19) и USER_MANUAL.docx.
 - Подготовлен и верифицирован релиз сборки v12.0.157 для слияния в main и production.
+- Релиз и хотфикс v12.0.162:
+  * api.php: Устранена синтаксическая ошибка в handleHealthCheck (закрыта скобка функции), исправлен URL Telegram Bot API в sendTelegramAlert и handleTestTelegram (удален ошибочный urlencode токена с двоеточием), настроена 30-дневная сессия с определением HTTPS за Nginx reverse proxy.
+  * app.js: Исключен падающий прямой браузерный CORS fetch к Telegram API в handleTestTelegramConnection, улучшена обработка авторизации в loadUsersList и loadServerBackupsList без нежелательной подмены серверных данных локальными заглушками, добавлен вызов loadTelegramSettings при переключении на вкладку администрирования.
+  * index.html / style.css: Синхронизированы версии сборки v12.0.162 и очищены стили.

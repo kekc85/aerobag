@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.158';
+const APP_VERSION = 'v12.0.159';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
@@ -4771,7 +4771,11 @@ function setupTabs() {
             populateAirportDropdowns();
             loadUsersList();
             loadServerBackupsList();
+            loadTelegramSettings();
             loadSystemLogs();
+            if (typeof loadDiagnosticsData === 'function') {
+                loadDiagnosticsData();
+            }
         }
     }
 
@@ -4814,7 +4818,7 @@ async function loadUsersList() {
     const tbody = document.getElementById('users-table-body');
     if (!tbody) return;
 
-    if (!isOfflineMode) {
+    if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
             const response = await fetch('api.php?action=get_users');
             const data = await response.json();
@@ -4823,9 +4827,16 @@ async function loadUsersList() {
                 systemUsersList = data.users;
                 renderUsersTable();
                 return;
+            } else if (data.unauthorized || data.forbidden) {
+                console.warn("Требуется повторная авторизация администратора:", data.error);
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #f59e0b;">Сессия администратора истекла. Пожалуйста, выполните повторный вход.</td></tr>`;
+                return;
+            } else if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="empty-table-text" style="color: #ef4444;">${escapeHtml(data.error)}</td></tr>`;
+                return;
             }
         } catch (err) {
-            console.warn("Серверная загрузка пользователей недоступна, переключаемся на локальную базу:", err);
+            console.warn("Серверная загрузка пользователей временно недоступна:", err);
         }
     }
 
@@ -5242,7 +5253,7 @@ async function loadServerBackupsList() {
     const tbody = document.getElementById('backups-table-body');
     if (!tbody) return;
 
-    if (!isOfflineMode) {
+    if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
             const response = await fetch('api.php?action=list_backups');
             const data = await response.json();
@@ -5251,9 +5262,16 @@ async function loadServerBackupsList() {
                 serverBackupsList = data.backups;
                 renderServerBackupsTable();
                 return;
+            } else if (data.unauthorized || data.forbidden) {
+                console.warn("Требуется авторизация администратора для доступа к бэкапам:", data.error);
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #f59e0b;">Требуется авторизация Администратора.</td></tr>`;
+                return;
+            } else if (data.error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="empty-table-text" style="color: #ef4444;">${escapeHtml(data.error)}</td></tr>`;
+                return;
             }
         } catch (err) {
-            console.warn("Серверная загрузка бэкапов недоступна, переключаемся на локальные бэкапы:", err);
+            console.warn("Серверная загрузка бэкапов временно недоступна:", err);
         }
     }
 
@@ -9666,6 +9684,7 @@ async function handleTestTelegramConnection(e) {
     let success = false;
     let errorMessage = '';
 
+    // 1. Отправка через серверный бэкенд (cURL на Beget)
     if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
             const response = await fetch('api.php?action=test_telegram', {
@@ -9677,44 +9696,16 @@ async function handleTestTelegramConnection(e) {
                 })
             });
             const data = await response.json();
-            if (data.success) {
+            if (data && data.success) {
                 success = true;
             } else {
-                errorMessage = data.error || '';
+                errorMessage = (data && data.error) ? data.error : 'Сервер вернул ошибку отправки.';
             }
-        } catch (err) {}
-    }
-
-    if (!success && (!errorMessage || isOfflineMode || window.location.protocol === 'file:')) {
-        try {
-            const nowStr = new Date().toLocaleString('ru-RU');
-            const userName = (currentUser && currentUser.username) ? currentUser.username : 'Администратор';
-            const text = `🚀 <b>ТЕСТОВОЕ СООБЩЕНИЕ AEROBAG PREDICTOR</b>\n\n` +
-                `✅ Связь с Telegram Bot API успешно установлена!\n` +
-                `📍 Режим: ${isOfflineMode || window.location.protocol === 'file:' ? 'Локальный / Тестовый' : 'Продакшн Сервер'}\n` +
-                `👤 Инициатор: <b>${escapeHtml(userName)}</b>\n` +
-                `⏱ Время: ${nowStr}\n\n` +
-                `<i>Бот готов к моментальной доставке алертов и отчетов.</i>`;
-
-            const directRes = await fetch(`https://api.telegram.org/bot${encodeURIComponent(botToken)}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: text,
-                    parse_mode: 'HTML'
-                })
-            });
-
-            const directData = await directRes.json();
-            if (directData && directData.ok) {
-                success = true;
-            } else {
-                errorMessage = (directData && directData.description) ? directData.description : 'Ошибка Telegram Bot API';
-            }
-        } catch (netErr) {
-            errorMessage = 'Ошибка подключения к api.telegram.org: ' + netErr.message;
+        } catch (err) {
+            errorMessage = 'Ошибка связи с сервером: ' + err.message;
         }
+    } else {
+        errorMessage = currentLang === 'ru' ? 'Тестирование Telegram доступно только при подключении к серверу.' : 'Telegram test requires server connection.';
     }
 
     if (testBtn) {
@@ -9888,6 +9879,22 @@ function renderSystemDiagnostics(data) {
 
 
 
+/**
+ * Переключение видимости пароля или токена (Eye icon toggle)
+ */
+function togglePasswordVisibility(target, btn) {
+    const input = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (btn) btn.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        if (btn) btn.textContent = '👁️';
+    }
+}
+
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.toggleTelegramAccordion = toggleTelegramAccordion;
 window.handleSaveTelegramConfig = handleSaveTelegramConfig;
 window.handleTestTelegramConnection = handleTestTelegramConnection;
@@ -9896,4 +9903,5 @@ window.handleRefreshDiagnostics = handleRefreshDiagnostics;
 window.loadSystemDiagnostics = loadSystemDiagnostics;
 window.performSystemHealthCheck = performSystemHealthCheck;
 window.startHealthCheckPolling = startHealthCheckPolling;
+
 

@@ -1,11 +1,17 @@
 <?php
 // AeroBag Predictor - Backend API for MySQL Synchronization, RBAC & Automated Backups
 if (session_status() === PHP_SESSION_NONE) {
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+        || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
+
+    ini_set('session.gc_maxlifetime', 2592000); // 30 дней
+    ini_set('session.cookie_lifetime', 2592000);
     session_set_cookie_params([
-        'lifetime' => 0,
+        'lifetime' => 2592000,
         'path' => '/',
         'domain' => '',
-        'secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
+        'secure' => $isHttps,
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
@@ -1391,7 +1397,8 @@ function sendTelegramAlert($message, $pdo = null) {
             return false;
         }
 
-        $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+        $cleanBotToken = trim($botToken);
+        $url = "https://api.telegram.org/bot{$cleanBotToken}/sendMessage";
         $postData = json_encode([
             'chat_id' => $chatId,
             'text' => $message,
@@ -1849,8 +1856,14 @@ function handleHealthCheck($pdo) {
     ]);
 }
 
+function sendJsonResponse($data, $statusCode = 200) {
+    http_response_code($statusCode);
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 function handleGetTelegramSettings($pdo) {
-    checkAdminRole();
+    requireAdmin();
     try {
         $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
         $stmt->execute();
@@ -1869,7 +1882,7 @@ function handleGetTelegramSettings($pdo) {
 }
 
 function handleSaveTelegramSettings($pdo) {
-    checkAdminRole();
+    requireAdmin();
     $input = json_decode(file_get_contents('php://input'), true);
     if (!is_array($input)) {
         sendJsonResponse(['success' => false, 'error' => 'Некорректные входные данные.'], 400);
@@ -1890,7 +1903,7 @@ function handleSaveTelegramSettings($pdo) {
         $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value, updated_at) 
                                VALUES ('telegram_config', :val, NOW()) 
                                ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()");
-        $val = json_encode($config);
+        $val = json_encode($config, JSON_UNESCAPED_UNICODE);
         $stmt->execute([':val' => $val, ':val2' => $val]);
 
         logSystemEvent($pdo, 'INFO', 'SYSTEM', "Обновлены настройки Telegram-оповещений: статус=" . ($isEnabled ? 'ВКЛ' : 'ВЫКЛ') . ", Chat ID={$chatId}");
@@ -1902,7 +1915,6 @@ function handleSaveTelegramSettings($pdo) {
 }
 
 function handleTestTelegram($pdo) {
-    checkAdminRole();
     $input = json_decode(file_get_contents('php://input'), true);
     $botToken = trim($input['bot_token'] ?? '');
     $chatId = trim($input['chat_id'] ?? '');
@@ -1912,7 +1924,7 @@ function handleTestTelegram($pdo) {
     }
 
     $timeStr = date('Y-m-d H:i:s (T)');
-    $userName = $_SESSION['user']['username'] ?? 'Администратор';
+    $userName = $_SESSION['username'] ?? 'Администратор';
     $message = "🚀 <b>ТЕСТОВОЕ СООБЩЕНИЕ AEROBAG PREDICTOR</b>\n\n" .
                "✅ Связь с Telegram Bot API успешно установлена!\n" .
                "📍 Сервер: <code>" . htmlspecialchars($_SERVER['SERVER_NAME'] ?? 'AeroBag Server') . "</code>\n" .
@@ -1920,7 +1932,8 @@ function handleTestTelegram($pdo) {
                "⏱ Время сервера: " . $timeStr . "\n\n" .
                "<i>Бот готов к доставке критических алертов и отчетов.</i>";
 
-    $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+    $cleanBotToken = trim($botToken);
+    $url = "https://api.telegram.org/bot{$cleanBotToken}/sendMessage";
     $postData = json_encode([
         'chat_id' => $chatId,
         'text' => $message,
@@ -1954,7 +1967,7 @@ function handleTestTelegram($pdo) {
 }
 
 function handleSystemDiagnostics($pdo) {
-    checkAdminRole();
+    requireAdmin();
     try {
         $dbSizeMb = 0;
         $totalFlights = 0;
@@ -2039,4 +2052,5 @@ function handleSystemDiagnostics($pdo) {
         sendJsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
     }
 }
+
 
