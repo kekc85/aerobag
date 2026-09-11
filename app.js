@@ -1,5 +1,5 @@
-// Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.160';
+// Версия приложения AeroBag Predictor
+const APP_VERSION = 'v12.0.165';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
