@@ -67,6 +67,10 @@ jobs:
             **/backups/*
             backups/**
             backups/*
+            **/logs/**
+            **/logs/*
+            logs/**
+            logs/*
             **/*.docx
             **/USER_MANUAL.docx
             **/rebuild_zip_temp.py

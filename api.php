@@ -71,7 +71,7 @@ switch ($action) {
         break;
 
     case 'logout':
-        handleLogout();
+        handleLogout($pdo);
         break;
 
     case 'check_auth':
@@ -138,12 +138,12 @@ switch ($action) {
 
     case 'delete_backup':
         requireAdmin();
-        handleDeleteBackup();
+        handleDeleteBackup($pdo);
         break;
 
     case 'download_backup':
         requireAdmin();
-        handleDownloadBackup();
+        handleDownloadBackup($pdo);
         break;
 
     case 'restore_backup':
@@ -151,7 +151,61 @@ switch ($action) {
         handleRestoreBackup($pdo);
         break;
 
+    // --- ЛОГИ, АУДИТ И МОНИТОРИНГ ОШИБОК (ТОЛЬКО ADMIN) ---
+    case 'get_logs':
+        requireAdmin();
+        rotateSystemLogs($pdo);
+        handleGetLogs($pdo);
+        break;
+
+    case 'set_log_retention':
+        requireAdmin();
+        handleSetLogRetention($pdo);
+        break;
+
+    case 'clear_logs':
+        requireAdmin();
+        handleClearLogs($pdo);
+        break;
+
+    case 'export_logs':
+        requireAdmin();
+        handleExportLogs($pdo);
+        break;
+
+    case 'log_client_error':
+        handleLogClientError($pdo);
+        break;
+
     // --- НАСТРОЙКИ СИСТЕМЫ (ФИЛЬТРЫ ГОРОДОВ И АЭРОПОРТОВ) ---
+    case 'health':
+        handleHealthCheck($pdo);
+        break;
+
+    case 'get_telegram_settings':
+        handleGetTelegramSettings($pdo);
+        break;
+
+    case 'save_telegram_settings':
+        handleSaveTelegramSettings($pdo);
+        break;
+
+    case 'test_telegram':
+        handleTestTelegram($pdo);
+        break;
+
+    case 'log_error':
+        handleLogClientError($pdo);
+        break;
+
+    case 'get_audit_logs':
+        handleGetSystemLogs($pdo);
+        break;
+
+    case 'system_diagnostics':
+        handleSystemDiagnostics($pdo);
+        break;
+
     case 'get_settings':
         handleGetSettings($pdo);
         break;
@@ -159,41 +213,6 @@ switch ($action) {
     case 'save_settings':
         requireAdmin();
         handleSaveSettings($pdo);
-        break;
-
-    // --- МОНИТОРИНГ, HEALTH CHECK И TELEGRAM-УВЕДОМЛЕНИЯ ---
-    case 'health':
-        handleHealthCheck($pdo);
-        break;
-
-    case 'get_telegram_settings':
-        requireAdmin();
-        handleGetTelegramSettings($pdo);
-        break;
-
-    case 'save_telegram_settings':
-        requireAdmin();
-        handleSaveTelegramSettings($pdo);
-        break;
-
-    case 'test_telegram':
-        requireAdmin();
-        handleTestTelegram($pdo);
-        break;
-
-    case 'log_error':
-        handleLogError($pdo);
-        break;
-
-    // --- ЖУРНАЛ АУДИТА ДЕЙСТВИЙ И ДИАГНОСТИКА СИСТЕМЫ ---
-    case 'get_audit_logs':
-        requireAdmin();
-        handleGetAuditLogs($pdo);
-        break;
-
-    case 'system_diagnostics':
-        requireAdmin();
-        handleSystemDiagnostics($pdo);
         break;
 
     default:
@@ -281,23 +300,23 @@ function initDatabase($pdo) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     $pdo->exec($sqlSettings);
 
-    // 4. Таблица журнала аудита действий (Audit Trail)
-    $sqlAudit = "CREATE TABLE IF NOT EXISTS audit_logs (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id VARCHAR(50) DEFAULT NULL,
-        username VARCHAR(50) NOT NULL,
-        event_type VARCHAR(50) NOT NULL,
-        event_desc TEXT NOT NULL,
-        entity_type VARCHAR(50) DEFAULT NULL,
-        entity_id VARCHAR(100) DEFAULT NULL,
-        ip_address VARCHAR(45) NOT NULL,
-        user_agent VARCHAR(255) DEFAULT '',
+    // 4. Таблица системных логов и аудита действий (с настраиваемой ротацией 7/15/30 дней)
+    $sqlLogs = "CREATE TABLE IF NOT EXISTS system_logs (
+        id BIGINT AUTO_INCREMENT PRIMARY KEY,
+        level ENUM('INFO', 'WARNING', 'ERROR') NOT NULL DEFAULT 'INFO',
+        category VARCHAR(50) NOT NULL,
+        message TEXT NOT NULL,
+        details JSON NULL,
+        user_id VARCHAR(50) NULL,
+        username VARCHAR(50) NULL,
+        role VARCHAR(20) NULL,
+        ip_address VARCHAR(45) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_audit_time (created_at),
-        INDEX idx_audit_user (username),
-        INDEX idx_audit_event (event_type)
+        INDEX idx_created_at (created_at),
+        INDEX idx_level (level),
+        INDEX idx_category (category)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-    $pdo->exec($sqlAudit);
+    $pdo->exec($sqlLogs);
 
     // 5. Автосоздание первого Главного Администратора (если таблица пуста)
     $stmt = $pdo->query("SELECT COUNT(*) FROM users WHERE role = 'admin'");
@@ -318,39 +337,18 @@ function initDatabase($pdo) {
     if (!is_dir($backupDir)) {
         @mkdir($backupDir, 0755, true);
     }
-    $htaccessBackupPath = $backupDir . '/.htaccess';
-    $htaccessContent = "# Защита от прямого HTTP-доступа (Apache 2.2 / 2.4)\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
-    @file_put_contents($htaccessBackupPath, $htaccessContent);
+    $htaccessPath = $backupDir . '/.htaccess';
+    $htaccessContent = "# Защита папки резервных копий от прямого HTTP-доступа (Apache 2.2 / 2.4)\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n";
+    @file_put_contents($htaccessPath, $htaccessContent);
 
-    // 7. Создание защищенной папки logs/ с .htaccess
+    // 7. Создание защищенной папки logs/ с .htaccess для аварийных логов
     $logsDir = __DIR__ . '/logs';
     if (!is_dir($logsDir)) {
         @mkdir($logsDir, 0755, true);
     }
-    $htaccessLogsPath = $logsDir . '/.htaccess';
-    @file_put_contents($htaccessLogsPath, $htaccessContent);
-}
-
-/**
- * Логирование событий в Журнал Аудита (Audit Trail)
- */
-function logAuditEvent($pdo, $eventType, $eventDesc, $entityType = null, $entityId = null) {
-    try {
-        $userId = $_SESSION['user_id'] ?? null;
-        $username = $_SESSION['username'] ?? 'anonymous';
-        $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
-        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
-
-        $stmt = $pdo->prepare("INSERT INTO audit_logs (user_id, username, event_type, event_desc, entity_type, entity_id, ip_address, user_agent) 
-                               VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->execute([$userId, $username, $eventType, $eventDesc, $entityType, $entityId, $ip, $ua]);
-
-        // Автоочистка записей старше 90 дней (с вероятностью 1 к 50)
-        if (mt_rand(1, 50) === 1) {
-            $pdo->exec("DELETE FROM audit_logs WHERE created_at < NOW() - INTERVAL 90 DAY");
-        }
-    } catch (Exception $e) {
-        // Ошибки аудита не прерывают основной поток выполнения
+    $logsHtaccess = $logsDir . '/.htaccess';
+    if (!file_exists($logsHtaccess)) {
+        @file_put_contents($logsHtaccess, "# Защита папки логов от прямого HTTP-доступа\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n");
     }
 }
 
@@ -385,8 +383,8 @@ function handleLogin($pdo) {
 
     if (!$user || !password_verify($password, $user['password_hash'])) {
         $_SESSION['login_failed_attempts']++;
-        logAuditEvent($pdo, 'AUTH_FAILED', "Неудачная попытка входа для пользователя: {$username}", 'user', $username);
         usleep(300000); // 300ms искусственная задержка от тайминг-атак
+        logSystemEvent($pdo, 'WARNING', 'AUTH', "Неудачная попытка входа: логин '{$username}'");
         echo json_encode([
             'success' => false,
             'error' => 'Неверный логин или пароль.'
@@ -398,7 +396,7 @@ function handleLogin($pdo) {
     $_SESSION['login_failed_attempts'] = 0;
 
     if ((int)$user['is_active'] !== 1) {
-        logAuditEvent($pdo, 'AUTH_BLOCKED', "Попытка входа заблокированной учетной записи: {$username}", 'user', $user['id']);
+        logSystemEvent($pdo, 'WARNING', 'AUTH', "Попытка входа в заблокированную учетную запись: '{$username}'");
         echo json_encode([
             'success' => false,
             'error' => 'Учетная запись заблокирована. Обратитесь к администратору.'
@@ -415,7 +413,7 @@ function handleLogin($pdo) {
     $_SESSION['full_name'] = $user['full_name'];
     $_SESSION['role'] = $user['role'];
 
-    logAuditEvent($pdo, 'AUTH_LOGIN', "Успешный вход в систему (Роль: {$user['role']})", 'user', $user['id']);
+    logSystemEvent($pdo, 'INFO', 'AUTH', "Успешный вход в систему: {$user['username']} ({$user['full_name']}, роль: {$user['role']})");
 
     echo json_encode([
         'success' => true,
@@ -432,8 +430,8 @@ function handleLogin($pdo) {
  * Завершение сессии (Logout)
  */
 function handleLogout($pdo = null) {
-    if ($pdo) {
-        logAuditEvent($pdo, 'AUTH_LOGOUT', "Выход из системы", 'user', $_SESSION['user_id'] ?? null);
+    if (isset($_SESSION['username'])) {
+        logSystemEvent($pdo, 'INFO', 'AUTH', "Выход из системы пользователя {$_SESSION['username']}");
     }
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
@@ -547,7 +545,7 @@ function handleCreateUser($pdo) {
     $stmt = $pdo->prepare("INSERT INTO users (id, username, password_hash, full_name, role, is_active) VALUES (?, ?, ?, ?, ?, 1)");
     $stmt->execute([$id, $username, $hash, $fullName, $role]);
 
-    logAuditEvent($pdo, 'USER_CREATE', "Создан пользователь '{$username}' (ФИО: {$fullName}, Роль: {$role})", 'user', $id);
+    logSystemEvent($pdo, 'INFO', 'AUTH', "Создан новый пользователь: $username ($fullName, роль: $role)");
 
     echo json_encode([
         'success' => true,
@@ -585,7 +583,7 @@ function handleUpdateUser($pdo) {
     $stmt = $pdo->prepare("UPDATE users SET full_name = ?, role = ?, is_active = ? WHERE id = ?");
     $stmt->execute([$fullName, $role, $isActive, $id]);
 
-    logAuditEvent($pdo, 'USER_UPDATE', "Обновлен пользователь '{$fullName}' (Статус: " . ($isActive ? 'Активен' : 'Заблокирован') . ", Роль: {$role})", 'user', $id);
+    logSystemEvent($pdo, 'INFO', 'AUTH', "Обновлены данные пользователя ID $id: $fullName (роль: $role, статус: " . ($isActive ? 'активен' : 'заблокирован') . ")");
 
     echo json_encode([
         'success' => true,
@@ -623,7 +621,7 @@ function handleChangePassword($pdo) {
     $stmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
     $stmt->execute([$hash, $userId]);
 
-    logAuditEvent($pdo, 'PASSWORD_CHANGE', "Изменен пароль учетной записи id: {$userId}", 'user', $userId);
+    logSystemEvent($pdo, 'INFO', 'AUTH', "Сменен пароль пользователя ID $userId");
 
     echo json_encode([
         'success' => true,
@@ -647,7 +645,7 @@ function handleDeleteUser($pdo) {
     }
 
     // Проверка, что это не последний администратор
-    $checkAdmin = $pdo->prepare("SELECT username, role FROM users WHERE id = ?");
+    $checkAdmin = $pdo->prepare("SELECT role, username FROM users WHERE id = ?");
     $checkAdmin->execute([$id]);
     $userToDelete = $checkAdmin->fetch();
     if ($userToDelete && $userToDelete['role'] === 'admin') {
@@ -658,11 +656,11 @@ function handleDeleteUser($pdo) {
         }
     }
 
+    $deletedName = $userToDelete['username'] ?? $id;
     $stmt = $pdo->prepare("DELETE FROM users WHERE id = ?");
     $stmt->execute([$id]);
 
-    $delUsername = $userToDelete['username'] ?? $id;
-    logAuditEvent($pdo, 'USER_DELETE', "Удален пользователь '{$delUsername}'", 'user', $id);
+    logSystemEvent($pdo, 'INFO', 'AUTH', "Удален пользователь $deletedName (ID: $id)");
 
     echo json_encode([
         'success' => true,
@@ -799,7 +797,8 @@ function handleSaveFlights($pdo) {
 
         $pdo->commit();
 
-        logAuditEvent($pdo, 'FLIGHT_SAVE', "Синхронизировано/импортировано рейсов: " . count($data), 'flights');
+        $flightsCount = count($data);
+        logSystemEvent($pdo, 'INFO', 'DATABASE', "Синхронизировано рейсов: $flightsCount");
 
         echo json_encode([
             'success' => true,
@@ -810,6 +809,7 @@ function handleSaveFlights($pdo) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        logSystemEvent($pdo, 'ERROR', 'DATABASE', "Ошибка при сохранении рейсов: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка при сохранении рейсов: ' . $e->getMessage()
@@ -831,7 +831,7 @@ function handleDeleteFlight($pdo) {
         $stmt = $pdo->prepare("DELETE FROM flights WHERE id = ?");
         $stmt->execute([$id]);
 
-        logAuditEvent($pdo, 'FLIGHT_DELETE', "Удален рейс id: {$id}", 'flight', $id);
+        logSystemEvent($pdo, 'INFO', 'DATABASE', "Удален рейс ID $id из базы данных");
 
         echo json_encode([
             'success' => true,
@@ -839,6 +839,7 @@ function handleDeleteFlight($pdo) {
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {
+        logSystemEvent($pdo, 'ERROR', 'DATABASE', "Ошибка при удалении рейса ID $id: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка при удалении рейса: ' . $e->getMessage()
@@ -851,9 +852,11 @@ function handleDeleteFlight($pdo) {
  */
 function handleClearDb($pdo) {
     try {
+        $count = (int)$pdo->query("SELECT COUNT(*) FROM flights")->fetchColumn();
         $pdo->exec("DELETE FROM flights");
 
-        logAuditEvent($pdo, 'DB_CLEAR', "Произведена полная очистка базы рейсов", 'database');
+        $adminName = $_SESSION['username'] ?? 'admin';
+        logSystemEvent($pdo, 'WARNING', 'DATABASE', "База данных рейсов полностью очищена администратором $adminName ($count рейсов удалено)");
 
         echo json_encode([
             'success' => true,
@@ -861,6 +864,7 @@ function handleClearDb($pdo) {
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {
+        logSystemEvent($pdo, 'ERROR', 'DATABASE', "Ошибка при очистке базы рейсов: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка при очистке базы данных: ' . $e->getMessage()
@@ -936,8 +940,11 @@ function checkAndPerformDailyAutoBackup($pdo) {
 
             // Ротация: удаляем бэкапы старше 30 дней
             rotateBackups($backupDir, 30);
+
+            logSystemEvent($pdo, 'INFO', 'BACKUP', "Автоматический ежедневный бэкап: $filename (" . count($flights) . " рейсов)");
         }
     } catch (Exception $e) {
+        logSystemEvent($pdo, 'ERROR', 'BACKUP', "Ошибка автобэкапа: " . $e->getMessage());
         error_log("Smart auto-backup error: " . $e->getMessage());
     }
 }
@@ -945,7 +952,7 @@ function checkAndPerformDailyAutoBackup($pdo) {
 /**
  * Ручное удаление конкретного файла резервной копии (Admin)
  */
-function handleDeleteBackup() {
+function handleDeleteBackup($pdo = null) {
     $input = json_decode(file_get_contents('php://input'), true);
     $filename = basename($input['filename'] ?? $_GET['file'] ?? $_POST['file'] ?? '');
 
@@ -959,9 +966,10 @@ function handleDeleteBackup() {
 
     if (file_exists($fullPath)) {
         if (@unlink($fullPath)) {
-            logAuditEvent($pdo, 'BACKUP_DELETE', "Удалена резервная копия {$filename}", 'backup', $filename);
+            logSystemEvent($pdo, 'INFO', 'BACKUP', "Удалена резервная копия: $filename");
             echo json_encode(['success' => true, 'message' => 'Резервная копия успешно удалена.'], JSON_UNESCAPED_UNICODE);
         } else {
+            logSystemEvent($pdo, 'ERROR', 'BACKUP', "Не удалось удалить файл резервной копии с диска: $filename");
             echo json_encode(['success' => false, 'error' => 'Не удалось удалить файл с сервера.'], JSON_UNESCAPED_UNICODE);
         }
     } else {
@@ -1050,7 +1058,7 @@ function handleCreateBackup($pdo) {
         // Ротация: удаляем бэкапы старше 30 дней
         rotateBackups($backupDir, 30);
 
-        logAuditEvent($pdo, 'BACKUP_CREATE', "Создана резервная копия {$filename} (Рейсов: " . count($flights) . ")", 'backup', $filename);
+        logSystemEvent($pdo, 'INFO', 'BACKUP', "Создана ручная резервная копия: $filename (" . count($flights) . " рейсов)");
 
         echo json_encode([
             'success' => true,
@@ -1060,6 +1068,7 @@ function handleCreateBackup($pdo) {
         ], JSON_UNESCAPED_UNICODE);
 
     } catch (Exception $e) {
+        logSystemEvent($pdo, 'ERROR', 'BACKUP', "Ошибка создания бэкапа: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка создания бэкапа: ' . $e->getMessage()
@@ -1070,7 +1079,7 @@ function handleCreateBackup($pdo) {
 /**
  * Скачивание резервной копии (Admin)
  */
-function handleDownloadBackup() {
+function handleDownloadBackup($pdo = null) {
     $filename = basename($_GET['file'] ?? '');
     if (empty($filename)) {
         header('HTTP/1.0 400 Bad Request');
@@ -1086,6 +1095,8 @@ function handleDownloadBackup() {
         echo json_encode(['success' => false, 'error' => 'Файл бэкапа не найден.'], JSON_UNESCAPED_UNICODE);
         exit;
     }
+
+    logSystemEvent($pdo, 'INFO', 'BACKUP', "Скачан файл резервной копии: $filename");
 
     header('Content-Type: application/json; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
@@ -1181,11 +1192,12 @@ function handleRestoreBackup($pdo) {
 
         $pdo->commit();
 
-        logAuditEvent($pdo, 'BACKUP_RESTORE', "Восстановлена база из резервной копии {$filename} (Рейсов: " . count($flights) . ")", 'backup', $filename);
+        $restoredCount = count($flights);
+        logSystemEvent($pdo, 'WARNING', 'BACKUP', "База рейсов восстановлена из бэкапа: $filename ($restoredCount рейсов)");
 
         echo json_encode([
             'success' => true,
-            'restored_count' => count($flights),
+            'restored_count' => $restoredCount,
             'message' => 'База данных успешно восстановлена из резервной копии.'
         ], JSON_UNESCAPED_UNICODE);
 
@@ -1193,6 +1205,7 @@ function handleRestoreBackup($pdo) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
+        logSystemEvent($pdo, 'ERROR', 'BACKUP', "Ошибка при восстановлении базы из бэкапа $filename: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка при восстановлении базы: ' . $e->getMessage()
@@ -1274,13 +1287,14 @@ function handleSaveSettings($pdo) {
                                ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
         $stmt->execute([$key, $jsonVal]);
 
-        logAuditEvent($pdo, 'SETTINGS_UPDATE', "Обновлена системная настройка: {$key}", 'settings', $key);
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Сохранена системная настройка: $key");
 
         echo json_encode([
             'success' => true,
             'message' => 'Настройка успешно сохранена.'
         ], JSON_UNESCAPED_UNICODE);
     } catch (Exception $e) {
+        logSystemEvent($pdo, 'ERROR', 'SYSTEM', "Ошибка сохранения настройки $key: " . $e->getMessage());
         echo json_encode([
             'success' => false,
             'error' => 'Ошибка сохранения настройки: ' . $e->getMessage()
@@ -1288,145 +1302,579 @@ function handleSaveSettings($pdo) {
     }
 }
 
+// --------------------------------------------------------------------------
+// ПОДСИСТЕМА АУДИТА, ЛОГИРОВАНИЯ И РОТАЦИИ (7 / 15 / 30 ДНЕЙ)
+// --------------------------------------------------------------------------
+
 /**
- * Отправка оповещения в Telegram Bot
- * @param string $message HTML-форматированное сообщение
- * @param PDO $pdo Подключение к БД для чтения настроек
- * @param bool $isTest Флаг тестового сообщения
- * @param array|null $customConfig Переопределение настроек (для теста)
- * @return array ['success' => bool, 'error' => string|null]
+ * Получение реального IP адреса клиента с учетом прокси
  */
-function sendTelegramAlert($message, $pdo, $isTest = false, $customConfig = null) {
+function getClientIpAddress() {
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1';
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $ip = trim($parts[0]);
+    } elseif (!empty($_SERVER['HTTP_CLIENT_IP'])) {
+        $ip = $_SERVER['HTTP_CLIENT_IP'];
+    }
+    return substr($ip, 0, 45);
+}
+
+/**
+ * Централизованная функция логирования системных событий и ошибок
+ * 
+ * @param PDO|null $pdo Экземпляр подключения к MySQL
+ * @param string $level INFO | WARNING | ERROR
+ * @param string $category AUTH | DATABASE | IMPORT | BACKUP | FORECAST | CLIENT_JS | SYSTEM
+ * @param string $message Описание события
+ * @param mixed $details Дополнительный контекст (массив или строка)
+ */
+
+// -----------------------------------------------------------------------------
+// TELEGRAM ALERTING & NOTIFICATION UTILS
+// -----------------------------------------------------------------------------
+
+function checkAntiFlood($cacheKey, $throttleSeconds = 180) {
+    $cacheDir = __DIR__ . '/logs';
+    if (!is_dir($cacheDir)) {
+        @mkdir($cacheDir, 0755, true);
+    }
+    $cacheFile = $cacheDir . '/.flood_cache.json';
+    $cache = [];
+    if (file_exists($cacheFile)) {
+        $content = @file_get_contents($cacheFile);
+        if ($content) {
+            $cache = @json_decode($content, true) ?: [];
+        }
+    }
+
+    $now = time();
+    $cleanCache = [];
+    foreach ($cache as $k => $ts) {
+        if ($now - $ts < 3600) {
+            $cleanCache[$k] = $ts;
+        }
+    }
+
+    if (isset($cleanCache[$cacheKey]) && ($now - $cleanCache[$cacheKey] < $throttleSeconds)) {
+        return false;
+    }
+
+    $cleanCache[$cacheKey] = $now;
+    @file_put_contents($cacheFile, json_encode($cleanCache), LOCK_EX);
+    return true;
+}
+
+function sendTelegramAlert($message, $pdo = null) {
     try {
-        $config = $customConfig;
-        if (!$config) {
-            $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
-            $stmt->execute();
-            $raw = $stmt->fetchColumn();
-            $config = $raw ? json_decode($raw, true) : null;
+        $botToken = '';
+        $chatId = '';
+        $isEnabled = false;
+
+        if ($pdo) {
+            try {
+                $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
+                $stmt->execute();
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($row && !empty($row['setting_value'])) {
+                    $cfg = json_decode($row['setting_value'], true);
+                    if ($cfg) {
+                        $botToken = $cfg['bot_token'] ?? '';
+                        $chatId = $cfg['chat_id'] ?? '';
+                        $isEnabled = !empty($cfg['is_enabled']);
+                    }
+                }
+            } catch (Exception $e) {}
         }
 
-        if (!$config || empty($config['bot_token']) || empty($config['chat_id'])) {
-            return ['success' => false, 'error' => 'Telegram Bot не настроен (отсутствует токен или Chat ID).'];
+        if (!$isEnabled || empty($botToken) || empty($chatId)) {
+            return false;
         }
 
-        if (!$isTest && empty($config['is_enabled'])) {
-            return ['success' => false, 'error' => 'Уведомления в Telegram отключены в настройках.'];
-        }
-
-        $botToken = trim($config['bot_token']);
-        $chatId = trim($config['chat_id']);
-
-        $url = "https://api.telegram.org/bot{$botToken}/sendMessage";
-        $payload = [
+        $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+        $postData = json_encode([
             'chat_id' => $chatId,
             'text' => $message,
             'parse_mode' => 'HTML',
             'disable_web_page_preview' => true
-        ];
-
-        // Неблокирующий cURL с таймаутом 2.5 сек
-        $ch = curl_init();
-        curl_setopt_array($ch, [
-            CURLOPT_URL => $url,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => http_build_query($payload),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 3,
-            CURLOPT_CONNECTTIMEOUT => 2,
-            CURLOPT_SSL_VERIFYPEER => true
         ]);
 
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlErr = curl_error($ch);
-        curl_close($ch);
-
-        if ($curlErr) {
-            return ['success' => false, 'error' => "cURL ошибка: " . $curlErr];
+        if (function_exists('curl_init')) {
+            $ch = curl_init($url);
+            curl_setopt($ch, CURLOPT_POST, true);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 3);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 2);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $res = curl_exec($ch);
+            curl_close($ch);
+            return true;
+        } else {
+            $ctx = stream_context_create([
+                'http' => [
+                    'method' => 'POST',
+                    'header' => "Content-Type: application/json\r\n",
+                    'content' => $postData,
+                    'timeout' => 3
+                ]
+            ]);
+            @file_get_contents($url, false, $ctx);
+            return true;
         }
-
-        $resJson = json_decode($response, true);
-        if ($httpCode !== 200 || empty($resJson['ok'])) {
-            $desc = $resJson['description'] ?? "HTTP код $httpCode";
-            return ['success' => false, 'error' => "Ошибка Telegram API: " . $desc];
-        }
-
-        return ['success' => true];
     } catch (Exception $e) {
-        return ['success' => false, 'error' => $e->getMessage()];
+        return false;
     }
 }
 
-/**
- * Защита от флуда одинаковыми ошибками (Anti-flood / Rate Limiting)
- * Подавляет дубликаты одного типа ошибок на 180 секунд (3 мин)
- */
-function checkAntiFlood($signature, $windowSeconds = 180) {
-    $cacheFile = __DIR__ . '/logs/.flood_cache.json';
-    $cache = [];
-    if (file_exists($cacheFile)) {
-        $content = @file_get_contents($cacheFile);
-        $cache = $content ? json_decode($content, true) : [];
-    }
-    if (!is_array($cache)) $cache = [];
+function logSystemEvent($pdo, $level, $category, $message, $details = null) {
+    $level = in_array(strtoupper($level), ['INFO', 'WARNING', 'ERROR'], true) ? strtoupper($level) : 'INFO';
+    $category = strtoupper(trim($category));
+    $userId = $_SESSION['user_id'] ?? null;
+    $username = $_SESSION['username'] ?? ($userId ? 'USER' : 'GUEST');
+    $role = $_SESSION['role'] ?? 'guest';
+    $ip = getClientIpAddress();
+    $detailsJson = null;
 
-    $now = time();
-    // Очистка устаревших записей
-    foreach ($cache as $k => $item) {
-        if ($now - ($item['time'] ?? 0) > $windowSeconds * 2) {
-            unset($cache[$k]);
+    if ($details !== null) {
+        $detailsJson = is_string($details) ? $details : json_encode($details, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO system_logs (level, category, message, details, user_id, username, role, ip_address) 
+                                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$level, $category, $message, $detailsJson, $userId, $username, $role, $ip]);
+            return true;
+        } catch (Exception $e) {
+            writeEmergencyLog($level, $category, $message, $detailsJson, $username, $ip, $e->getMessage());
         }
+    } else {
+        writeEmergencyLog($level, $category, $message, $detailsJson, $username, $ip, "No PDO instance");
     }
-
-    if (isset($cache[$signature])) {
-        $lastTime = $cache[$signature]['time'] ?? 0;
-        if ($now - $lastTime < $windowSeconds) {
-            $cache[$signature]['count'] = ($cache[$signature]['count'] ?? 1) + 1;
-            @file_put_contents($cacheFile, json_encode($cache));
-            return false; // Подавить отправку (флуд)
-        }
-    }
-
-    $cache[$signature] = [
-        'time' => $now,
-        'count' => 1
-    ];
-    @file_put_contents($cacheFile, json_encode($cache));
-    return true; // Разрешить отправку
+    return false;
 }
 
 /**
- * Получение настроек Telegram (Admin)
+ * Запись в аварийный файл emergency.log при сбое MySQL
  */
-function handleGetTelegramSettings($pdo) {
+function writeEmergencyLog($level, $category, $message, $details, $username, $ip, $dbErr = '') {
+    $logsDir = __DIR__ . '/logs';
+    if (!is_dir($logsDir)) {
+        @mkdir($logsDir, 0755, true);
+        @file_put_contents($logsDir . '/.htaccess', "# Защита папки логов\n<IfModule mod_authz_core.c>\n    Require all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n    Order Deny,Allow\n    Deny from all\n</IfModule>\n");
+    }
+    $line = sprintf("[%s] [%s] [%s] [%s] [%s] %s | Details: %s | DB_Err: %s\n",
+        date('Y-m-d H:i:s'),
+        $level,
+        $category,
+        $username,
+        $ip,
+        $message,
+        $details ?: 'none',
+        $dbErr ?: 'none'
+    );
+    @file_put_contents($logsDir . '/emergency.log', $line, FILE_APPEND);
+}
+
+/**
+ * Получение настройки глубины ротации логов (7, 15 или 30 дней)
+ */
+function getLogRetentionDays($pdo) {
+    if (!$pdo) return 7;
     try {
-        $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'log_retention_days' LIMIT 1");
         $stmt->execute();
         $val = $stmt->fetchColumn();
-        $config = $val ? json_decode($val, true) : [
-            'bot_token' => '',
-            'chat_id' => '',
-            'is_enabled' => false
+        if ($val !== false) {
+            $parsed = json_decode($val, true);
+            $days = is_numeric($parsed) ? (int)$parsed : (int)$val;
+            if (in_array($days, [7, 15, 30], true)) {
+                return $days;
+            }
+        }
+    } catch (Exception $e) {}
+    return 7; // По умолчанию 7 дней
+}
+
+/**
+ * Автоматическая ротация таблицы логов system_logs
+ */
+function rotateSystemLogs($pdo) {
+    if (!$pdo) return;
+    try {
+        $days = getLogRetentionDays($pdo);
+        $stmt = $pdo->prepare("DELETE FROM system_logs WHERE created_at < NOW() - INTERVAL ? DAY");
+        $stmt->execute([$days]);
+    } catch (Exception $e) {
+        error_log("Rotate system logs error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Получение списка логов с фильтрацией, поиском и пагинацией (Admin)
+ */
+function handleGetLogs($pdo) {
+    $level = trim($_GET['level'] ?? 'all');
+    $category = trim($_GET['category'] ?? 'all');
+    $search = trim($_GET['search'] ?? '');
+    $limit = min(max((int)($_GET['limit'] ?? 200), 10), 1000);
+    $offset = max((int)($_GET['offset'] ?? 0), 0);
+
+    try {
+        $where = [];
+        $params = [];
+
+        if (!empty($level) && $level !== 'all') {
+            $where[] = "level = ?";
+            $params[] = strtoupper($level);
+        }
+
+        if (!empty($category) && $category !== 'all') {
+            $where[] = "category = ?";
+            $params[] = strtoupper($category);
+        }
+
+        if (!empty($search)) {
+            $where[] = "(message LIKE ? OR username LIKE ? OR ip_address LIKE ? OR details LIKE ?)";
+            $searchTerm = '%' . $search . '%';
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+            $params[] = $searchTerm;
+        }
+
+        $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        // Подсчет общего количества отфильтрованных записей
+        $countStmt = $pdo->prepare("SELECT COUNT(*) FROM system_logs $whereSql");
+        $countStmt->execute($params);
+        $totalCount = (int)$countStmt->fetchColumn();
+
+        // Сводная статистика за последние 24 часа
+        $stats24h = [
+            'errors' => 0,
+            'warnings' => 0,
+            'info' => 0,
+            'total' => 0
         ];
+        $statStmt = $pdo->query("SELECT level, COUNT(*) as cnt FROM system_logs 
+                                 WHERE created_at >= NOW() - INTERVAL 24 HOUR 
+                                 GROUP BY level");
+        $statRows = $statStmt->fetchAll();
+        foreach ($statRows as $row) {
+            $lvl = strtolower($row['level']);
+            $c = (int)$row['cnt'];
+            if ($lvl === 'error') $stats24h['errors'] = $c;
+            elseif ($lvl === 'warning') $stats24h['warnings'] = $c;
+            elseif ($lvl === 'info') $stats24h['info'] = $c;
+            $stats24h['total'] += $c;
+        }
+
+        // Общее число всех логов в базе
+        $totalAllLogs = (int)$pdo->query("SELECT COUNT(*) FROM system_logs")->fetchColumn();
+
+        // Текущая глубина ротации
+        $retentionDays = getLogRetentionDays($pdo);
+
+        // Выборка логов
+        $querySql = "SELECT id, level, category, message, details, user_id, username, role, ip_address, created_at 
+                     FROM system_logs 
+                     $whereSql 
+                     ORDER BY created_at DESC 
+                     LIMIT $limit OFFSET $offset";
+        
+        $logStmt = $pdo->prepare($querySql);
+        $logStmt->execute($params);
+        $logs = $logStmt->fetchAll();
+
+        // Декодируем JSON-детали для удобства фронтенда
+        foreach ($logs as &$log) {
+            if (!empty($log['details'])) {
+                $decoded = json_decode($log['details'], true);
+                if ($decoded !== null) {
+                    $log['details_parsed'] = $decoded;
+                }
+            }
+        }
+        unset($log);
 
         echo json_encode([
             'success' => true,
-            'config' => $config
+            'logs' => $logs,
+            'total' => $totalCount,
+            'total_all' => $totalAllLogs,
+            'limit' => $limit,
+            'offset' => $offset,
+            'stats_24h' => $stats24h,
+            'retention_days' => $retentionDays
         ], JSON_UNESCAPED_UNICODE);
+
     } catch (Exception $e) {
         echo json_encode([
             'success' => false,
-            'error' => 'Ошибка получения настроек Telegram: ' . $e->getMessage()
+            'error' => 'Ошибка получения логов: ' . $e->getMessage()
         ], JSON_UNESCAPED_UNICODE);
     }
 }
 
 /**
- * Сохранение настроек Telegram (Admin)
+ * Установка глубины ротации логов (7, 15 или 30 дней) (Admin)
  */
-function handleSaveTelegramSettings($pdo) {
+function handleSetLogRetention($pdo) {
     $input = json_decode(file_get_contents('php://input'), true);
+    $days = isset($input['days']) ? (int)$input['days'] : 7;
+
+    if (!in_array($days, [7, 15, 30], true)) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Недопустимый период ротации. Разрешены значения: 7, 15 или 30 дней.'
+        ], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    try {
+        $jsonVal = json_encode($days);
+        $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES ('log_retention_days', ?) 
+                               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+        $stmt->execute([$jsonVal]);
+
+        // Немедленно выполняем ротацию под новый период
+        rotateSystemLogs($pdo);
+
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Администратор {$_SESSION['username']} установил период ротации логов: $days дней");
+
+        echo json_encode([
+            'success' => true,
+            'retention_days' => $days,
+            'message' => "Период хранения логов установлен на $days дней. Ротация выполнена."
+        ], JSON_UNESCAPED_UNICODE);
+
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ошибка сохранения периода ротации: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+}
+
+/**
+ * Ручная очистка таблицы логов (Admin)
+ */
+function handleClearLogs($pdo) {
+    try {
+        $count = (int)$pdo->query("SELECT COUNT(*) FROM system_logs")->fetchColumn();
+        $pdo->exec("DELETE FROM system_logs");
+
+        $adminName = $_SESSION['username'] ?? 'admin';
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Журнал логов очищен администратором $adminName (удалено $count записей)");
+
+        echo json_encode([
+            'success' => true,
+            'deleted_count' => $count,
+            'message' => "Журнал логов успешно очищен ($count записей удалено)."
+        ], JSON_UNESCAPED_UNICODE);
+
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ошибка при очистке журнала логов: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+}
+
+/**
+ * Экспорт логов в файл JSON или TXT (Admin)
+ */
+function handleExportLogs($pdo) {
+    $format = strtolower($_GET['format'] ?? 'json');
+    $level = trim($_GET['level'] ?? 'all');
+    $category = trim($_GET['category'] ?? 'all');
+
+    try {
+        $where = [];
+        $params = [];
+
+        if (!empty($level) && $level !== 'all') {
+            $where[] = "level = ?";
+            $params[] = strtoupper($level);
+        }
+        if (!empty($category) && $category !== 'all') {
+            $where[] = "category = ?";
+            $params[] = strtoupper($category);
+        }
+
+        $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+        $stmt = $pdo->prepare("SELECT id, level, category, message, details, username, role, ip_address, created_at 
+                               FROM system_logs 
+                               $whereSql 
+                               ORDER BY created_at DESC 
+                               LIMIT 5000");
+        $stmt->execute($params);
+        $logs = $stmt->fetchAll();
+
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Администратор {$_SESSION['username']} экспортировал лог-отчет (" . count($logs) . " записей, формат $format)");
+
+        $timestamp = date('Y_m_d_His');
+
+        if ($format === 'txt') {
+            $filename = "aerobag_logs_{$timestamp}.txt";
+            header('Content-Type: text/plain; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+            echo "================================================================================\n";
+            echo "AeroBag Predictor - Журнал системных событий и ошибок\n";
+            echo "Сформирован: " . date('Y-m-d H:i:s') . " | Пользователь: " . ($_SESSION['username'] ?? 'admin') . "\n";
+            echo "Всего записей в выгрузке: " . count($logs) . "\n";
+            echo "================================================================================\n\n";
+
+            foreach ($logs as $log) {
+                echo sprintf("[%s] [%s] [%s] [%s@%s] %s\n",
+                    $log['created_at'],
+                    str_pad($log['level'], 7),
+                    str_pad($log['category'], 10),
+                    $log['username'] ?? 'ANON',
+                    $log['ip_address'] ?? '127.0.0.1',
+                    $log['message']
+                );
+                if (!empty($log['details'])) {
+                    echo "  -> Details: " . $log['details'] . "\n";
+                }
+            }
+            exit;
+        } else {
+            $filename = "aerobag_logs_{$timestamp}.json";
+            header('Content-Type: application/json; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+            $exportData = [
+                'app' => 'AeroBag Predictor',
+                'exported_at' => date('c'),
+                'exported_by' => $_SESSION['username'] ?? 'admin',
+                'logs_count' => count($logs),
+                'logs' => $logs
+            ];
+
+            echo json_encode($exportData, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+            exit;
+        }
+
+    } catch (Exception $e) {
+        echo json_encode([
+            'success' => false,
+            'error' => 'Ошибка экспорта логов: ' . $e->getMessage()
+        ], JSON_UNESCAPED_UNICODE);
+    }
+}
+
+/**
+ * Логирование клиентских ошибок JavaScript (Frontend runtime error tracking)
+ */
+function handleLogClientError($pdo) {
+    $input = json_decode(file_get_contents('php://input'), true);
+    $message = trim($input['message'] ?? '');
+    $details = $input['details'] ?? null;
+    $level = in_array(strtoupper($input['level'] ?? ''), ['WARNING', 'ERROR'], true) ? strtoupper($input['level']) : 'ERROR';
+
+    if (empty($message)) {
+        echo json_encode(['success' => false, 'error' => 'Пустое сообщение об ошибке.'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    // Защита от спама (максимум 50 клиентских ошибок в минуту на сессию)
+    if (!isset($_SESSION['client_error_count'])) {
+        $_SESSION['client_error_count'] = 0;
+        $_SESSION['client_error_reset_time'] = time() + 60;
+    }
+    if (time() > $_SESSION['client_error_reset_time']) {
+        $_SESSION['client_error_count'] = 0;
+        $_SESSION['client_error_reset_time'] = time() + 60;
+    }
+    $_SESSION['client_error_count']++;
+
+    if ($_SESSION['client_error_count'] > 50) {
+        echo json_encode(['success' => false, 'rate_limited' => true], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    logSystemEvent($pdo, $level, 'CLIENT_JS', $message, $details);
+
+    echo json_encode(['success' => true], JSON_UNESCAPED_UNICODE);
+}
+
+
+function handleHealthCheck($pdo) {
+    $t0 = microtime(true);
+    $dbOk = false;
+    $totalFlights = 0;
+    $totalUsers = 0;
+    
+    try {
+        if ($pdo) {
+            $stmt = $pdo->query("SELECT 1");
+            if ($stmt) {
+                $dbOk = true;
+                $stmtFlt = $pdo->query("SELECT COUNT(*) FROM flights");
+                $totalFlights = (int)($stmtFlt ? $stmtFlt->fetchColumn() : 0);
+                $stmtUsr = $pdo->query("SELECT COUNT(*) FROM users");
+                $totalUsers = (int)($stmtUsr ? $stmtUsr->fetchColumn() : 0);
+            }
+        }
+    } catch (Exception $e) {
+        $dbOk = false;
+    }
+    
+    $latencyMs = round((microtime(true) - $t0) * 1000, 2);
+    $logsDir = __DIR__ . '/logs';
+    $backupsDir = __DIR__ . '/backups';
+    
+    sendJsonResponse([
+        'success' => true,
+        'status' => $dbOk ? 'healthy' : 'degraded',
+        'latency_ms' => $latencyMs,
+        'database' => [
+            'connected' => $dbOk,
+            'total_flights' => $totalFlights,
+            'total_users' => $totalUsers
+        ],
+        'filesystem' => [
+            'logs_writable' => is_dir($logsDir) ? is_writable($logsDir) : is_writable(__DIR__),
+            'backups_writable' => is_dir($backupsDir) ? is_writable($backupsDir) : is_writable(__DIR__)
+        ],
+        'server' => [
+            'php_version' => PHP_VERSION,
+            'timestamp' => date('Y-m-d H:i:s')
+        ]
+    ]);
+}
+
+function handleGetTelegramSettings($pdo) {
+    checkAdminRole();
+    try {
+        $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $config = ['bot_token' => '', 'chat_id' => '', 'is_enabled' => false];
+        if ($row && !empty($row['setting_value'])) {
+            $parsed = json_decode($row['setting_value'], true);
+            if (is_array($parsed)) {
+                $config = array_merge($config, $parsed);
+            }
+        }
+        sendJsonResponse(['success' => true, 'config' => $config]);
+    } catch (Exception $e) {
+        sendJsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
+    }
+}
+
+function handleSaveTelegramSettings($pdo) {
+    checkAdminRole();
+    $input = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($input)) {
+        sendJsonResponse(['success' => false, 'error' => 'Некорректные входные данные.'], 400);
+    }
+
     $botToken = trim($input['bot_token'] ?? '');
     $chatId = trim($input['chat_id'] ?? '');
     $isEnabled = !empty($input['is_enabled']);
@@ -1434,313 +1882,161 @@ function handleSaveTelegramSettings($pdo) {
     $config = [
         'bot_token' => $botToken,
         'chat_id' => $chatId,
-        'is_enabled' => $isEnabled
+        'is_enabled' => $isEnabled,
+        'updated_at' => date('Y-m-d H:i:s')
     ];
 
     try {
-        $jsonVal = json_encode($config, JSON_UNESCAPED_UNICODE);
-        $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES ('telegram_config', ?) 
-                               ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
-        $stmt->execute([$jsonVal]);
+        $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value, updated_at) 
+                               VALUES ('telegram_config', :val, NOW()) 
+                               ON DUPLICATE KEY UPDATE setting_value = :val2, updated_at = NOW()");
+        $val = json_encode($config);
+        $stmt->execute([':val' => $val, ':val2' => $val]);
 
-        logAuditEvent($pdo, 'TELEGRAM_CONFIG', "Обновлена конфигурация Telegram-бота (Статус: " . ($isEnabled ? 'Активен' : 'Отключен') . ")", 'telegram');
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Обновлены настройки Telegram-оповещений: статус=" . ($isEnabled ? 'ВКЛ' : 'ВЫКЛ') . ", Chat ID={$chatId}");
 
-        echo json_encode([
-            'success' => true,
-            'message' => 'Настройки Telegram успешно сохранены.'
-        ], JSON_UNESCAPED_UNICODE);
+        sendJsonResponse(['success' => true, 'config' => $config]);
     } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Ошибка сохранения настроек Telegram: ' . $e->getMessage()
-        ], JSON_UNESCAPED_UNICODE);
+        sendJsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
     }
 }
 
-/**
- * Тестирование подключения Telegram Bot (Admin)
- */
 function handleTestTelegram($pdo) {
+    checkAdminRole();
     $input = json_decode(file_get_contents('php://input'), true);
-    $customConfig = null;
-    if (!empty($input['bot_token']) && !empty($input['chat_id'])) {
-        $customConfig = [
-            'bot_token' => trim($input['bot_token']),
-            'chat_id' => trim($input['chat_id']),
-            'is_enabled' => true
-        ];
+    $botToken = trim($input['bot_token'] ?? '');
+    $chatId = trim($input['chat_id'] ?? '');
+
+    if (empty($botToken) || empty($chatId)) {
+        sendJsonResponse(['success' => false, 'error' => 'Укажите токен бота и ID чата.'], 400);
     }
 
-    $curUser = $_SESSION['username'] ?? 'admin';
-    $curFullName = $_SESSION['full_name'] ?? 'Главный Администратор';
-    $dateStr = date('d.m.Y H:i:s');
+    $timeStr = date('Y-m-d H:i:s (T)');
+    $userName = $_SESSION['user']['username'] ?? 'Администратор';
+    $message = "🚀 <b>ТЕСТОВОЕ СООБЩЕНИЕ AEROBAG PREDICTOR</b>\n\n" .
+               "✅ Связь с Telegram Bot API успешно установлена!\n" .
+               "📍 Сервер: <code>" . htmlspecialchars($_SERVER['SERVER_NAME'] ?? 'AeroBag Server') . "</code>\n" .
+               "👤 Инициатор: <b>" . htmlspecialchars($userName) . "</b>\n" .
+               "⏱ Время сервера: " . $timeStr . "\n\n" .
+               "<i>Бот готов к доставке критических алертов и отчетов.</i>";
 
-    $msg = "✈️ <b>[AeroBag Predictor]</b>\n"
-         . "✅ <b>Тестовое уведомление: связь с Telegram успешно установлена!</b>\n"
-         . "━━━━━━━━━━━━━━━━━━━\n"
-         . "⏰ <b>Время:</b> <code>{$dateStr}</code>\n"
-         . "👤 <b>Администратор:</b> {$curFullName} (<code>@{$curUser}</code>)\n"
-         . "🌐 <b>Хост:</b> <code>" . ($_SERVER['HTTP_HOST'] ?? 'localhost') . "</code>\n"
-         . "📡 <b>Статус:</b> Мониторинг активен, алерты о сбоях готовы к отправке.";
+    $url = "https://api.telegram.org/bot" . urlencode($botToken) . "/sendMessage";
+    $postData = json_encode([
+        'chat_id' => $chatId,
+        'text' => $message,
+        'parse_mode' => 'HTML'
+    ]);
 
-    $res = sendTelegramAlert($msg, $pdo, true, $customConfig);
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_POST, true);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 8);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+    $response = curl_exec($ch);
+    $curlErr = curl_error($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
 
-    if ($res['success']) {
-        echo json_encode([
-            'success' => true,
-            'message' => 'Тестовое сообщение успешно отправлено в Telegram!'
-        ], JSON_UNESCAPED_UNICODE);
+    if ($curlErr) {
+        sendJsonResponse(['success' => false, 'error' => 'cURL Error: ' . $curlErr], 500);
+    }
+
+    $resData = json_decode($response, true);
+    if ($httpCode === 200 && !empty($resData['ok'])) {
+        logSystemEvent($pdo, 'INFO', 'SYSTEM', "Успешная проверка отправки тестового сообщения в Telegram (Chat ID: {$chatId})");
+        sendJsonResponse(['success' => true, 'result' => $resData['result'] ?? null]);
     } else {
-        echo json_encode([
-            'success' => false,
-            'error' => $res['error']
-        ], JSON_UNESCAPED_UNICODE);
+        $desc = $resData['description'] ?? "HTTP {$httpCode}: Неизвестная ошибка Telegram API";
+        sendJsonResponse(['success' => false, 'error' => $desc], 400);
     }
 }
 
-/**
- * Прием и запись логов ошибок (клиент / сервер) с отправкой алерта в Telegram
- */
-function handleLogError($pdo) {
-    $input = json_decode(file_get_contents('php://input'), true);
-    if (!$input) {
-        echo json_encode(['success' => false, 'error' => 'Пустой лог.'], JSON_UNESCAPED_UNICODE);
-        return;
-    }
-
-    $timestamp = date('Y-m-d H:i:s');
-    $source = $input['source'] ?? 'client_js';
-    $errorMsg = trim($input['message'] ?? 'Неизвестная ошибка');
-    $stack = trim($input['stack'] ?? '');
-    $flightContext = $input['flight_context'] ?? '-';
-    $user = $_SESSION['username'] ?? ($input['username'] ?? 'anonymous');
-    $url = $input['url'] ?? ($_SERVER['REQUEST_URI'] ?? '');
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-
-    // 1. Запись в защищенный локальный лог-файл logs/app_errors.log
-    $logsDir = __DIR__ . '/logs';
-    if (!is_dir($logsDir)) {
-        @mkdir($logsDir, 0755, true);
-    }
-    $cleanStack = str_replace(["\r\n", "\r", "\n"], " -> ", $stack);
-    $logLine = sprintf("[%s] [%s] [User:%s] [IP:%s] [Flight:%s] Msg: %s | Stack: %s\n",
-        $timestamp, $source, $user, $ip, $flightContext, $errorMsg, $cleanStack
-    );
-    @file_put_contents($logsDir . '/app_errors.log', $logLine, FILE_APPEND);
-
-    // 2. Отправка алерта в Telegram (с защитой от флуда)
-    $sig = md5($source . '_' . $errorMsg);
-    if (checkAntiFlood($sig, 180)) {
-        $safeMsg = htmlspecialchars($errorMsg, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $safeFlight = htmlspecialchars($flightContext, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-        $safeUser = htmlspecialchars($user, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-
-        $tgText = "🚨 <b>[AeroBag Alert] Ошибка в системе!</b>\n"
-                . "━━━━━━━━━━━━━━━━━━━\n"
-                . "⏰ <b>Время:</b> <code>{$timestamp}</code>\n"
-                . "👤 <b>Пользователь:</b> <code>{$safeUser}</code>\n"
-                . "✈️ <b>Рейс/Контекст:</b> <code>{$safeFlight}</code>\n"
-                . "📍 <b>Источник:</b> <code>{$source}</code>\n"
-                . "💥 <b>Ошибка:</b> <code>{$safeMsg}</code>\n";
-        
-        if (!empty($stack)) {
-            $shortStack = mb_substr($stack, 0, 250);
-            $safeStack = htmlspecialchars($shortStack, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-            $tgText .= "📋 <b>Стек:</b> <code>{$safeStack}</code>\n";
-        }
-        $tgText .= "🌐 <b>Хост:</b> <code>" . ($_SERVER['HTTP_HOST'] ?? '') . "</code>";
-
-        sendTelegramAlert($tgText, $pdo, false);
-    }
-
-    echo json_encode(['success' => true, 'logged' => true], JSON_UNESCAPED_UNICODE);
-}
-
-/**
- * Health Check эндпоинт для проверки здоровья системы и пинга
- */
-function handleHealthCheck($pdo) {
-    $t0 = microtime(true);
-    $dbOk = false;
-    $totalFlights = 0;
-    $activeUsers = 0;
-    
-    try {
-        $stmt = $pdo->query("SELECT COUNT(*) FROM flights");
-        $totalFlights = (int)$stmt->fetchColumn();
-        
-        $stmtUsers = $pdo->query("SELECT COUNT(*) FROM users WHERE is_active = 1");
-        $activeUsers = (int)$stmtUsers->fetchColumn();
-        
-        $dbOk = true;
-    } catch (Exception $e) {
-        $dbOk = false;
-    }
-    
-    $latencyMs = round((microtime(true) - $t0) * 1000, 2);
-    
-    $backupDir = __DIR__ . '/backups';
-    $backupsWritable = is_dir($backupDir) && is_writable($backupDir);
-    $logsDir = __DIR__ . '/logs';
-    $logsWritable = is_dir($logsDir) && is_writable($logsDir);
-
-    // Проверка настроек Telegram
-    $tgConfigured = false;
-    $tgEnabled = false;
-    try {
-        $stmtTg = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'telegram_config' LIMIT 1");
-        $stmtTg->execute();
-        $rawTg = $stmtTg->fetchColumn();
-        if ($rawTg) {
-            $tgData = json_decode($rawTg, true);
-            $tgConfigured = !empty($tgData['bot_token']) && !empty($tgData['chat_id']);
-            $tgEnabled = !empty($tgData['is_enabled']);
-        }
-    } catch (Exception $e) {}
-
-    echo json_encode([
-        'success' => true,
-        'status' => $dbOk ? 'healthy' : 'degraded',
-        'database' => [
-            'connected' => $dbOk,
-            'latency_ms' => $latencyMs,
-            'total_flights' => $totalFlights,
-            'active_users' => $activeUsers
-        ],
-        'filesystem' => [
-            'backups_writable' => $backupsWritable,
-            'logs_writable' => $logsWritable
-        ],
-        'telegram' => [
-            'configured' => $tgConfigured,
-            'enabled' => $tgEnabled
-        ],
-        'server' => [
-            'php_version' => PHP_VERSION,
-            'server_time' => date('Y-m-d H:i:s')
-        ]
-    ], JSON_UNESCAPED_UNICODE);
-}
-
-/**
- * Получение записей Журнала Аудита (Audit Trail) с фильтрацией (Admin)
- */
-function handleGetAuditLogs($pdo) {
-    $limit = isset($_GET['limit']) ? min(500, max(10, (int)$_GET['limit'])) : 100;
-    $eventType = trim($_GET['event_type'] ?? '');
-    $username = trim($_GET['username'] ?? '');
-
-    $where = [];
-    $params = [];
-
-    if (!empty($eventType) && $eventType !== 'ALL') {
-        $where[] = "event_type = ?";
-        $params[] = $eventType;
-    }
-    if (!empty($username)) {
-        $where[] = "username LIKE ?";
-        $params[] = "%{$username}%";
-    }
-
-    $whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
-    $sql = "SELECT id, user_id, username, event_type, event_desc, entity_type, entity_id, ip_address, created_at 
-            FROM audit_logs {$whereSql} 
-            ORDER BY id DESC 
-            LIMIT {$limit}";
-
-    try {
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($params);
-        $logs = $stmt->fetchAll();
-
-        echo json_encode([
-            'success' => true,
-            'count' => count($logs),
-            'logs' => $logs
-        ], JSON_UNESCAPED_UNICODE);
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Ошибка чтения журнала аудита: ' . $e->getMessage()
-        ], JSON_UNESCAPED_UNICODE);
-    }
-}
-
-/**
- * Диагностика системы и метрики базы данных (Admin)
- */
 function handleSystemDiagnostics($pdo) {
+    checkAdminRole();
     try {
-        // 1. Размер базы данных MySQL
-        $dbName = DB_NAME;
-        $stmtSize = $pdo->prepare("SELECT SUM(data_length + index_length) / 1024 / 1024 AS size_mb 
-                                   FROM information_schema.TABLES 
-                                   WHERE table_schema = ?");
-        $stmtSize->execute([$dbName]);
-        $dbSizeMb = round((float)$stmtSize->fetchColumn(), 2);
+        $dbSizeMb = 0;
+        $totalFlights = 0;
+        $minDate = null;
+        $maxDate = null;
+        $airlines = [];
 
-        // 2. Статистика рейсов по авиакомпаниям
-        $stmtAirlines = $pdo->query("SELECT airline, COUNT(*) as cnt FROM flights GROUP BY airline ORDER BY cnt DESC");
-        $airlineStats = $stmtAirlines->fetchAll();
-
-        // 3. Диапазон дат в базе
-        $stmtDates = $pdo->query("SELECT MIN(flight_date) as min_date, MAX(flight_date) as max_date, COUNT(*) as total FROM flights");
-        $dateRange = $stmtDates->fetch();
-
-        // 4. Размер директории бэкапов и логов
-        $backupDir = __DIR__ . '/backups';
-        $backupCount = 0;
-        $backupTotalSize = 0;
-        if (is_dir($backupDir)) {
-            foreach (scandir($backupDir) as $f) {
-                if (pathinfo($f, PATHINFO_EXTENSION) === 'json') {
-                    $backupCount++;
-                    $backupTotalSize += filesize($backupDir . '/' . $f);
-                }
+        if ($pdo) {
+            $dbName = defined('DB_NAME') ? DB_NAME : '';
+            if ($dbName) {
+                $stmt = $pdo->prepare("SELECT SUM(data_length + index_length) / 1024 / 1024 AS size_mb 
+                                       FROM information_schema.TABLES 
+                                       WHERE table_schema = :dbname");
+                $stmt->execute([':dbname' => $dbName]);
+                $dbSizeMb = round((float)$stmt->fetchColumn(), 2);
             }
+
+            $stmtFlt = $pdo->query("SELECT COUNT(*) AS cnt, MIN(flight_date) AS min_d, MAX(flight_date) AS max_d FROM flights");
+            $fltData = $stmtFlt ? $stmtFlt->fetch(PDO::FETCH_ASSOC) : [];
+            $totalFlights = (int)($fltData['cnt'] ?? 0);
+            $minDate = $fltData['min_d'] ?? '-';
+            $maxDate = $fltData['max_d'] ?? '-';
+
+            $stmtAl = $pdo->query("SELECT airline, COUNT(*) AS cnt FROM flights GROUP BY airline ORDER BY cnt DESC");
+            $airlines = $stmtAl ? $stmtAl->fetchAll(PDO::FETCH_ASSOC) : [];
         }
-        $backupSizeMb = round($backupTotalSize / 1024 / 1024, 2);
+
+        $backupsDir = __DIR__ . '/backups';
+        $backupCount = 0;
+        $backupSizeMb = 0;
+        if (is_dir($backupsDir)) {
+            $files = glob($backupsDir . '/*.json');
+            $backupCount = count($files);
+            foreach ($files as $f) {
+                $backupSizeMb += filesize($f);
+            }
+            $backupSizeMb = round($backupSizeMb / 1024 / 1024, 2);
+        }
 
         $logsDir = __DIR__ . '/logs';
-        $logErrorsSizeKb = 0;
-        if (file_exists($logsDir . '/app_errors.log')) {
-            $logErrorsSizeKb = round(filesize($logsDir . '/app_errors.log') / 1024, 1);
+        $logSizeKb = 0;
+        $auditCount = 0;
+        if (is_dir($logsDir)) {
+            $logFiles = glob($logsDir . '/*.log');
+            foreach ($logFiles as $lf) {
+                $logSizeKb += filesize($lf);
+            }
+            $logSizeKb = round($logSizeKb / 1024, 1);
+        }
+        if ($pdo) {
+            try {
+                $stmtAudit = $pdo->query("SELECT COUNT(*) FROM system_logs");
+                if (!$stmtAudit) $stmtAudit = $pdo->query("SELECT COUNT(*) FROM audit_logs");
+                $auditCount = (int)($stmtAudit ? $stmtAudit->fetchColumn() : 0);
+            } catch (Exception $e) {}
         }
 
-        // 5. Записи аудита
-        $auditCount = (int)$pdo->query("SELECT COUNT(*) FROM audit_logs")->fetchColumn();
-
-        echo json_encode([
+        sendJsonResponse([
             'success' => true,
             'database' => [
-                'name' => $dbName,
                 'size_mb' => $dbSizeMb,
-                'total_flights' => (int)($dateRange['total'] ?? 0),
-                'min_date' => $dateRange['min_date'] ?? '-',
-                'max_date' => $dateRange['max_date'] ?? '-',
-                'airlines' => $airlineStats
+                'total_flights' => $totalFlights,
+                'min_date' => $minDate,
+                'max_date' => $maxDate,
+                'airlines' => $airlines
             ],
             'backups' => [
                 'count' => $backupCount,
                 'size_mb' => $backupSizeMb
             ],
             'logs' => [
-                'errors_size_kb' => $logErrorsSizeKb,
+                'errors_size_kb' => $logSizeKb,
                 'audit_events_count' => $auditCount
             ],
             'server' => [
                 'php_version' => PHP_VERSION,
                 'os' => PHP_OS,
-                'server_software' => $_SERVER['SERVER_SOFTWARE'] ?? 'Beget WebServer',
-                'server_time' => date('Y-m-d H:i:s')
+                'memory_limit' => ini_get('memory_limit')
             ]
-        ], JSON_UNESCAPED_UNICODE);
+        ]);
     } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'error' => 'Ошибка получения диагностики: ' . $e->getMessage()
-        ], JSON_UNESCAPED_UNICODE);
+        sendJsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
     }
 }
-
 
