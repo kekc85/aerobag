@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.159';
+const APP_VERSION = 'v12.0.160';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
@@ -9888,6 +9888,22 @@ function renderSystemDiagnostics(data) {
 
 
 
+/**
+ * Переключение видимости пароля или токена (Eye icon toggle)
+ */
+function togglePasswordVisibility(target, btn) {
+    const input = typeof target === 'string' ? document.getElementById(target) : target;
+    if (!input) return;
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (btn) btn.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        if (btn) btn.textContent = '👁️';
+    }
+}
+
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.toggleTelegramAccordion = toggleTelegramAccordion;
 window.handleSaveTelegramConfig = handleSaveTelegramConfig;
 window.handleTestTelegramConnection = handleTestTelegramConnection;
@@ -9896,4 +9912,5 @@ window.handleRefreshDiagnostics = handleRefreshDiagnostics;
 window.loadSystemDiagnostics = loadSystemDiagnostics;
 window.performSystemHealthCheck = performSystemHealthCheck;
 window.startHealthCheckPolling = startHealthCheckPolling;
+
 

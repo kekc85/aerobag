@@ -157,3 +157,5 @@
   * Frontend: Индикатор сетевой задержки (HUD ping badge 60s polling), панель Telegram Alerting с вводом токена/chatId, кнопкой теста и глазом 👁️/🙈, панель System Logs & Audit Trail с фильтрами и пагинацией, панель System Diagnostics с карточками метрик и статусов. 100% локальная/оффлайн-совместимость.
   * Документация: Обновлено руководство USER_MANUAL.md (Часть II: Разделы 9-19) и USER_MANUAL.docx.
 - Подготовлен и верифицирован релиз сборки v12.0.158: все модули (Lydia DCS Sync, Telegram Alerting, System Logs & Error Tracking, Health Diagnostics, HUD Ping Badge) объединены, протестированы и задеплоены в ветки `main` и `production`. Пайплайн GitHub Actions выполняет автодеплой на боевой сервер Beget.
+- Исправлена видимость токена Telegram (внедрен глобальный togglePasswordVisibility с переключением 👁️/🙈), повышена контрастность кнопки синхронизации с Lydia DCS для светлой темы (body.light-theme .btn-dcs-sync-trigger), устранены некорректные вызовы checkAdminRole в пользу requireAdmin в api.php.
+
