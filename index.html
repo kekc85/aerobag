@@ -789,6 +789,15 @@
                                 <span class="date-range-badge" id="active-date-range">-</span>
                             </div>
                         </section>
+
+                        <!-- Кнопка синхронизации с Lydia DCS под окном загрузки -->
+                        <button type="button" id="btn-open-dcs-sync" class="btn-dcs-sync-trigger" style="margin-top: 14px;" onclick="window.openDcsModal()">
+                            <span class="btn-dcs-icon">📡</span>
+                            <span class="btn-dcs-text">
+                                <strong data-translate="dcs-sync-btn-title">Синхронизация с Lydia DCS</strong>
+                                <small data-translate="dcs-sync-btn-sub">Парсинг закрытых рейсов в 1 клик</small>
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -1612,13 +1621,14 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.139</span> (<span id="app-build-date">11.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.140</span> (<span id="app-build-date">11.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.139"></script>
+    <script src="app.js?v=v12.0.140"></script>
+    <script src="dcs_sync.js?v=v12.0.139"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.139';
+const APP_VERSION = 'v12.0.140';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
@@ -1713,7 +1713,9 @@ const translations = {
         'btn-collapse': 'Свернуть',
         'footer-build-label': 'Сборка',
         'footer-developer': 'Разработчик: Andrey Zubkov',
-        'btn-manual': 'Руководство'
+        'btn-manual': 'Руководство',
+        'dcs-sync-btn-title': 'Синхронизация с Lydia DCS',
+        'dcs-sync-btn-sub': 'Парсинг закрытых рейсов в 1 клик'
     },
     en: {
         'app-title': 'AeroBag Predictor: Baggage Weight Calculator',
@@ -1940,7 +1942,9 @@ const translations = {
         'btn-collapse': 'Collapse',
         'footer-build-label': 'Build',
         'footer-developer': 'Developer: Andrey Zubkov',
-        'btn-manual': 'Manual'
+        'btn-manual': 'Manual',
+        'dcs-sync-btn-title': 'Lydia DCS Synchronization',
+        'dcs-sync-btn-sub': '1-Click Closed Flights Ingestion'
     }
 };
 
