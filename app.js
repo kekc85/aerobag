@@ -1,5 +1,5 @@
 // Версия сборки приложения (SemVer)
-const APP_VERSION = 'v12.0.159';
+const APP_VERSION = 'v12.0.160';
 const APP_BUILD_DATE = '11.09.2026';
 
 // Глобальное состояние
@@ -2761,11 +2761,10 @@ function loadSettings() {
     if (savedTheme) {
         currentTheme = savedTheme;
     }
-    if (currentTheme === 'light') {
-        document.body.classList.add('light-theme');
-    } else {
-        document.body.classList.remove('light-theme');
-    }
+    const isLightTheme = (currentTheme === 'light');
+    document.documentElement.classList.toggle('light-theme', isLightTheme);
+    document.documentElement.setAttribute('data-theme', isLightTheme ? 'light' : 'dark');
+    document.body.classList.toggle('light-theme', isLightTheme);
     updateThemeButtonUI();
 
     // Мгновенный синхронный рендер профиля пользователя и доступных вкладок (исключает любое мелькание!)
@@ -2820,7 +2819,10 @@ function setLanguage(lang) {
 function toggleTheme() {
     currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
     localStorage.setItem('averago_theme', currentTheme);
-    document.body.classList.toggle('light-theme', currentTheme === 'light');
+    const isLightTheme = (currentTheme === 'light');
+    document.documentElement.classList.toggle('light-theme', isLightTheme);
+    document.documentElement.setAttribute('data-theme', isLightTheme ? 'light' : 'dark');
+    document.body.classList.toggle('light-theme', isLightTheme);
     updateThemeButtonUI();
 }
 
