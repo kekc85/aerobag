@@ -180,6 +180,11 @@
     window.openDcsModal = function() {
         const modal = document.getElementById('dcsSyncModal');
         if (modal) {
+            const isLight = document.documentElement.classList.contains('light-theme') || 
+                            document.body.classList.contains('light-theme') || 
+                            localStorage.getItem('averago_theme') === 'light';
+            modal.classList.toggle('light-theme', isLight);
+            modal.classList.toggle('dcs-light-mode', isLight);
             modal.style.display = 'flex';
             document.body.style.overflow = 'hidden';
         }

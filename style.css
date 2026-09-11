@@ -807,10 +807,19 @@ body.light-theme .btn-danger:hover {
     background: rgba(8, 18, 41, 0.6);
 }
 
+html.light-theme .aviation-result,
+html.light-theme body .aviation-result,
 body.light-theme .aviation-result {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+html.light-theme .result-card,
+html.light-theme body .result-card,
+body.light-theme .result-card {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
 /* Главная доминанта: ВЕС БАГАЖА (Hero Card) */
@@ -827,16 +836,20 @@ body.light-theme .aviation-result {
     text-shadow: 0 0 16px rgba(0, 242, 255, 0.4);
 }
 
+html.light-theme .result-card.blue-glow,
+html.light-theme body .result-card.blue-glow,
 body.light-theme .result-card.blue-glow {
-    background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, #ffffff 100%);
-    border-left-color: #0284c7;
-    border-left-width: 5px;
-    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12);
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, #ffffff 100%) !important;
+    border-left-color: #0284c7 !important;
+    border-left-width: 5px !important;
+    box-shadow: 0 4px 16px rgba(2, 132, 199, 0.12) !important;
 }
 
+html.light-theme .result-card.blue-glow .card-value,
+html.light-theme body .result-card.blue-glow .card-value,
 body.light-theme .result-card.blue-glow .card-value {
-    color: #0284c7;
-    text-shadow: none;
+    color: #0284c7 !important;
+    text-shadow: none !important;
 }
 
 /* Места багажа (PCS) */
@@ -846,15 +859,20 @@ body.light-theme .result-card.blue-glow .card-value {
     box-shadow: 0 0 18px rgba(255, 183, 0, 0.1);
 }
 
+html.light-theme .result-card.purple-glow,
+html.light-theme body .result-card.purple-glow,
 body.light-theme .result-card.purple-glow {
-    border-left-color: #d97706;
-    border-left-width: 5px;
-    background: #ffffff;
-    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.08);
+    border-left-color: #d97706 !important;
+    border-left-width: 5px !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.08) !important;
 }
 
+html.light-theme .result-card.purple-glow .card-value,
+html.light-theme body .result-card.purple-glow .card-value,
 body.light-theme .result-card.purple-glow .card-value {
-    color: #d97706;
+    color: #d97706 !important;
+    text-shadow: none !important;
 }
 
 /* Ручная кладь (CABIN BAG) */
@@ -864,15 +882,20 @@ body.light-theme .result-card.purple-glow .card-value {
     box-shadow: 0 0 18px rgba(0, 255, 102, 0.1);
 }
 
+html.light-theme .result-card.green-glow,
+html.light-theme body .result-card.green-glow,
 body.light-theme .result-card.green-glow {
-    border-left-color: #10b981;
-    border-left-width: 5px;
-    background: #ffffff;
-    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
+    border-left-color: #10b981 !important;
+    border-left-width: 5px !important;
+    background: #ffffff !important;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08) !important;
 }
 
+html.light-theme .result-card.green-glow .card-value,
+html.light-theme body .result-card.green-glow .card-value,
 body.light-theme .result-card.green-glow .card-value {
-    color: #059669;
+    color: #059669 !important;
+    text-shadow: none !important;
 }
 
 .card-icon {
@@ -895,8 +918,10 @@ body.light-theme .result-card.green-glow .card-value {
     font-family: var(--font-mono);
 }
 
+html.light-theme .card-label,
+html.light-theme body .card-label,
 body.light-theme .card-label {
-    color: #475569;
+    color: #475569 !important;
 }
 
 .card-value {
@@ -1499,132 +1524,193 @@ body.light-theme .btn-delete-row:hover {
    ========================================================================== */
 
 /* Панели HUD в светлой теме */
+html.light-theme .aviation-panel,
+html.light-theme body .aviation-panel,
 body.light-theme .aviation-panel {
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05);
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.05) !important;
 }
 
+html.light-theme .hud-corner,
+html.light-theme body .hud-corner,
 body.light-theme .hud-corner {
-    border-color: #0284c7;
-    opacity: 0.5;
+    border-color: #0284c7 !important;
+    opacity: 0.5 !important;
 }
 
 /* Заголовки панелей */
+html.light-theme .panel-title,
+html.light-theme body .panel-title,
 body.light-theme .panel-title {
-    color: #0284c7;
-    border-bottom: 1px solid #e2e8f0;
+    color: #0284c7 !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
 /* Формы и поля ввода */
+html.light-theme .form-group label,
+html.light-theme body .form-group label,
 body.light-theme .form-group label {
-    color: #475569;
+    color: #475569 !important;
 }
 
+html.light-theme .form-control,
+html.light-theme body .form-control,
 body.light-theme .form-control {
-    background-color: #ffffff;
-    border: 1px solid #cbd5e1;
-    color: #0f172a;
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .form-control:focus,
+html.light-theme body .form-control:focus,
 body.light-theme .form-control:focus {
-    border-color: #0284c7;
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    border-color: #0284c7 !important;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
 }
 
+html.light-theme .form-control option,
+html.light-theme body .form-control option,
 body.light-theme .form-control option {
-    background-color: #ffffff;
-    color: #0f172a;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .form-control:disabled,
+html.light-theme body .form-control:disabled,
 body.light-theme .form-control:disabled {
-    background-color: #f1f5f9;
-    color: #94a3b8;
-    border-color: #e2e8f0;
+    background-color: #f1f5f9 !important;
+    color: #94a3b8 !important;
+    border-color: #e2e8f0 !important;
 }
 
 /* Вкладки навигации */
+html.light-theme .tab-navigation,
+html.light-theme body .tab-navigation,
 body.light-theme .tab-navigation {
-    background-color: #f1f5f9;
-    border: 1px solid #cbd5e1;
+    background-color: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
+html.light-theme .tab-btn,
+html.light-theme body .tab-btn,
 body.light-theme .tab-btn {
-    color: #475569;
+    color: #475569 !important;
 }
 
+html.light-theme .tab-btn:hover,
+html.light-theme body .tab-btn:hover,
 body.light-theme .tab-btn:hover {
-    color: #0284c7;
-    background-color: rgba(2, 132, 199, 0.05);
+    color: #0284c7 !important;
+    background-color: rgba(2, 132, 199, 0.05) !important;
 }
 
+html.light-theme .tab-btn.active,
+html.light-theme body .tab-btn.active,
 body.light-theme .tab-btn.active {
-    background-color: #ffffff;
-    color: #0284c7;
-    border-color: #cbd5e1;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-}
-
-/* Карточки результатов */
-body.light-theme .result-card {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03) !important;
-}
-
-body.light-theme .result-card.blue-glow { border-left-color: #0284c7; }
-body.light-theme .result-card.purple-glow { border-left-color: #8b5cf6; }
-body.light-theme .result-card.green-glow { border-left-color: #10b981; }
-
-body.light-theme .card-value {
-    color: #0f172a;
+    background-color: #ffffff !important;
+    color: #0284c7 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Панель коэффициентов */
+html.light-theme .coefficients-panel,
+html.light-theme body .coefficients-panel,
 body.light-theme .coefficients-panel {
-    background-color: #f8fafc;
-    border: 1px solid #cbd5e1;
+    background-color: #f8fafc !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
+html.light-theme .coef-item,
+html.light-theme body .coef-item,
 body.light-theme .coef-item {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
+    background-color: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
+html.light-theme .coef-label,
+html.light-theme body .coef-label,
 body.light-theme .coef-label {
-    color: #64748b;
+    color: #64748b !important;
 }
 
+html.light-theme .coef-value,
+html.light-theme body .coef-value,
 body.light-theme .coef-value {
-    color: #0f172a;
+    color: #0f172a !important;
 }
 
+html.light-theme .coef-source-info,
+html.light-theme body .coef-source-info,
 body.light-theme .coef-source-info {
-    border-top: 1px solid #e2e8f0;
-    color: #475569;
+    border-top: 1px solid #e2e8f0 !important;
+    color: #475569 !important;
 }
 
+html.light-theme .coef-source-info strong,
+html.light-theme body .coef-source-info strong,
 body.light-theme .coef-source-info strong {
-    color: #0284c7;
+    color: #0284c7 !important;
 }
 
-/* Таблицы */
-body.light-theme .flights-table th {
-    background-color: #f1f5f9;
-    color: #334155;
-    border-bottom: 2px solid #cbd5e1;
+/* Таблицы и шапки */
+html.light-theme .flights-table th,
+html.light-theme body .flights-table th,
+body.light-theme .flights-table th,
+html.light-theme .aviation-table th,
+html.light-theme body .aviation-table th,
+body.light-theme .aviation-table th,
+html.light-theme .fixed-load-table th,
+html.light-theme body .fixed-load-table th,
+body.light-theme .fixed-load-table th,
+html.light-theme .header-main-title th,
+html.light-theme .header-cols th,
+html.light-theme .header-sub-title th,
+html.light-theme .header-subcols th,
+html.light-theme .title-cell,
+html.light-theme .subtitle-cell {
+    background-color: #f1f5f9 !important;
+    color: #334155 !important;
+    border-bottom: 2px solid #cbd5e1 !important;
 }
 
-body.light-theme .flights-table td {
-    border-bottom: 1px solid #e2e8f0;
+html.light-theme .flights-table td,
+html.light-theme body .flights-table td,
+body.light-theme .flights-table td,
+html.light-theme .fixed-load-table td,
+html.light-theme body .fixed-load-table td,
+body.light-theme .fixed-load-table td,
+html.light-theme .rows-table td,
+html.light-theme body .rows-table td,
+body.light-theme .rows-table td {
+    border-bottom: 1px solid #e2e8f0 !important;
+    color: #0f172a !important;
 }
 
+html.light-theme .flights-table tr:hover,
+html.light-theme body .flights-table tr:hover,
 body.light-theme .flights-table tr:hover {
-    background-color: #f8fafc;
+    background-color: #f8fafc !important;
 }
 
+html.light-theme .flights-table strong,
+html.light-theme body .flights-table strong,
 body.light-theme .flights-table strong {
-    color: #0f172a;
+    color: #0f172a !important;
+}
+
+html.light-theme .load-title-text,
+html.light-theme body .load-title-text,
+body.light-theme .load-title-text {
+    color: #0284c7 !important;
+    font-weight: 800 !important;
+}
+
+html.light-theme .cat-label,
+html.light-theme body .cat-label,
+body.light-theme .cat-label {
+    color: #0f172a !important;
 }
 
 /* Кнопки */
@@ -6957,66 +7043,102 @@ body.light-theme .btn-dcs-sync-trigger .btn-dcs-text small {
 /* ==========================================================================
    LYDIA DCS MODAL - СВЕТЛАЯ ТЕМА (LIGHT THEME)
    ========================================================================== */
+/* ==========================================================================
+   LYDIA DCS MODAL - СВЕТЛАЯ ТЕМА (LIGHT THEME)
+   ========================================================================== */
 html.light-theme .dcs-modal-overlay,
-body.light-theme .dcs-modal-overlay {
+html.light-theme body .dcs-modal-overlay,
+body.light-theme .dcs-modal-overlay,
+#dcsSyncModal.light-theme,
+#dcsSyncModal.dcs-light-mode {
     background: rgba(15, 23, 42, 0.55) !important;
     backdrop-filter: blur(8px) !important;
 }
 
 html.light-theme .dcs-modal-container,
-body.light-theme .dcs-modal-container {
+html.light-theme body .dcs-modal-container,
+body.light-theme .dcs-modal-container,
+#dcsSyncModal.light-theme .dcs-modal-container,
+#dcsSyncModal.dcs-light-mode .dcs-modal-container {
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
     box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25), 0 0 0 1px rgba(2, 132, 199, 0.15) !important;
 }
 
 html.light-theme .dcs-modal-header,
-body.light-theme .dcs-modal-header {
+html.light-theme body .dcs-modal-header,
+body.light-theme .dcs-modal-header,
+#dcsSyncModal.light-theme .dcs-modal-header,
+#dcsSyncModal.dcs-light-mode .dcs-modal-header {
     background: #f8fafc !important;
     border-bottom: 1px solid #e2e8f0 !important;
 }
 
 html.light-theme .dcs-header-title h3,
-body.light-theme .dcs-header-title h3 {
+html.light-theme body .dcs-header-title h3,
+body.light-theme .dcs-header-title h3,
+#dcsSyncModal.light-theme .dcs-header-title h3,
+#dcsSyncModal.dcs-light-mode .dcs-header-title h3 {
     color: #0f172a !important;
 }
 
 html.light-theme .dcs-header-title p,
-body.light-theme .dcs-header-title p {
+html.light-theme body .dcs-header-title p,
+body.light-theme .dcs-header-title p,
+#dcsSyncModal.light-theme .dcs-header-title p,
+#dcsSyncModal.dcs-light-mode .dcs-header-title p {
     color: #64748b !important;
 }
 
 html.light-theme .dcs-modal-close,
-body.light-theme .dcs-modal-close {
+html.light-theme body .dcs-modal-close,
+body.light-theme .dcs-modal-close,
+#dcsSyncModal.light-theme .dcs-modal-close,
+#dcsSyncModal.dcs-light-mode .dcs-modal-close {
     color: #64748b !important;
 }
 
 html.light-theme .dcs-modal-close:hover,
-body.light-theme .dcs-modal-close:hover {
+html.light-theme body .dcs-modal-close:hover,
+body.light-theme .dcs-modal-close:hover,
+#dcsSyncModal.light-theme .dcs-modal-close:hover,
+#dcsSyncModal.dcs-light-mode .dcs-modal-close:hover {
     color: #ef4444 !important;
 }
 
 html.light-theme .dcs-modal-body,
-body.light-theme .dcs-modal-body {
+html.light-theme body .dcs-modal-body,
+body.light-theme .dcs-modal-body,
+#dcsSyncModal.light-theme .dcs-modal-body,
+#dcsSyncModal.dcs-light-mode .dcs-modal-body {
     background: #ffffff !important;
     color: #0f172a !important;
 }
 
 html.light-theme .dcs-filter-card,
-body.light-theme .dcs-filter-card {
+html.light-theme body .dcs-filter-card,
+body.light-theme .dcs-filter-card,
+#dcsSyncModal.light-theme .dcs-filter-card,
+#dcsSyncModal.dcs-light-mode .dcs-filter-card {
     background: #f8fafc !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
 }
 
 html.light-theme .dcs-filter-group label,
-body.light-theme .dcs-filter-group label {
+html.light-theme body .dcs-filter-group label,
+body.light-theme .dcs-filter-group label,
+#dcsSyncModal.light-theme .dcs-filter-group label,
+#dcsSyncModal.dcs-light-mode .dcs-filter-group label {
     color: #334155 !important;
     font-weight: 700 !important;
 }
 
 html.light-theme .dcs-input,
-body.light-theme .dcs-input {
+html.light-theme body .dcs-input,
+body.light-theme .dcs-input,
+#dcsSyncModal.light-theme .dcs-input,
+#dcsSyncModal.dcs-light-mode .dcs-input {
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
     color: #0f172a !important;
@@ -7024,13 +7146,19 @@ body.light-theme .dcs-input {
 }
 
 html.light-theme .dcs-input:focus,
-body.light-theme .dcs-input:focus {
+html.light-theme body .dcs-input:focus,
+body.light-theme .dcs-input:focus,
+#dcsSyncModal.light-theme .dcs-input:focus,
+#dcsSyncModal.dcs-light-mode .dcs-input:focus {
     border-color: #0284c7 !important;
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
 }
 
 html.light-theme .dcs-pill,
-body.light-theme .dcs-pill {
+html.light-theme body .dcs-pill,
+body.light-theme .dcs-pill,
+#dcsSyncModal.light-theme .dcs-pill,
+#dcsSyncModal.dcs-light-mode .dcs-pill {
     background: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
     color: #334155 !important;
@@ -7039,32 +7167,50 @@ body.light-theme .dcs-pill {
 
 html.light-theme .dcs-pill:hover,
 html.light-theme .dcs-pill.active,
+html.light-theme body .dcs-pill:hover,
+html.light-theme body .dcs-pill.active,
 body.light-theme .dcs-pill:hover,
-body.light-theme .dcs-pill.active {
+body.light-theme .dcs-pill.active,
+#dcsSyncModal.light-theme .dcs-pill:hover,
+#dcsSyncModal.light-theme .dcs-pill.active,
+#dcsSyncModal.dcs-light-mode .dcs-pill:hover,
+#dcsSyncModal.dcs-light-mode .dcs-pill.active {
     background: #0284c7 !important;
     border-color: #0284c7 !important;
     color: #ffffff !important;
 }
 
 html.light-theme .dcs-stations-header,
-body.light-theme .dcs-stations-header {
+html.light-theme body .dcs-stations-header,
+body.light-theme .dcs-stations-header,
+#dcsSyncModal.light-theme .dcs-stations-header,
+#dcsSyncModal.dcs-light-mode .dcs-stations-header {
     color: #0f172a !important;
     font-weight: 700 !important;
 }
 
 html.light-theme .dcs-stations-toggle a,
-body.light-theme .dcs-stations-toggle a {
+html.light-theme body .dcs-stations-toggle a,
+body.light-theme .dcs-stations-toggle a,
+#dcsSyncModal.light-theme .dcs-stations-toggle a,
+#dcsSyncModal.dcs-light-mode .dcs-stations-toggle a {
     color: #0284c7 !important;
     font-weight: 700 !important;
 }
 
 html.light-theme .dcs-stations-toggle a:hover,
-body.light-theme .dcs-stations-toggle a:hover {
+html.light-theme body .dcs-stations-toggle a:hover,
+body.light-theme .dcs-stations-toggle a:hover,
+#dcsSyncModal.light-theme .dcs-stations-toggle a:hover,
+#dcsSyncModal.dcs-light-mode .dcs-stations-toggle a:hover {
     color: #0369a1 !important;
 }
 
 html.light-theme .dcs-chip,
-body.light-theme .dcs-chip {
+html.light-theme body .dcs-chip,
+body.light-theme .dcs-chip,
+#dcsSyncModal.light-theme .dcs-chip,
+#dcsSyncModal.dcs-light-mode .dcs-chip {
     background: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
     color: #1e293b !important;
@@ -7072,14 +7218,20 @@ body.light-theme .dcs-chip {
 }
 
 html.light-theme .dcs-chip:hover,
-body.light-theme .dcs-chip:hover {
+html.light-theme body .dcs-chip:hover,
+body.light-theme .dcs-chip:hover,
+#dcsSyncModal.light-theme .dcs-chip:hover,
+#dcsSyncModal.dcs-light-mode .dcs-chip:hover {
     background: #e2e8f0 !important;
     border-color: #0284c7 !important;
     color: #0284c7 !important;
 }
 
 html.light-theme .dcs-chip:has(input:checked),
-body.light-theme .dcs-chip:has(input:checked) {
+html.light-theme body .dcs-chip:has(input:checked),
+body.light-theme .dcs-chip:has(input:checked),
+#dcsSyncModal.light-theme .dcs-chip:has(input:checked),
+#dcsSyncModal.dcs-light-mode .dcs-chip:has(input:checked) {
     background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
     border-color: #0369a1 !important;
     color: #ffffff !important;
@@ -7087,28 +7239,43 @@ body.light-theme .dcs-chip:has(input:checked) {
 }
 
 html.light-theme .dcs-chip input,
-body.light-theme .dcs-chip input {
+html.light-theme body .dcs-chip input,
+body.light-theme .dcs-chip input,
+#dcsSyncModal.light-theme .dcs-chip input,
+#dcsSyncModal.dcs-light-mode .dcs-chip input {
     accent-color: #0284c7 !important;
 }
 
 html.light-theme .dcs-action-row,
-body.light-theme .dcs-action-row {
+html.light-theme body .dcs-action-row,
+body.light-theme .dcs-action-row,
+#dcsSyncModal.light-theme .dcs-action-row,
+#dcsSyncModal.dcs-light-mode .dcs-action-row {
     border-top: 1px solid #e2e8f0 !important;
 }
 
 html.light-theme .dcs-checkbox-label,
-body.light-theme .dcs-checkbox-label {
+html.light-theme body .dcs-checkbox-label,
+body.light-theme .dcs-checkbox-label,
+#dcsSyncModal.light-theme .dcs-checkbox-label,
+#dcsSyncModal.dcs-light-mode .dcs-checkbox-label {
     color: #0f172a !important;
     font-weight: 600 !important;
 }
 
 html.light-theme .dcs-checkbox-label input,
-body.light-theme .dcs-checkbox-label input {
+html.light-theme body .dcs-checkbox-label input,
+body.light-theme .dcs-checkbox-label input,
+#dcsSyncModal.light-theme .dcs-checkbox-label input,
+#dcsSyncModal.dcs-light-mode .dcs-checkbox-label input {
     accent-color: #0284c7 !important;
 }
 
 html.light-theme .dcs-btn-scan,
-body.light-theme .dcs-btn-scan {
+html.light-theme body .dcs-btn-scan,
+body.light-theme .dcs-btn-scan,
+#dcsSyncModal.light-theme .dcs-btn-scan,
+#dcsSyncModal.dcs-light-mode .dcs-btn-scan {
     background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
     border: 1px solid #0284c7 !important;
     color: #ffffff !important;
@@ -7116,58 +7283,85 @@ body.light-theme .dcs-btn-scan {
 }
 
 html.light-theme .dcs-btn-scan:hover,
-body.light-theme .dcs-btn-scan:hover {
+html.light-theme body .dcs-btn-scan:hover,
+body.light-theme .dcs-btn-scan:hover,
+#dcsSyncModal.light-theme .dcs-btn-scan:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-scan:hover {
     background: linear-gradient(135deg, #0369a1 0%, #075985 100%) !important;
     border-color: #075985 !important;
 }
 
 html.light-theme .dcs-progress-box,
-body.light-theme .dcs-progress-box {
+html.light-theme body .dcs-progress-box,
+body.light-theme .dcs-progress-box,
+#dcsSyncModal.light-theme .dcs-progress-box,
+#dcsSyncModal.dcs-light-mode .dcs-progress-box {
     background: #f8fafc !important;
     border: 1px solid #cbd5e1 !important;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
 }
 
 html.light-theme .dcs-spinner,
-body.light-theme .dcs-spinner {
+html.light-theme body .dcs-spinner,
+body.light-theme .dcs-spinner,
+#dcsSyncModal.light-theme .dcs-spinner,
+#dcsSyncModal.dcs-light-mode .dcs-spinner {
     border-color: rgba(2, 132, 199, 0.2) !important;
     border-top-color: #0284c7 !important;
 }
 
 html.light-theme #dcsProgressText,
-body.light-theme #dcsProgressText {
+html.light-theme body #dcsProgressText,
+body.light-theme #dcsProgressText,
+#dcsSyncModal.light-theme #dcsProgressText,
+#dcsSyncModal.dcs-light-mode #dcsProgressText {
     color: #0f172a !important;
     text-shadow: none !important;
     font-weight: 600 !important;
 }
 
 html.light-theme #dcsProgressPercent,
-body.light-theme #dcsProgressPercent {
+html.light-theme body #dcsProgressPercent,
+body.light-theme #dcsProgressPercent,
+#dcsSyncModal.light-theme #dcsProgressPercent,
+#dcsSyncModal.dcs-light-mode #dcsProgressPercent {
     color: #0284c7 !important;
     text-shadow: none !important;
     font-weight: 800 !important;
 }
 
 html.light-theme .dcs-progress-bar-wrap,
-body.light-theme .dcs-progress-bar-wrap {
+html.light-theme body .dcs-progress-bar-wrap,
+body.light-theme .dcs-progress-bar-wrap,
+#dcsSyncModal.light-theme .dcs-progress-bar-wrap,
+#dcsSyncModal.dcs-light-mode .dcs-progress-bar-wrap {
     background: #e2e8f0 !important;
     border: 1px solid #cbd5e1 !important;
 }
 
 html.light-theme .dcs-progress-bar,
-body.light-theme .dcs-progress-bar {
+html.light-theme body .dcs-progress-bar,
+body.light-theme .dcs-progress-bar,
+#dcsSyncModal.light-theme .dcs-progress-bar,
+#dcsSyncModal.dcs-light-mode .dcs-progress-bar {
     background: linear-gradient(90deg, #0284c7 0%, #38bdf8 100%) !important;
     box-shadow: 0 0 10px rgba(2, 132, 199, 0.4) !important;
 }
 
 html.light-theme .dcs-results-header,
-body.light-theme .dcs-results-header {
+html.light-theme body .dcs-results-header,
+body.light-theme .dcs-results-header,
+#dcsSyncModal.light-theme .dcs-results-header,
+#dcsSyncModal.dcs-light-mode .dcs-results-header {
     color: #0f172a !important;
     font-weight: 600 !important;
 }
 
 html.light-theme .dcs-btn-mini,
-body.light-theme .dcs-btn-mini {
+html.light-theme body .dcs-btn-mini,
+body.light-theme .dcs-btn-mini,
+#dcsSyncModal.light-theme .dcs-btn-mini,
+#dcsSyncModal.dcs-light-mode .dcs-btn-mini {
     background: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
     color: #334155 !important;
@@ -7175,20 +7369,29 @@ body.light-theme .dcs-btn-mini {
 }
 
 html.light-theme .dcs-btn-mini:hover,
-body.light-theme .dcs-btn-mini:hover {
+html.light-theme body .dcs-btn-mini:hover,
+body.light-theme .dcs-btn-mini:hover,
+#dcsSyncModal.light-theme .dcs-btn-mini:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-mini:hover {
     background: #e2e8f0 !important;
     border-color: #0284c7 !important;
     color: #0284c7 !important;
 }
 
 html.light-theme .dcs-table-wrapper,
-body.light-theme .dcs-table-wrapper {
+html.light-theme body .dcs-table-wrapper,
+body.light-theme .dcs-table-wrapper,
+#dcsSyncModal.light-theme .dcs-table-wrapper,
+#dcsSyncModal.dcs-light-mode .dcs-table-wrapper {
     background: #ffffff !important;
     border: 1px solid #cbd5e1 !important;
 }
 
 html.light-theme .dcs-preview-table th,
-body.light-theme .dcs-preview-table th {
+html.light-theme body .dcs-preview-table th,
+body.light-theme .dcs-preview-table th,
+#dcsSyncModal.light-theme .dcs-preview-table th,
+#dcsSyncModal.dcs-light-mode .dcs-preview-table th {
     background: #f1f5f9 !important;
     color: #0f172a !important;
     border-bottom: 2px solid #cbd5e1 !important;
@@ -7196,28 +7399,43 @@ body.light-theme .dcs-preview-table th {
 }
 
 html.light-theme .dcs-preview-table td,
-body.light-theme .dcs-preview-table td {
+html.light-theme body .dcs-preview-table td,
+body.light-theme .dcs-preview-table td,
+#dcsSyncModal.light-theme .dcs-preview-table td,
+#dcsSyncModal.dcs-light-mode .dcs-preview-table td {
     border-bottom: 1px solid #f1f5f9 !important;
     color: #0f172a !important;
 }
 
 html.light-theme .dcs-row-new,
-body.light-theme .dcs-row-new {
+html.light-theme body .dcs-row-new,
+body.light-theme .dcs-row-new,
+#dcsSyncModal.light-theme .dcs-row-new,
+#dcsSyncModal.dcs-light-mode .dcs-row-new {
     background: rgba(16, 185, 129, 0.08) !important;
 }
 
 html.light-theme .dcs-row-new:hover,
-body.light-theme .dcs-row-new:hover {
+html.light-theme body .dcs-row-new:hover,
+body.light-theme .dcs-row-new:hover,
+#dcsSyncModal.light-theme .dcs-row-new:hover,
+#dcsSyncModal.dcs-light-mode .dcs-row-new:hover {
     background: rgba(16, 185, 129, 0.16) !important;
 }
 
 html.light-theme .dcs-row-existing:hover,
-body.light-theme .dcs-row-existing:hover {
+html.light-theme body .dcs-row-existing:hover,
+body.light-theme .dcs-row-existing:hover,
+#dcsSyncModal.light-theme .dcs-row-existing:hover,
+#dcsSyncModal.dcs-light-mode .dcs-row-existing:hover {
     background: rgba(0, 0, 0, 0.03) !important;
 }
 
 html.light-theme .dcs-flt-badge,
-body.light-theme .dcs-flt-badge {
+html.light-theme body .dcs-flt-badge,
+body.light-theme .dcs-flt-badge,
+#dcsSyncModal.light-theme .dcs-flt-badge,
+#dcsSyncModal.dcs-light-mode .dcs-flt-badge {
     background: #e0f2fe !important;
     border: 1px solid #0284c7 !important;
     color: #0369a1 !important;
@@ -7225,43 +7443,64 @@ body.light-theme .dcs-flt-badge {
 }
 
 html.light-theme .dcs-status-tag.new,
-body.light-theme .dcs-status-tag.new {
+html.light-theme body .dcs-status-tag.new,
+body.light-theme .dcs-status-tag.new,
+#dcsSyncModal.light-theme .dcs-status-tag.new,
+#dcsSyncModal.dcs-light-mode .dcs-status-tag.new {
     background: #dcfce7 !important;
     color: #15803d !important;
     border: 1px solid #86efac !important;
 }
 
 html.light-theme .dcs-status-tag.exist,
-body.light-theme .dcs-status-tag.exist {
+html.light-theme body .dcs-status-tag.exist,
+body.light-theme .dcs-status-tag.exist,
+#dcsSyncModal.light-theme .dcs-status-tag.exist,
+#dcsSyncModal.dcs-light-mode .dcs-status-tag.exist {
     background: #fef3c7 !important;
     color: #b45309 !important;
     border: 1px solid #fde68a !important;
 }
 
 html.light-theme .dcs-modal-footer,
-body.light-theme .dcs-modal-footer {
+html.light-theme body .dcs-modal-footer,
+body.light-theme .dcs-modal-footer,
+#dcsSyncModal.light-theme .dcs-modal-footer,
+#dcsSyncModal.dcs-light-mode .dcs-modal-footer {
     background: #f8fafc !important;
     border-top: 1px solid #e2e8f0 !important;
 }
 
-body.light-theme .dcs-btn-secondary {
-    background: #f1f5f9;
-    border: 1px solid #cbd5e1;
-    color: #334155;
-    font-weight: 600;
+html.light-theme .dcs-btn-secondary,
+html.light-theme body .dcs-btn-secondary,
+body.light-theme .dcs-btn-secondary,
+#dcsSyncModal.light-theme .dcs-btn-secondary,
+#dcsSyncModal.dcs-light-mode .dcs-btn-secondary {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #334155 !important;
+    font-weight: 600 !important;
 }
 
-body.light-theme .dcs-btn-secondary:hover {
-    background: #e2e8f0;
-    border-color: #94a3b8;
-    color: #0f172a;
+html.light-theme .dcs-btn-secondary:hover,
+html.light-theme body .dcs-btn-secondary:hover,
+body.light-theme .dcs-btn-secondary:hover,
+#dcsSyncModal.light-theme .dcs-btn-secondary:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-secondary:hover {
+    background: #e2e8f0 !important;
+    border-color: #94a3b8 !important;
+    color: #0f172a !important;
 }
 
-body.light-theme .dcs-btn-primary {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    border: 1px solid #059669;
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+html.light-theme .dcs-btn-primary,
+html.light-theme body .dcs-btn-primary,
+body.light-theme .dcs-btn-primary,
+#dcsSyncModal.light-theme .dcs-btn-primary,
+#dcsSyncModal.dcs-light-mode .dcs-btn-primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border: 1px solid #059669 !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25) !important;
 }
 
 /* ==========================================================================
