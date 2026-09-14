@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.181';
+const APP_VERSION = 'v12.0.183';
 const APP_BUILD_DATE = '14.09.2026';
 
 // Глобальное состояние
@@ -5344,10 +5344,20 @@ function renderServerBackupsTable() {
         const sizeMb = (b.size / (1024 * 1024)).toFixed(2);
         const sizeDisplay = b.size > 1024 * 1024 ? `${sizeMb} MB` : `${sizeKb} KB`;
 
+        let createdAtHtml = escapeHtml(b.created_at || '—');
+        if (b.created_at) {
+            const parts = String(b.created_at).trim().split(' ');
+            if (parts.length >= 2) {
+                createdAtHtml = `<div style="white-space: nowrap; font-weight: 500;">${escapeHtml(parts[0])}</div><div style="white-space: nowrap; font-size: 0.72rem; opacity: 0.85;">${escapeHtml(parts.slice(1).join(' '))}</div>`;
+            } else {
+                createdAtHtml = `<span style="white-space: nowrap;">${escapeHtml(b.created_at)}</span>`;
+            }
+        }
+
         html += `
             <tr>
                 <td><strong class="font-mono">${escapeHtml(b.filename)}</strong></td>
-                <td class="monospace-val" style="font-size: 0.8rem;">${b.created_at}</td>
+                <td class="monospace-val" style="font-size: 0.8rem; vertical-align: middle;">${createdAtHtml}</td>
                 <td class="monospace-val highlight-cyan">${sizeDisplay}</td>
                 <td style="text-align: right;">
                     <div class="table-action-btns">
@@ -5842,9 +5852,19 @@ function renderLogsTable() {
         const msgStr = escapeHtml(log.message || '-');
         const hasDetails = Boolean(log.details);
 
+        let timeFormattedHtml = escapeHtml(timeStr);
+        if (timeStr && timeStr !== '-') {
+            const parts = String(timeStr).trim().split(' ');
+            if (parts.length >= 2) {
+                timeFormattedHtml = `<div style="white-space: nowrap; font-weight: 500;">${escapeHtml(parts[0])}</div><div style="white-space: nowrap; font-size: 0.72rem; opacity: 0.85;">${escapeHtml(parts.slice(1).join(' '))}</div>`;
+            } else {
+                timeFormattedHtml = `<span style="white-space: nowrap;">${escapeHtml(timeStr)}</span>`;
+            }
+        }
+
         html += `
             <tr class="${rowClass}">
-                <td class="monospace-val" style="font-size: 0.76rem;">${timeStr}</td>
+                <td class="monospace-val" style="font-size: 0.76rem; vertical-align: middle;">${timeFormattedHtml}</td>
                 <td><span class="badge-log-level ${levelClass}">${lvl}</span></td>
                 <td><span class="badge-log-cat ${catClass}">${cat}</span></td>
                 <td>
