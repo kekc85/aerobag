@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.178';
-const APP_BUILD_DATE = '11.09.2026';
+const APP_VERSION = 'v12.0.181';
+const APP_BUILD_DATE = '14.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -1725,7 +1725,7 @@ const translations = {
         'chk-telegram-enable': 'Включить автоматическую отправку алертов об ошибках',
         'btn-test-telegram': 'Тест соединения',
         'btn-save-telegram': 'Сохранить настройки',
-        'diagnostics-title': '[ SYSTEM HEALTH & DATABASE DIAGNOSTICS ]',
+        'diagnostics-title': '[ SYSTEM HEALTH & DATABASE DIAGNOSTICS\u00A0]',
         'diagnostics-subtext': 'Сводные технические метрики производительности, целостности базы данных и системного окружения хостинга.',
 
         // Системный журнал аудита и логирования ошибок
@@ -1980,7 +1980,7 @@ const translations = {
         'chk-telegram-enable': 'Enable automatic incident error alerts',
         'btn-test-telegram': 'Test Connection',
         'btn-save-telegram': 'Save Settings',
-        'diagnostics-title': '[ SYSTEM HEALTH & DATABASE DIAGNOSTICS ]',
+        'diagnostics-title': '[ SYSTEM HEALTH & DATABASE DIAGNOSTICS\u00A0]',
         'diagnostics-subtext': 'Consolidated technical performance metrics, database health, and hosting environment status.',
 
         // System Audit and Error Logging
@@ -4884,7 +4884,15 @@ function renderUsersTable() {
             ? `<span class="status-pill active">${currentLang === 'ru' ? 'Активен' : 'Active'}</span>`
             : `<span class="status-pill blocked">${currentLang === 'ru' ? 'Заблокирован' : 'Blocked'}</span>`;
 
-        const lastLoginText = u.last_login ? u.last_login : (currentLang === 'ru' ? 'Не входил' : 'Never');
+        let lastLoginHtml = `<span class="text-muted" style="white-space: nowrap;">${currentLang === 'ru' ? 'Не входил' : 'Never'}</span>`;
+        if (u.last_login) {
+            const parts = String(u.last_login).trim().split(' ');
+            if (parts.length >= 2) {
+                lastLoginHtml = `<div style="white-space: nowrap; font-weight: 500;">${escapeHtml(parts[0])}</div><div style="white-space: nowrap; font-size: 0.72rem; opacity: 0.85;">${escapeHtml(parts.slice(1).join(' '))}</div>`;
+            } else {
+                lastLoginHtml = `<span style="white-space: nowrap;">${escapeHtml(u.last_login)}</span>`;
+            }
+        }
 
         html += `
             <tr>
@@ -4892,7 +4900,7 @@ function renderUsersTable() {
                 <td>${escapeHtml(u.full_name)}</td>
                 <td>${roleBadge}</td>
                 <td>${statusBadge}</td>
-                <td class="monospace-val" style="font-size:0.75rem;">${lastLoginText}</td>
+                <td class="monospace-val" style="font-size:0.75rem; vertical-align: middle;">${lastLoginHtml}</td>
                 <td style="text-align: right;">
                     <div class="table-action-btns">
                         <button type="button" class="btn-table-action gold" onclick="openChangePasswordModal('${u.id}', '${escapeHtml(u.username)}')" title="Сменить пароль">🔑 Пароль</button>

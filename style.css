@@ -1427,6 +1427,12 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     vertical-align: middle;
 }
 
+#predictions-table th:first-child,
+#predictions-table td:first-child {
+    min-width: 115px;
+    white-space: nowrap;
+}
+
 #predictions-table th:nth-child(8),
 #predictions-table td:nth-child(8) {
     text-align: center;
@@ -2871,6 +2877,15 @@ body.light-theme .footer-table tr.ttl-row td {
         min-width: 650px;
     }
 
+    .table-responsive #predictions-table {
+        min-width: 700px;
+    }
+
+    #predictions-table th,
+    #predictions-table td {
+        padding: 10px 8px !important;
+    }
+
     .table-section {
         padding: 10px 6px;
         border-radius: 0 !important;
@@ -3214,12 +3229,13 @@ body.light-theme .footer-table tr.ttl-row td {
     }
 
     .panel-title {
-        font-size: 0.88rem !important;
+        font-size: clamp(0.78rem, 3.2vw, 0.88rem) !important;
         letter-spacing: 0px !important;
         padding-left: 24px !important; /* Уголок HUD на 6px, а заголовок с запасным отступом на 24px! */
         padding-right: 12px !important;
         line-height: 1.3 !important;
         margin-bottom: 12px !important;
+        word-break: normal !important;
     }
 
     /* Грид паксов */
@@ -7110,6 +7126,15 @@ body.light-theme .btn-dcs-sync-trigger .btn-dcs-text strong {
 body.light-theme .btn-dcs-sync-trigger .btn-dcs-text small {
     color: #e0f2fe !important;
     font-weight: 600;
+}
+
+/* Адаптивность для кнопки Lydia DCS на мобильных устройствах */
+@media (max-width: 768px) {
+    .btn-dcs-sync-trigger {
+        width: calc(100% - 24px) !important;
+        margin: 14px 12px 0 12px !important;
+        box-sizing: border-box !important;
+    }
 }
 
 /* ==========================================================================
