@@ -84,6 +84,10 @@ switch ($action) {
         handleCheckAuth($pdo);
         break;
 
+    case 'update_theme':
+        handleUpdateUserTheme($pdo);
+        break;
+
     // --- УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ (ТОЛЬКО ADMIN) ---
     case 'get_users':
         requireAdmin();
@@ -293,10 +297,21 @@ function initDatabase($pdo) {
         full_name VARCHAR(100) NOT NULL,
         role ENUM('admin', 'dispatcher') NOT NULL DEFAULT 'dispatcher',
         is_active TINYINT DEFAULT 1,
+        theme VARCHAR(20) DEFAULT 'dark',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         last_login TIMESTAMP NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     $pdo->exec($sqlUsers);
+
+    // Безопасная мягкая миграция: добавление theme в существующую таблицу users
+    try {
+        $colThemeCheck = $pdo->query("SHOW COLUMNS FROM users LIKE 'theme'")->fetch();
+        if (!$colThemeCheck) {
+            $pdo->exec("ALTER TABLE users ADD COLUMN theme VARCHAR(20) DEFAULT 'dark'");
+        }
+    } catch (Exception $e) {
+        // Колонка уже существует или нет прав на ALTER
+    }
 
     // 3. Таблица настроек системы (фильтры городов и параметры)
     $sqlSettings = "CREATE TABLE IF NOT EXISTS app_settings (
@@ -418,6 +433,8 @@ function handleLogin($pdo) {
     $_SESSION['username'] = $user['username'];
     $_SESSION['full_name'] = $user['full_name'];
     $_SESSION['role'] = $user['role'];
+    $userTheme = !empty($user['theme']) ? $user['theme'] : 'dark';
+    $_SESSION['theme'] = $userTheme;
 
     logSystemEvent($pdo, 'INFO', 'AUTH', "Успешный вход в систему: {$user['username']} ({$user['full_name']}, роль: {$user['role']})");
 
@@ -427,7 +444,8 @@ function handleLogin($pdo) {
             'id' => $user['id'],
             'username' => $user['username'],
             'full_name' => $user['full_name'],
-            'role' => $user['role']
+            'role' => $user['role'],
+            'theme' => $userTheme
         ]
     ], JSON_UNESCAPED_UNICODE);
 }
@@ -467,7 +485,7 @@ function handleCheckAuth($pdo) {
         return;
     }
 
-    $stmt = $pdo->prepare("SELECT id, username, full_name, role, is_active FROM users WHERE id = ? LIMIT 1");
+    $stmt = $pdo->prepare("SELECT id, username, full_name, role, is_active, theme FROM users WHERE id = ? LIMIT 1");
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
 
@@ -483,6 +501,8 @@ function handleCheckAuth($pdo) {
     // Синхронизируем роль
     $_SESSION['role'] = $user['role'];
     $_SESSION['full_name'] = $user['full_name'];
+    $userTheme = !empty($user['theme']) ? $user['theme'] : 'dark';
+    $_SESSION['theme'] = $userTheme;
 
     echo json_encode([
         'success' => true,
@@ -491,9 +511,43 @@ function handleCheckAuth($pdo) {
             'id' => $user['id'],
             'username' => $user['username'],
             'full_name' => $user['full_name'],
-            'role' => $user['role']
+            'role' => $user['role'],
+            'theme' => $userTheme
         ]
     ], JSON_UNESCAPED_UNICODE);
+}
+
+/**
+ * Обновление персональной темы оформления пользователя (dark / light)
+ */
+function handleUpdateUserTheme($pdo) {
+    if (empty($_SESSION['user_id'])) {
+        echo json_encode(['success' => false, 'error' => 'Требуется авторизация.'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    $rawInput = file_get_contents('php://input');
+    $input = json_decode($rawInput, true) ?: [];
+    $theme = isset($input['theme']) ? trim($input['theme']) : (isset($_POST['theme']) ? trim($_POST['theme']) : (isset($_GET['theme']) ? trim($_GET['theme']) : ''));
+
+    if ($theme !== 'dark' && $theme !== 'light') {
+        echo json_encode(['success' => false, 'error' => 'Недопустимое значение темы.'], JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->prepare("UPDATE users SET theme = ? WHERE id = ?");
+        $stmt->execute([$theme, $_SESSION['user_id']]);
+        $_SESSION['theme'] = $theme;
+
+        echo json_encode([
+            'success' => true,
+            'theme' => $theme,
+            'message' => 'Тема успешно сохранена для пользователя.'
+        ], JSON_UNESCAPED_UNICODE);
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'error' => 'Ошибка сохранения темы: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    }
 }
 
 /**
@@ -501,7 +555,7 @@ function handleCheckAuth($pdo) {
  */
 function handleGetUsers($pdo) {
     try {
-        $stmt = $pdo->query("SELECT id, username, full_name, role, is_active, created_at, last_login FROM users ORDER BY role ASC, full_name ASC");
+        $stmt = $pdo->query("SELECT id, username, full_name, role, is_active, theme, created_at, last_login FROM users ORDER BY role ASC, full_name ASC");
         $users = $stmt->fetchAll();
 
         echo json_encode([

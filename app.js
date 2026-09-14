@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.182';
+const APP_VERSION = 'v12.0.184';
 const APP_BUILD_DATE = '14.09.2026';
 
 // Глобальное состояние
@@ -2756,17 +2756,6 @@ function loadSettings() {
     }
     setLanguage(currentLang);
 
-    // Тема
-    const savedTheme = localStorage.getItem('averago_theme');
-    if (savedTheme) {
-        currentTheme = savedTheme;
-    }
-    const isLightTheme = (currentTheme === 'light');
-    document.documentElement.classList.toggle('light-theme', isLightTheme);
-    document.documentElement.setAttribute('data-theme', isLightTheme ? 'light' : 'dark');
-    document.body.classList.toggle('light-theme', isLightTheme);
-    updateThemeButtonUI();
-
     // Мгновенный синхронный рендер профиля пользователя и доступных вкладок (исключает любое мелькание!)
     const cachedUser = localStorage.getItem('averago_current_user_profile') || localStorage.getItem('averago_local_auth_user');
     if (cachedUser) {
@@ -2777,6 +2766,17 @@ function loadSettings() {
             updateTabsRoleAccess();
         } catch (e) {}
     }
+
+    // Тема (с приоритетом персональной настройки текущего диспетчера / пользователя)
+    let userPreferredTheme = (currentUser && currentUser.theme) ? currentUser.theme : null;
+    if (!userPreferredTheme && currentUser && currentUser.id) {
+        userPreferredTheme = localStorage.getItem(`averago_theme_user_${currentUser.id}`);
+    }
+    const savedTheme = userPreferredTheme || localStorage.getItem('averago_theme');
+    if (savedTheme) {
+        currentTheme = savedTheme;
+    }
+    applyTheme(currentTheme, false);
 }
 
 // Установка языка интерфейса
@@ -2815,15 +2815,44 @@ function setLanguage(lang) {
     renderDashboardAnalytics();
 }
 
-// Переключение темы оформления
-function toggleTheme() {
-    currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+// Применение темы оформления (dark / light) с синхронизацией в профиль пользователя и БД
+function applyTheme(theme, saveToServer = true) {
+    currentTheme = (theme === 'light') ? 'light' : 'dark';
     localStorage.setItem('averago_theme', currentTheme);
+
     const isLightTheme = (currentTheme === 'light');
     document.documentElement.classList.toggle('light-theme', isLightTheme);
     document.documentElement.setAttribute('data-theme', isLightTheme ? 'light' : 'dark');
     document.body.classList.toggle('light-theme', isLightTheme);
     updateThemeButtonUI();
+
+    // Сохраняем тему в профиль текущего пользователя
+    if (currentUser) {
+        currentUser.theme = currentTheme;
+        try {
+            localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
+            if (currentUser.id) {
+                localStorage.setItem(`averago_theme_user_${currentUser.id}`, currentTheme);
+            }
+        } catch (e) {}
+
+        // Асинхронно отправляем тему на сервер в MySQL
+        if (saveToServer && !isOfflineMode && window.location.protocol !== 'file:') {
+            fetch('api.php?action=update_theme', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ theme: currentTheme })
+            }).catch(err => {
+                console.warn('Не удалось сохранить тему на сервере:', err);
+            });
+        }
+    }
+}
+
+// Переключение темы оформления
+function toggleTheme() {
+    const nextTheme = (currentTheme === 'dark') ? 'light' : 'dark';
+    applyTheme(nextTheme, true);
 }
 
 // Обновление текста на кнопке темы
@@ -4478,6 +4507,9 @@ async function checkAuthStatus() {
             const data = await response.json();
             if (data.success && data.authenticated && data.user) {
                 currentUser = data.user;
+                if (currentUser && currentUser.theme) {
+                    applyTheme(currentUser.theme, false);
+                }
                 isAdminAuthenticated = (currentUser.role === 'admin');
                 isOfflineMode = false;
                 localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
@@ -4575,6 +4607,12 @@ async function handleLoginSubmit(e) {
             currentUser = { id: 'usr_local_disp', username: username, full_name: `Диспетчер (${username})`, role: 'dispatcher' };
         }
 
+        const savedUserTheme = localStorage.getItem(`averago_theme_user_${currentUser.id}`);
+        if (savedUserTheme) {
+            currentUser.theme = savedUserTheme;
+            applyTheme(savedUserTheme, false);
+        }
+
         localStorage.setItem('averago_local_auth_user', JSON.stringify(currentUser));
         localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
         isAdminAuthenticated = (currentUser.role === 'admin');
@@ -4623,6 +4661,9 @@ async function handleLoginSubmit(e) {
 
         if (data.success && data.user) {
             currentUser = data.user;
+            if (currentUser && currentUser.theme) {
+                applyTheme(currentUser.theme, false);
+            }
             isAdminAuthenticated = (currentUser.role === 'admin');
             localStorage.setItem('averago_current_user_profile', JSON.stringify(currentUser));
             localStorage.setItem('averago_local_auth_user', JSON.stringify(currentUser));
