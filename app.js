@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.184';
-const APP_BUILD_DATE = '14.09.2026';
+const APP_VERSION = 'v12.0.186';
+const APP_BUILD_DATE = '26.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -2250,15 +2250,48 @@ function debouncedSaveCompartmentsToPrediction() {
     }, 250);
 }
 
+// Полный сброс интерфейса коммерческой загрузки (при удалении активного рейса или очистке истории)
+function clearLoadPlanningUI() {
+    clearTimeout(saveCompartmentsTimeout);
+    currentActivePredictionId = null;
+
+    const prelimPax = document.getElementById('prelim-pax');
+    const prelimPcs = document.getElementById('prelim-pcs');
+    const prelimWeight = document.getElementById('prelim-weight');
+    const prelimAvgWeight = document.getElementById('prelim-avg-weight');
+    const prelimAvgPax = document.getElementById('prelim-avg-pax');
+
+    const lirPax = document.getElementById('lir-pax');
+    const lirPcs = document.getElementById('lir-pcs');
+    const lirWeight = document.getElementById('lir-weight');
+
+    if (prelimPax) prelimPax.textContent = '0';
+    if (prelimPcs) prelimPcs.textContent = '0';
+    if (prelimWeight) prelimWeight.textContent = '0';
+    if (prelimAvgWeight) prelimAvgWeight.textContent = '0,00';
+    if (prelimAvgPax) prelimAvgPax.textContent = '0,00';
+
+    if (lirPax) lirPax.value = '0';
+    if (lirPcs) lirPcs.value = '0';
+    if (lirWeight) lirWeight.value = '0';
+
+    resetCompartments();
+    recalculateLoadPlanning();
+
+    const badgeEl = document.getElementById('active-flight-badge');
+    if (badgeEl) badgeEl.classList.add('hidden');
+
+    const tbody = document.getElementById('predictions-table-body');
+    if (tbody) {
+        Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+            tr.classList.remove('selected-history-row');
+        });
+    }
+}
+
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
-    if (!currentActivePredictionId) {
-        if (predictionsHistory && predictionsHistory.length > 0) {
-            currentActivePredictionId = predictionsHistory[0].id;
-        } else {
-            return;
-        }
-    }
+    if (!currentActivePredictionId) return;
     const p = predictionsHistory.find(item => item.id === currentActivePredictionId);
     if (!p) return;
 
@@ -2286,8 +2319,10 @@ function saveCompartmentsToPrediction() {
 
 // Восстановление раскладки BULK отсеков из объекта prediction
 function restoreCompartmentsFromPrediction(p) {
+    // Всегда сбрасываем ячейки 1..12 перед заполнением, чтобы не оставалось хвостов от других рейсов
+    resetCompartments();
+
     if (!p || !p.compartments || !Array.isArray(p.compartments)) {
-        resetCompartments();
         return;
     }
 
@@ -2349,10 +2384,10 @@ function transferToPreliminary() {
     if (lirWeight) lirWeight.value = weightVal;
 
     // Связываем с самым свежим расчетом из истории
-    if (!currentActivePredictionId && predictionsHistory && predictionsHistory.length > 0) {
+    if (predictionsHistory && predictionsHistory.length > 0) {
         currentActivePredictionId = predictionsHistory[0].id;
-    }
-    if (currentActivePredictionId) {
+        const activePred = predictionsHistory[0];
+        updateActiveFlightBadge(activePred.from, activePred.to, activePred.flight_no, activePred.flight_date || activePred.calc_date);
         highlightPredictionRow(currentActivePredictionId);
     }
 
@@ -2365,8 +2400,10 @@ function transferPredictionToPreliminary(predId) {
     const p = predictionsHistory.find(item => item.id === predId);
     if (!p) return;
 
-    // Сохраняем раскладку BULK текущего активного рейса из Истории перед переключением
-    saveCompartmentsToPrediction();
+    // Сохраняем раскладку BULK текущего активного рейса из Истории перед переключением (только если это другой рейс)
+    if (currentActivePredictionId && currentActivePredictionId !== predId) {
+        saveCompartmentsToPrediction();
+    }
 
     // Устанавливаем новый активный рейс из Истории
     currentActivePredictionId = predId;
@@ -6342,13 +6379,11 @@ function calculateBaggageForecast(logToHistory = false) {
     // Отрисовываем детализацию отобранных рейсов и расчётных агрегированных значений
     renderSampledFlightsDetails(coefs);
 
-    // Обновляем плашку активного рейса в шапке
-    const dateInputEl = document.getElementById('input-date');
-    const targetDateVal = dateInputEl ? dateInputEl.value : '';
-    updateActiveFlightBadge(fromVal, toVal, flightVal, targetDateVal);
-
     // Сохраняем расчет в историю прогнозов (только если нажата кнопка)
     if (logToHistory) {
+        const dateInputEl = document.getElementById('input-date');
+        const targetDateVal = dateInputEl ? dateInputEl.value : '';
+
         const prediction = {
             id: 'pred_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             from: fromVal,
@@ -6362,17 +6397,23 @@ function calculateBaggageForecast(logToHistory = false) {
             flight_date: targetDateVal || new Date().toISOString().split('T')[0],
             calc_date: new Date().toISOString(),
             pax_mode: isBookingMode ? 'booking_97' : 'fact_100',
-            waterfall_level: coefs.level || 1
+            waterfall_level: coefs.level || 1,
+            lir_pax: effectivePaxVal,
+            lir_pcs: expectedPcs,
+            lir_weight: expectedWeight,
+            compartments: Array.from({ length: 12 }, () => ({ pcs: 0, weight: 0, locked: false }))
         };
         predictionsHistory.unshift(prediction);
-        currentActivePredictionId = prediction.id;
         savePredictionsHistory();
         renderPredictionsTable();
 
-        // Выделяем новую сохраненную строку в истории
-        setTimeout(() => {
+        // Если в плане загрузки уже открыт конкретный рейс, сохраняем его выделение;
+        // если план чист, подсвечиваем новый расчет
+        if (currentActivePredictionId) {
+            highlightPredictionRow(currentActivePredictionId);
+        } else {
             highlightPredictionRow(prediction.id);
-        }, 50);
+        }
     }
 }
 
@@ -7331,9 +7372,11 @@ function handleClearPredictions(e) {
         || (currentLang === 'en' ? "Are you sure you want to clear the entire predictions history?" : "Вы уверены, что хотите очистить всю историю прогнозов?");
     
     showAviationConfirm(msg, () => {
+        clearTimeout(saveCompartmentsTimeout);
         predictionsHistory = [];
         savePredictionsHistory();
         renderPredictionsTable();
+        clearLoadPlanningUI();
     });
 }
 
@@ -7375,9 +7418,17 @@ async function deleteFlight(id) {
 }
 
 function deletePrediction(id) {
+    clearTimeout(saveCompartmentsTimeout);
+    const wasActive = (currentActivePredictionId === id);
     predictionsHistory = predictionsHistory.filter(p => p.id !== id);
     savePredictionsHistory();
     renderPredictionsTable();
+
+    if (wasActive) {
+        clearLoadPlanningUI();
+    } else if (currentActivePredictionId) {
+        highlightPredictionRow(currentActivePredictionId);
+    }
 }
 
 // Экспортируем в глобальную область для инлайновых обработчиков
@@ -7385,6 +7436,7 @@ window.handleClearDb = handleClearDb;
 window.handleClearPredictions = handleClearPredictions;
 window.deleteFlight = deleteFlight;
 window.deletePrediction = deletePrediction;
+window.clearLoadPlanningUI = clearLoadPlanningUI;
 
 // --- ОТРИСОВКА ТАБЛИЦЫ РЕЙСОВ (База данных - только за последние 10 дней) ---
 function renderFlightsTable() {
@@ -7537,6 +7589,10 @@ function renderPredictionsTable() {
         `;
         tbody.appendChild(tr);
     });
+
+    if (currentActivePredictionId) {
+        highlightPredictionRow(currentActivePredictionId);
+    }
 }
 
 // Вспомогательная функция обновления верхней инфо-плашки активного рейса в таблице загрузки
