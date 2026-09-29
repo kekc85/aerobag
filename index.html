@@ -45,7 +45,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=v12.0.186">
+    <link rel="stylesheet" href="style.css?v=v12.0.188">
 </head>
 <body>
     <script>
@@ -881,15 +881,10 @@
                                     <span id="departures-count-badge" class="badge-role badge-role-dispatcher" style="font-size: 0.7rem;">0 городов</span>
                                 </div>
                                 
-                                <!-- Форма добавления пункта вылета -->
-                                <form id="form-add-departure" style="display: flex; gap: 6px; margin-bottom: 12px;" onsubmit="handleAddAirportFilter(event, 'departures')">
-                                    <div style="position: relative; flex: 1;">
-                                        <input type="text" id="input-add-departure" class="form-control text-uppercase" placeholder="Код IATA / РФ / Город..." list="airports-datalist" style="font-size: 0.85rem; padding: 6px 10px;" autocomplete="off">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary aviation-btn" style="padding: 6px 12px; font-size: 0.8rem;">
-                                        <span>➕</span> <span data-translate="btn-add">Добавить</span>
-                                    </button>
-                                </form>
+                                <!-- Кнопка вызова модального окна добавления вылета -->
+                                <button type="button" class="btn btn-primary aviation-btn" style="width: 100%; margin-bottom: 12px; padding: 7px 12px; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openAddAirportModal('departures')">
+                                    <span>➕</span> <span data-translate="btn-add-departure-airport">Добавить аэропорт вылета</span>
+                                </button>
 
                                 <!-- Контейнер строк вылета (вертикальный список в столбец) -->
                                 <div id="departures-chips-container" class="chips-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding: 4px; padding-right: 6px;">
@@ -915,15 +910,10 @@
                                     </label>
                                 </div>
                                 
-                                <!-- Форма добавления пункта прилета -->
-                                <form id="form-add-arrival" style="display: flex; gap: 6px; margin-bottom: 12px;" onsubmit="handleAddAirportFilter(event, 'arrivals')">
-                                    <div style="position: relative; flex: 1;">
-                                        <input type="text" id="input-add-arrival" class="form-control text-uppercase" placeholder="Код IATA / РФ / Город..." list="airports-datalist" style="font-size: 0.85rem; padding: 6px 10px;" autocomplete="off">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary aviation-btn" style="padding: 6px 12px; font-size: 0.8rem;">
-                                        <span>➕</span> <span data-translate="btn-add">Добавить</span>
-                                    </button>
-                                </form>
+                                <!-- Кнопка вызова модального окна добавления прилета -->
+                                <button type="button" class="btn btn-primary aviation-btn" style="width: 100%; margin-bottom: 12px; padding: 7px 12px; font-size: 0.82rem; display: flex; align-items: center; justify-content: center; gap: 8px;" onclick="openAddAirportModal('arrivals')">
+                                    <span>➕</span> <span data-translate="btn-add-arrival-airport">Добавить аэропорт прилета</span>
+                                </button>
 
                                 <!-- Контейнер строк прилета (вертикальный список в столбец) -->
                                 <div id="arrivals-chips-container" class="chips-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding: 4px; padding-right: 6px;">
@@ -1731,16 +1721,92 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- МОДАЛЬНОЕ ОКНО ДОБАВЛЕНИЯ НАПРАВЛЕНИЯ/ГОРОДА -->
+    <!-- ========================================== -->
+    <div id="modal-add-airport" class="modal-overlay hidden">
+        <div class="modal-content glass aviation-panel" style="max-width: 480px; width: 92%;">
+            <div class="hud-corner top-left"></div>
+            <div class="hud-corner top-right"></div>
+            <div class="hud-corner bottom-left"></div>
+            <div class="hud-corner bottom-right"></div>
+            
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0, 240, 255, 0.2); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.2rem;">✈️</span>
+                    <span id="modal-add-airport-title" class="modal-title-text" data-translate="modal-add-airport-title" style="font-size: 0.95rem; color: var(--accent-cyan);">[ ДОБАВЛЕНИЕ НОВОГО НАПРАВЛЕНИЯ ]</span>
+                </div>
+                <button type="button" class="btn-modal-close" style="background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; padding: 2px 8px;" onclick="closeAddAirportModal()">✕</button>
+            </div>
+            
+            <form id="form-modal-add-airport" onsubmit="handleSaveNewAirport(event)">
+                <div class="modal-body" style="padding: 16px 20px;">
+                    <div class="form-group" style="margin-bottom: 14px;">
+                        <label class="form-label" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; display: block;">
+                            <span data-translate="label-airport-city">Название города / аэропорта</span> <span style="color: #ef4444;">*</span>
+                        </label>
+                        <input type="text" id="new-airport-name" class="form-control" placeholder="Например: Куляб, Самара, Дубай" required autocomplete="off" style="font-size: 0.88rem;">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+                        <div class="form-group">
+                            <label class="form-label" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; display: block;">
+                                <span data-translate="label-airport-iata">Код ИАТА (IATA)</span> <span style="color: #ef4444;">*</span>
+                            </label>
+                            <input type="text" id="new-airport-iata" class="form-control text-uppercase" placeholder="TJU" maxlength="3" required autocomplete="off" style="font-family: var(--font-mono); font-weight: bold; letter-spacing: 1px; font-size: 0.9rem;">
+                            <span style="font-size: 0.7rem; color: var(--text-muted);" data-translate="hint-airport-iata">3 латинские буквы</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; display: block;">
+                                <span data-translate="label-airport-ru">Российский код (РФ)</span>
+                            </label>
+                            <input type="text" id="new-airport-ru" class="form-control text-uppercase" placeholder="КЛБ" maxlength="3" autocomplete="off" style="font-family: var(--font-mono); font-weight: bold; letter-spacing: 1px; font-size: 0.9rem;">
+                            <span style="font-size: 0.7rem; color: var(--text-muted);" data-translate="hint-airport-ru">Для РФ/СНГ (или как IATA)</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label class="form-label" style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 8px; display: block;" data-translate="label-airport-target">
+                            В какой фильтр добавить:
+                        </label>
+                        <div style="display: flex; flex-direction: column; gap: 8px; background: rgba(0,0,0,0.2); padding: 10px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.06);">
+                            <label class="aviation-checkbox-container" style="font-size: 0.82rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="new-airport-target" value="departures" id="target-departures" checked>
+                                <span data-translate="target-departures-label">🛫 Аэропорты вылета (FROM)</span>
+                            </label>
+                            <label class="aviation-checkbox-container" style="font-size: 0.82rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="new-airport-target" value="arrivals" id="target-arrivals">
+                                <span data-translate="target-arrivals-label">🛬 Аэропорты прилета (TO)</span>
+                            </label>
+                            <label class="aviation-checkbox-container" style="font-size: 0.82rem; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="new-airport-target" value="both" id="target-both">
+                                <span data-translate="target-both-label">🔄 В оба списка (Вылет и Прилет)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div id="new-airport-error" class="hidden" style="color: #ef4444; font-family: var(--font-mono); font-size: 0.8rem; margin-top: 10px; text-align: center;"></div>
+                </div>
+
+                <div class="modal-footer" style="padding: 12px 20px 20px 20px; display: flex; justify-content: flex-end; gap: 10px;">
+                    <button type="button" class="btn btn-secondary aviation-btn" onclick="closeAddAirportModal()" data-translate="btn-cancel">[ Отмена ]</button>
+                    <button type="submit" class="btn btn-primary aviation-btn" data-translate="btn-save-airport">[ ➕ Сохранить и добавить ]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.186</span> (<span id="app-build-date">26.09.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.188</span> (<span id="app-build-date">29.09.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.186"></script>
-    <script src="dcs_sync.js?v=v12.0.186"></script>
+    <script src="app.js?v=v12.0.188"></script>
+    <script src="dcs_sync.js?v=v12.0.188"></script>
 </body>
 </html>
 
