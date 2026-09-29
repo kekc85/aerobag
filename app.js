@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.186';
-const APP_BUILD_DATE = '26.09.2026';
+const APP_VERSION = 'v12.0.188';
+const APP_BUILD_DATE = '29.09.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -1708,6 +1708,19 @@ const translations = {
         'btn-reset-filters-default': 'Сбросить по умолчанию',
         'btn-reset-filters': 'Сбросить по умолчанию',
         'btn-add': 'Добавить',
+        'btn-add-departure-airport': 'Добавить аэропорт вылета',
+        'btn-add-arrival-airport': 'Добавить аэропорт прилета',
+        'modal-add-airport-title': '[ ДОБАВЛЕНИЕ НОВОГО НАПРАВЛЕНИЯ ]',
+        'label-airport-city': 'Название города / аэропорта',
+        'label-airport-iata': 'Код ИАТА (IATA)',
+        'hint-airport-iata': '3 латинские буквы',
+        'label-airport-ru': 'Российский код (РФ)',
+        'hint-airport-ru': 'Для РФ/СНГ (или как IATA)',
+        'label-airport-target': 'В какой фильтр добавить:',
+        'target-departures-label': '🛫 Аэропорты вылета (FROM)',
+        'target-arrivals-label': '🛬 Аэропорты прилета (TO)',
+        'target-both-label': '🔄 В оба списка (Вылет и Прилет)',
+        'btn-save-airport': '[ ➕ Сохранить и добавить ]',
         'chk-strict-arrivals': 'Включить строгий фильтр по прилетам',
         'btn-expand': 'Развернуть',
         'btn-collapse': 'Свернуть',
@@ -1963,6 +1976,19 @@ const translations = {
         'btn-reset-filters-default': 'Reset to Default',
         'btn-reset-filters': 'Reset to Default',
         'btn-add': 'Add',
+        'btn-add-departure-airport': 'Add Departure Airport',
+        'btn-add-arrival-airport': 'Add Arrival Airport',
+        'modal-add-airport-title': '[ ADD NEW ROUTE / AIRPORT ]',
+        'label-airport-city': 'City / Airport Name',
+        'label-airport-iata': 'IATA Code',
+        'hint-airport-iata': '3 Latin letters',
+        'label-airport-ru': 'Russian Code (RU)',
+        'hint-airport-ru': 'For RU/CIS (or same as IATA)',
+        'label-airport-target': 'Add to filter:',
+        'target-departures-label': '🛫 Departure Airports (FROM)',
+        'target-arrivals-label': '🛬 Arrival Airports (TO)',
+        'target-both-label': '🔄 In both lists (FROM & TO)',
+        'btn-save-airport': '[ ➕ Save & Add ]',
         'chk-strict-arrivals': 'Enable strict arrivals filter',
         'btn-expand': 'Expand',
         'btn-collapse': 'Collapse',
@@ -2923,6 +2949,12 @@ async function loadBaggageDb() {
         }
     }
     
+    // Встроенная и локальная синхронизация пользовательских направлений
+    const localCustomAirports = getCustomAirportsList();
+    if (localCustomAirports && localCustomAirports.length > 0) {
+        applyCustomAirportsToDb(localCustomAirports);
+    }
+    
     // В любом режиме (онлайн или оффлайн) гарантированно выполняем инициализацию и рендер
     populateAirportDropdowns();
     populateAllFlightsDropdown();
@@ -2932,6 +2964,7 @@ async function loadBaggageDb() {
     renderUploadedFilesList();
     renderAirportFiltersUI();
     initAirportFiltersFromServer();
+    initCustomAirportsFromServer();
 }
 
 // ==========================================================================
@@ -2995,6 +3028,99 @@ async function saveCustomAirportFilters(filters) {
             console.warn("Ошибка синхронизации фильтров с сервером:", e);
         }
     }
+}
+
+// ==========================================================================
+// УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЬСКИМИ АЭРОПОРТАМИ И ГОРОДАМИ (CUSTOM AIRPORTS DB)
+// ==========================================================================
+
+// Получение списка сохраненных пользователем аэропортов (из LocalStorage)
+function getCustomAirportsList() {
+    try {
+        const saved = localStorage.getItem('averago_custom_airports');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+    } catch (e) {
+        console.error("Ошибка чтения averago_custom_airports:", e);
+    }
+    return [];
+}
+
+// Сохранение списка пользовательских аэропортов (в LocalStorage и в MySQL через API)
+async function saveCustomAirportsList(list) {
+    if (!Array.isArray(list)) return;
+    try {
+        localStorage.setItem('averago_custom_airports', JSON.stringify(list));
+    } catch (e) {
+        console.error("Ошибка сохранения averago_custom_airports:", e);
+    }
+
+    if (!isOfflineMode) {
+        try {
+            await fetch('api.php?action=save_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_key: 'custom_airports',
+                    setting_value: list
+                })
+            });
+        } catch (e) {
+            console.warn("Ошибка синхронизации custom_airports с сервером:", e);
+        }
+    }
+}
+
+// Регистрация пользовательских аэропортов в активном справочнике baggageDb.airports
+function applyCustomAirportsToDb(list) {
+    if (!list || !Array.isArray(list)) return;
+    if (!baggageDb) baggageDb = {};
+    if (!baggageDb.airports) baggageDb.airports = {};
+
+    list.forEach(ap => {
+        if (!ap || !ap.iata) return;
+        const iata = String(ap.iata).trim().toUpperCase();
+        const ru = ap.ru ? String(ap.ru).trim().toUpperCase() : iata;
+        const name = ap.name ? String(ap.name).trim() : iata;
+
+        baggageDb.airports[iata] = { iata, ru, name };
+        if (ru && ru !== iata) {
+            baggageDb.airports[ru] = { iata, ru, name };
+        }
+    });
+}
+
+// Загрузка сохраненных пользовательских аэропортов с сервера и слияние
+async function initCustomAirportsFromServer() {
+    const localList = getCustomAirportsList();
+    if (localList.length > 0) {
+        applyCustomAirportsToDb(localList);
+    }
+
+    if (!isOfflineMode) {
+        try {
+            const res = await fetch('api.php?action=get_settings&key=custom_airports');
+            const contentType = res.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.value)) {
+                    const mergedMap = new Map();
+                    localList.forEach(ap => { if (ap && ap.iata) mergedMap.set(ap.iata.toUpperCase(), ap); });
+                    data.value.forEach(ap => { if (ap && ap.iata) mergedMap.set(ap.iata.toUpperCase(), ap); });
+                    const merged = Array.from(mergedMap.values());
+                    localStorage.setItem('averago_custom_airports', JSON.stringify(merged));
+                    applyCustomAirportsToDb(merged);
+                }
+            }
+        } catch (e) {
+            console.warn("Не удалось подгрузить custom_airports с сервера:", e);
+        }
+    }
+    populateAirportDropdowns();
 }
 
 // Загрузка сохраненных фильтров аэропортов с сервера
@@ -3289,12 +3415,145 @@ function handleToggleStrictArrivals(isChecked) {
     showAviationAlert(msg, false);
 }
 
+// Открытие модального окна добавления нового направления / аэропорта
+function openAddAirportModal(defaultTarget = 'departures') {
+    const modal = document.getElementById('modal-add-airport');
+    if (!modal) return;
+
+    const inputName = document.getElementById('new-airport-name');
+    const inputIata = document.getElementById('new-airport-iata');
+    const inputRu = document.getElementById('new-airport-ru');
+    const errorDiv = document.getElementById('new-airport-error');
+
+    if (inputName) inputName.value = '';
+    if (inputIata) inputIata.value = '';
+    if (inputRu) inputRu.value = '';
+    if (errorDiv) {
+        errorDiv.textContent = '';
+        errorDiv.classList.add('hidden');
+    }
+
+    const targetRadio = document.getElementById('target-' + defaultTarget);
+    if (targetRadio) {
+        targetRadio.checked = true;
+    }
+
+    modal.classList.remove('hidden');
+    if (inputName) {
+        setTimeout(() => inputName.focus(), 50);
+    }
+}
+
+// Закрытие модального окна добавления нового направления
+function closeAddAirportModal() {
+    const modal = document.getElementById('modal-add-airport');
+    if (modal) modal.classList.add('hidden');
+}
+
+// Сохранение нового аэропорта из модального окна
+async function handleSaveNewAirport(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const inputName = document.getElementById('new-airport-name');
+    const inputIata = document.getElementById('new-airport-iata');
+    const inputRu = document.getElementById('new-airport-ru');
+    const errorDiv = document.getElementById('new-airport-error');
+
+    const name = inputName ? inputName.value.trim() : '';
+    const rawIata = inputIata ? inputIata.value.trim().toUpperCase() : '';
+    let rawRu = inputRu ? inputRu.value.trim().toUpperCase() : '';
+
+    const showError = (msg) => {
+        if (errorDiv) {
+            errorDiv.textContent = msg;
+            errorDiv.classList.remove('hidden');
+        } else {
+            showAviationAlert(msg, true);
+        }
+    };
+
+    if (!name) {
+        showError(currentLang === 'ru' ? 'Введите название города или аэропорта' : 'Please enter city/airport name');
+        if (inputName) inputName.focus();
+        return;
+    }
+
+    if (!/^[A-Z]{3}$/.test(rawIata)) {
+        showError(currentLang === 'ru' ? 'Код ИАТА должен состоять ровно из 3 латинских букв (например, TJU)' : 'IATA code must be exactly 3 Latin letters (e.g. TJU)');
+        if (inputIata) inputIata.focus();
+        return;
+    }
+
+    // Если код РФ не указан, берем IATA (актуально для зарубежных портов)
+    if (!rawRu) {
+        rawRu = rawIata;
+    } else {
+        // Если указан, проверяем, что это ровно 3 буквы (кириллица или латиница)
+        if (!/^[А-ЯЁA-Z]{3}$/.test(rawRu)) {
+            showError(currentLang === 'ru' ? 'Российский код должен состоять ровно из 3 букв (например, КЛБ)' : 'Russian code must be exactly 3 letters (e.g. КЛБ)');
+            if (inputRu) inputRu.focus();
+            return;
+        }
+    }
+
+    // Определяем в какой фильтр добавлять
+    const targetEl = document.querySelector('input[name="new-airport-target"]:checked');
+    const target = targetEl ? targetEl.value : 'departures';
+
+    // 1. Сохраняем в кастомный справочник системы
+    const customList = getCustomAirportsList();
+    const filteredList = customList.filter(ap => ap && ap.iata && ap.iata.toUpperCase() !== rawIata);
+    filteredList.push({
+        iata: rawIata,
+        ru: rawRu,
+        name: name
+    });
+
+    saveCustomAirportsList(filteredList);
+    applyCustomAirportsToDb(filteredList);
+
+    // 2. Добавляем в фильтры вылетов/прилетов
+    const filters = getCustomAirportFilters();
+    if (target === 'departures' || target === 'both') {
+        if (!filters.departures.includes(rawIata)) filters.departures.push(rawIata);
+        if (rawRu && rawRu !== rawIata && !filters.departures.includes(rawRu)) filters.departures.push(rawRu);
+    }
+    if (target === 'arrivals' || target === 'both') {
+        if (!filters.arrivals.includes(rawIata)) filters.arrivals.push(rawIata);
+        if (rawRu && rawRu !== rawIata && !filters.arrivals.includes(rawRu)) filters.arrivals.push(rawRu);
+    }
+
+    saveCustomAirportFilters(filters);
+    renderAirportFiltersUI();
+    populateAirportDropdowns();
+    closeAddAirportModal();
+
+    const targetDesc = target === 'departures'
+        ? (currentLang === 'ru' ? 'в вылеты (FROM)' : 'to departures (FROM)')
+        : target === 'arrivals'
+            ? (currentLang === 'ru' ? 'в прилеты (TO)' : 'to arrivals (TO)')
+            : (currentLang === 'ru' ? 'в вылеты и прилеты' : 'to departures and arrivals');
+
+    const codesDisplay = (rawRu && rawRu !== rawIata) ? `${rawIata} / ${rawRu}` : rawIata;
+    const successMsg = currentLang === 'ru'
+        ? `Направление ${name} (${codesDisplay}) успешно сохранено и добавлено ${targetDesc}!`
+        : `Destination ${name} (${codesDisplay}) successfully saved and added ${targetDesc}!`;
+
+    showAviationAlert(successMsg, false);
+}
+
 // Экспортируем в window для инлайновых вызовов в HTML
 window.toggleAirportFiltersAccordion = toggleAirportFiltersAccordion;
 window.handleAddAirportFilter = handleAddAirportFilter;
 window.handleRemoveAirportFilter = handleRemoveAirportFilter;
 window.handleResetAirportFilters = handleResetAirportFilters;
 window.handleToggleStrictArrivals = handleToggleStrictArrivals;
+window.openAddAirportModal = openAddAirportModal;
+window.closeAddAirportModal = closeAddAirportModal;
+window.handleSaveNewAirport = handleSaveNewAirport;
 
 // Загрузка рейсов из локального хранилища (localStorage)
 function loadFlightsFromLocalStorage() {
@@ -4131,6 +4390,21 @@ function setupDatePickerTrigger() {
 // Настройка слушателей событий
 function setupEventListeners() {
     setupFormTabNavigation();
+
+    // Автоматическая маска ввода на лету для полей модального окна добавления аэропорта
+    const inputModalIata = document.getElementById('new-airport-iata');
+    if (inputModalIata) {
+        inputModalIata.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+        });
+    }
+    const inputModalRu = document.getElementById('new-airport-ru');
+    if (inputModalRu) {
+        inputModalRu.addEventListener('input', (e) => {
+            e.target.value = e.target.value.replace(/[^а-яА-ЯёЁa-zA-Z]/g, '').toUpperCase();
+        });
+    }
+
     // Резервное копирование и восстановление базы данных
     const btnExportDb = document.getElementById('btn-export-db');
     if (btnExportDb) {
@@ -7216,7 +7490,9 @@ function handleExportDatabase() {
             backup_version: "1.0",
             exported_at: new Date().toISOString(),
             flights: userFlights,
-            predictions_history: predictionsHistory
+            predictions_history: predictionsHistory,
+            custom_airports: getCustomAirportsList(),
+            airport_filters: getCustomAirportFilters()
         };
 
         const jsonString = JSON.stringify(backupData, null, 4);
@@ -7274,6 +7550,16 @@ function handleImportDatabase(file) {
             // Записываем данные в глобальное состояние с нормализацией кодов аэропортов в стандарт ИАТА
             userFlights = importedFlights.map(normalizeFlightRecord);
             predictionsHistory = importedPredictions;
+
+            // Восстановление пользовательских направлений и фильтров
+            if (parsed.custom_airports && Array.isArray(parsed.custom_airports)) {
+                saveCustomAirportsList(parsed.custom_airports);
+                applyCustomAirportsToDb(parsed.custom_airports);
+            }
+            if (parsed.airport_filters && typeof parsed.airport_filters === 'object') {
+                saveCustomAirportFilters(parsed.airport_filters);
+                renderAirportFiltersUI();
+            }
 
             // Сохраняем в зависимости от оффлайн/онлайн режима
             if (isOfflineMode) {
