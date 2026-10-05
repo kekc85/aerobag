@@ -174,12 +174,35 @@
     }
 
     function initModalDates() {
-        setDcsQuickDate('yesterday');
+        refreshDcsDatesByActivePill();
+        
+        // Снимаем подсветку быстрых кнопок при ручном изменении дат
+        const startInput = document.getElementById('dcsStartDate');
+        const endInput = document.getElementById('dcsEndDate');
+        const handleManualDateChange = () => {
+            document.querySelectorAll('.dcs-pill').forEach(btn => btn.classList.remove('active'));
+        };
+        if (startInput) startInput.addEventListener('change', handleManualDateChange);
+        if (endInput) endInput.addEventListener('change', handleManualDateChange);
+    }
+
+    function refreshDcsDatesByActivePill() {
+        const activePill = document.querySelector('.dcs-pill.active');
+        let type = 'yesterday';
+        if (activePill) {
+            const onclickAttr = activePill.getAttribute('onclick') || '';
+            const match = onclickAttr.match(/'([^']+)'/);
+            if (match && match[1]) {
+                type = match[1];
+            }
+        }
+        window.setDcsQuickDate(type);
     }
 
     window.openDcsModal = function() {
         const modal = document.getElementById('dcsSyncModal');
         if (modal) {
+            refreshDcsDatesByActivePill();
             const isLight = document.documentElement.classList.contains('light-theme') || 
                             document.body.classList.contains('light-theme') || 
                             localStorage.getItem('averago_theme') === 'light';
