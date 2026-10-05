@@ -196,5 +196,9 @@
   * app.js: Реализована маска ввода на лету (авто-CAPS, фильтрация символов), валидация, сохранение в localStorage ('averago_custom_airports') и MySQL ('custom_airports' через api.php save_settings);
   * app.js: Пользовательские аэропорты мгновенно регистрируются в baggageDb.airports, обновляют select-from, manual-from, manual-to и списки фильтров импорта Astra DCS / Excel;
   * app.js: Экспорт/импорт базы данных (handleExportDatabase / handleImportDatabase) синхронизирует пользовательские порты и фильтры.
+- Релиз v12.0.189:
+  * dcs_sync.js: Внедрена функция refreshDcsDatesByActivePill() и автоматический пересчет актуальных дат (сегодня / вчера и сегодня / 3 дня) при каждом открытии модального окна Lydia DCS (openDcsModal) на основе активной кнопки быстрого выбора;
+  * dcs_sync.js: Добавлен сброс класса active у быстрых кнопок при ручном изменении диапазона дат в dcsStartDate / dcsEndDate;
+  * Версия приложения обновлена до v12.0.189.
 
 
