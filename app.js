@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.191';
-const APP_BUILD_DATE = '05.10.2026';
+const APP_VERSION = 'v12.0.193';
+const APP_BUILD_DATE = '12.10.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -4576,9 +4576,24 @@ function setupEventListeners() {
             updateDefaultPaxForSelectedFlight();
         });
 
+        let isFlightMouseDown = false;
+        selectFlight.addEventListener('mousedown', () => {
+            isFlightMouseDown = (document.activeElement !== selectFlight);
+        });
+
         selectFlight.addEventListener('focus', () => {
+            if (!isFlightMouseDown) {
+                selectFlight.select();
+            }
             if (selectFlight.value.trim() !== '') {
                 renderCustomFlightSuggestions(selectFlight.value);
+            }
+        });
+
+        selectFlight.addEventListener('mouseup', () => {
+            if (isFlightMouseDown) {
+                isFlightMouseDown = false;
+                selectFlight.select();
             }
         });
 
