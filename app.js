@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.3';
+const APP_VERSION = 'v12.2.4';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -2611,10 +2611,19 @@ function checkIncomingFlightParameters() {
     let hasData = false;
 
     if (flightParam) {
+        // Очищаем от буквенных префиксов (N4, EO, KAR) для точного совпадения со справочником рейсов
+        const cleanFlight = String(flightParam).replace(/\D/g, '') || flightParam.trim().toUpperCase();
+        currentIncomingFlightData.flight = cleanFlight;
         const flightInput = document.getElementById('select-flight');
         if (flightInput) {
-            flightInput.value = flightParam.toUpperCase();
+            flightInput.value = cleanFlight;
             hasData = true;
+            setTimeout(() => {
+                const route = findRouteByFlightNo(cleanFlight);
+                if (route && (!fromParam || !toParam)) {
+                    applyRouteSelection(route);
+                }
+            }, 100);
         }
     }
     if (dateParam) {

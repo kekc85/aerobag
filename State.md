@@ -243,3 +243,6 @@
   * При клике формируется URL с параметрами flight, from, to, date, pax, ac_num, dep_time и return_url;
   * Авто-определение окружения: на тестовом плане (/plan_test/ или localhost) открывает https://boostandgo.ru/aerobag-test/, на проде (/plan/) открывает боевой /aerobag/;
   * Изменения запушены в ветку dev репозитория plan для автодеплоя на https://boostandgo.ru/plan_test/.
+- Очистка префиксов авиакомпаний при передаче рейса (v12.2.4):
+  * FlightRow.jsx: Перед отправкой в URL из номера рейса вырезаются любые нецифровые префиксы (N4, EO, KAR) через regex /\D/g, формируя чистый числовой номер (например 1278);
+  * app.js: В checkIncomingFlightParameters() добавлена санитизация flightParam и автоматический вызов findRouteByFlightNo() и applyRouteSelection() для моментального автоподбора аэропортов вылета и прилета.
