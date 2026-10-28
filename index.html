@@ -45,7 +45,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=v12.0.201">
+    <link rel="stylesheet" href="style.css?v=v12.0.202">
 </head>
 <body>
     <script>
@@ -147,20 +147,24 @@
                             <div class="table-responsive predictions-table-responsive-compact">
                                 <table id="predictions-table" class="flights-table aviation-table predictions-compact-table">
                                     <colgroup>
-                                        <col style="width: 48%;">
-                                        <col style="width: 40%;">
-                                        <col style="width: 12%;">
+                                        <col style="width: 31%;">
+                                        <col style="width: 25%;">
+                                        <col style="width: 17%;">
+                                        <col style="width: 19%;">
+                                        <col style="width: 8%;">
                                     </colgroup>
                                     <thead>
                                         <tr>
                                             <th data-translate="th-route">Маршрут</th>
                                             <th data-translate="th-flight-date">Рейс / Дата</th>
+                                            <th data-translate="th-dep-time" style="text-align: center;">Вылет</th>
+                                            <th data-translate="th-tail" style="text-align: center;">Борт</th>
                                             <th style="text-align: center;"></th>
                                         </tr>
                                     </thead>
                                     <tbody id="predictions-table-body">
                                         <tr>
-                                            <td colspan="3" class="empty-table-text" data-translate="empty-predictions-table">История пуста.</td>
+                                            <td colspan="5" class="empty-table-text" data-translate="empty-predictions-table">История пуста.</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -466,10 +470,10 @@
                         <div class="bulk-planning-wrapper">
                             <table class="flights-table aviation-table fixed-load-table bulk-header-table">
                                 <colgroup>
-                                    <col style="width: 14%;">
-                                    <col style="width: 32%;">
-                                    <col style="width: 20%;">
-                                    <col style="width: 24%;">
+                                    <col style="width: 13%;">
+                                    <col style="width: 21%;">
+                                    <col style="width: 26%;">
+                                    <col style="width: 30%;">
                                     <col style="width: 10%;">
                                 </colgroup>
                                 <thead>
@@ -504,9 +508,9 @@
                             <!-- 3. НЕПОДВИЖНЫЙ НИЖНИЙ ПОДВАЛ (REST И TTL) -->
                             <table class="flights-table aviation-table fixed-load-table footer-table bulk-footer-table">
                                 <colgroup>
-                                    <col style="width: 46%;">
-                                    <col style="width: 20%;">
-                                    <col style="width: 24%;">
+                                    <col style="width: 34%;">
+                                    <col style="width: 26%;">
+                                    <col style="width: 30%;">
                                     <col style="width: 10%;">
                                 </colgroup>
                                 <tfoot>
@@ -1747,15 +1751,15 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.201</span> (<span id="app-build-date">28.10.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.202</span> (<span id="app-build-date">28.10.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.201"></script>
-    <script src="dcs_sync.js?v=v12.0.201"></script>
+    <script src="app.js?v=v12.0.202"></script>
+    <script src="dcs_sync.js?v=v12.0.202"></script>
 </body>
 </html>
 

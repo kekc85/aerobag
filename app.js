@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.201';
+const APP_VERSION = 'v12.0.202';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -1593,6 +1593,8 @@ const translations = {
         'predictions-table-title': 'История расчетов',
         'btn-clear-predictions': 'Очистить',
         'th-flight-date': 'Рейс / Дата',
+        'th-dep-time': 'Вылет',
+        'th-tail': 'Борт',
         'btn-return-plan': 'В план AeroPlan',
         'th-load-type': 'ТИП ЗАГРУЗКИ',
         'th-pax-count': 'Пассажиры (PAX)',
@@ -1864,6 +1866,8 @@ const translations = {
         'predictions-table-title': 'Forecast History',
         'btn-clear-predictions': 'Clear',
         'th-flight-date': 'Flight / Date',
+        'th-dep-time': 'Dep',
+        'th-tail': 'Tail',
         'btn-return-plan': 'To AeroPlan',
         'th-load-type': 'LOAD TYPE',
         'th-pax-count': 'Passengers (PAX)',
@@ -2576,6 +2580,15 @@ function handleReturnToAeroPlan(e) {
     }
 }
 
+let currentIncomingFlightData = {
+    flight: '',
+    date: '',
+    ac_num: '',
+    dep_time: '',
+    from: '',
+    to: ''
+};
+
 function checkIncomingFlightParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     const flightParam = urlParams.get('flight') || urlParams.get('flt') || urlParams.get('flight_no');
@@ -2584,7 +2597,15 @@ function checkIncomingFlightParameters() {
     const dateParam = urlParams.get('date');
     const paxParam = urlParams.get('pax');
     const acNumParam = urlParams.get('ac_num') || urlParams.get('tail');
+    const depTimeParam = urlParams.get('dep_time') || urlParams.get('time') || urlParams.get('dep');
     const returnUrlParam = urlParams.get('return_url');
+
+    if (depTimeParam) currentIncomingFlightData.dep_time = depTimeParam;
+    if (acNumParam) currentIncomingFlightData.ac_num = acNumParam;
+    if (flightParam) currentIncomingFlightData.flight = flightParam;
+    if (dateParam) currentIncomingFlightData.date = dateParam;
+    if (fromParam) currentIncomingFlightData.from = fromParam;
+    if (toParam) currentIncomingFlightData.to = toParam;
 
     let hasData = false;
 
@@ -2808,7 +2829,9 @@ function transferPredictionToPreliminary(predId) {
     restoreCompartmentsFromPrediction(p);
     recalculateLoadPlanning();
 
-    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date);
+    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num);
+    if (p.ac_num) currentIncomingFlightData.ac_num = p.ac_num;
+    if (p.dep_time) currentIncomingFlightData.dep_time = p.dep_time;
     highlightPredictionRow(predId);
 
     const targetEl = document.querySelector('.load-planning-panel') || document.getElementById('prelim-pax');
@@ -6922,6 +6945,8 @@ function calculateBaggageForecast(logToHistory = false) {
             hb_weight: expectedHb,
             flight_date: targetDateVal || new Date().toISOString().split('T')[0],
             calc_date: new Date().toISOString(),
+            dep_time: currentIncomingFlightData.dep_time || '',
+            ac_num: currentIncomingFlightData.ac_num || '',
             pax_mode: isBookingMode ? 'booking_97' : 'fact_100',
             waterfall_level: coefs.level || 1,
             lir_pax: effectivePaxVal,
@@ -8070,7 +8095,7 @@ function renderPredictionsTable() {
 
     if (predictionsHistory.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="3" class="empty-table-text">${translations[currentLang]['empty-predictions-table']}</td>`;
+        tr.innerHTML = `<td colspan="5" class="empty-table-text">${translations[currentLang]['empty-predictions-table']}</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -8114,9 +8139,13 @@ function renderPredictionsTable() {
         }
 
         const routeText = `${ruToIata(p.from)} ➔ ${ruToIata(p.to)}`;
+        const depTimeDisplay = p.dep_time || '—';
+        const tailDisplay = p.ac_num || '—';
         tr.innerHTML = `
             <td class="history-cell-route" title="${routeText}"><strong>${routeText}</strong></td>
             <td class="history-cell-flight"><strong>${p.flight_no}</strong><span class="flight-day-tag">${flightDayMonthStr}</span></td>
+            <td class="history-cell-time" title="${currentLang === 'ru' ? 'Время вылета' : 'Departure Time'}">${depTimeDisplay}</td>
+            <td class="history-cell-tail" title="${currentLang === 'ru' ? 'Бортовой номер' : 'Aircraft Tail'}">${tailDisplay}</td>
             <td class="history-cell-action">
                 <button class="btn-delete-row" title="${currentLang === 'ru' ? 'Удалить' : 'Delete'}" onclick="deletePrediction('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
             </td>
@@ -8130,7 +8159,7 @@ function renderPredictionsTable() {
 }
 
 // Вспомогательная функция обновления верхней инфо-плашки активного рейса в таблице загрузки
-function updateActiveFlightBadge(from, to, flightNo, flightDate) {
+function updateActiveFlightBadge(from, to, flightNo, flightDate, acNum) {
     const badgeEl = document.getElementById('active-flight-badge');
     const badgeRoute = document.getElementById('badge-route');
     const badgeFlightNo = document.getElementById('badge-flight-no');
@@ -8154,6 +8183,20 @@ function updateActiveFlightBadge(from, to, flightNo, flightDate) {
     if (badgeRoute) badgeRoute.textContent = `${fromIata} ➔ ${toIata}`;
     if (badgeFlightNo) badgeFlightNo.textContent = flightNo || '';
     if (badgeFlightDate) badgeFlightDate.textContent = dateTag;
+
+    let badgeTail = document.getElementById('badge-tail-no');
+    const tailToShow = acNum || (currentIncomingFlightData && currentIncomingFlightData.ac_num);
+    if (tailToShow) {
+        if (!badgeTail) {
+            badgeTail = document.createElement('span');
+            badgeTail.id = 'badge-tail-no';
+            badgeTail.className = 'badge-tail-no';
+            badgeEl.appendChild(badgeTail);
+        }
+        badgeTail.textContent = ` [${tailToShow}]`;
+    } else if (badgeTail) {
+        badgeTail.textContent = '';
+    }
 
     badgeEl.classList.remove('hidden');
 }
