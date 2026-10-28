@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.1';
+const APP_VERSION = 'v12.2.2';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -2585,6 +2585,7 @@ let currentIncomingFlightData = {
     date: '',
     ac_num: '',
     dep_time: '',
+    pax: '',
     from: '',
     to: ''
 };
@@ -2624,6 +2625,7 @@ function checkIncomingFlightParameters() {
         }
     }
     if (paxParam) {
+        currentIncomingFlightData.pax = paxParam;
         const paxInput = document.getElementById('input-pax');
         if (paxInput) {
             paxInput.value = paxParam;
@@ -2832,6 +2834,12 @@ function transferPredictionToPreliminary(predId) {
     updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num);
     if (p.ac_num) currentIncomingFlightData.ac_num = p.ac_num;
     if (p.dep_time) currentIncomingFlightData.dep_time = p.dep_time;
+    const historyPax = p.raw_pax || p.pax;
+    if (historyPax) {
+        currentIncomingFlightData.pax = historyPax;
+        const mainInputPax = document.getElementById('input-pax');
+        if (mainInputPax) mainInputPax.value = historyPax;
+    }
     highlightPredictionRow(predId);
 
     const targetEl = document.querySelector('.load-planning-panel') || document.getElementById('prelim-pax');
@@ -4376,13 +4384,26 @@ function getAveragePaxForFlight(flightNo = '', fromVal = '', toVal = '') {
 }
 
 // Автоподстановка среднего числа пассажиров в поле input-pax
-function updateDefaultPaxForSelectedFlight() {
+function updateDefaultPaxForSelectedFlight(force = false) {
     const inputPax = document.getElementById('input-pax');
     const selectFlight = document.getElementById('select-flight');
     const selectFrom = document.getElementById('select-from');
     const selectTo = document.getElementById('select-to');
 
     if (!inputPax) return;
+
+    // 1. Если количество пассажиров передано из AeroPlan, СТРОГО сохраняем его!
+    if (currentIncomingFlightData && currentIncomingFlightData.pax && parseInt(currentIncomingFlightData.pax, 10) > 0) {
+        inputPax.value = currentIncomingFlightData.pax;
+        updatePaxExpectedHint();
+        return;
+    }
+
+    // 2. Если пользователь уже ввёл значение PAX вручную (отличное от 150), не сбрасываем при blur или подтверждении рейса
+    const currentVal = parseInt(inputPax.value, 10);
+    if (!force && currentVal > 0 && currentVal !== 150) {
+        return;
+    }
 
     const flightVal = selectFlight ? selectFlight.value.trim() : '';
     const fromVal = selectFrom ? selectFrom.value : '';
