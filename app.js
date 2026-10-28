@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.195';
+const APP_VERSION = 'v12.0.196';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -1590,11 +1590,12 @@ const translations = {
         'theme-dark': 'Темная тема',
         'unit-kg': 'кг',
         // Новые строки для истории прогнозов
-        'predictions-table-title': 'История расчетов прогнозов',
-        'btn-clear-predictions': 'Очистить историю',
+        'predictions-table-title': 'История расчетов',
+        'btn-clear-predictions': 'Очистить',
+        'th-flight-date': 'Рейс / Дата',
         'th-pax-count': 'Пассажиры (PAX)',
         'th-calc-date': 'Дата расчета',
-        'empty-predictions-table': 'История прогнозов пуста. Сделайте расчет выше.',
+        'empty-predictions-table': 'История пуста.',
         'confirm-clear-predictions': 'Вы уверены, что хотите очистить всю историю прогнозов?',
         'modal-confirm-title': '[\u00A0ТРЕБУЕТСЯ\u00A0ДЕЙСТВИЕ:\u00A0ОЧИСТКА\u00A0СИСТЕМЫ\u00A0]',
         'modal-confirm-cancel': '[\u00A0ОТМЕНА\u00A0]',
@@ -1858,11 +1859,12 @@ const translations = {
         'theme-dark': 'Dark Theme',
         'unit-kg': 'kg',
         // New strings for predictions history
-        'predictions-table-title': 'Prediction Calculation History',
-        'btn-clear-predictions': 'Clear History',
+        'predictions-table-title': 'Forecast History',
+        'btn-clear-predictions': 'Clear',
+        'th-flight-date': 'Flight / Date',
         'th-pax-count': 'Passengers (PAX)',
         'th-calc-date': 'Calculation Date',
-        'empty-predictions-table': 'Predictions history is empty. Calculate a forecast above.',
+        'empty-predictions-table': 'History is empty.',
         'confirm-clear-predictions': 'Are you sure you want to clear the entire predictions history?',
         'modal-confirm-title': '[\u00A0ACTION\u00A0REQUIRED:\u00A0SYSTEM\u00A0PURGE\u00A0]',
         'modal-confirm-cancel': '[\u00A0CANCEL\u00A0]',
@@ -7887,7 +7889,7 @@ function renderPredictionsTable() {
 
     if (predictionsHistory.length === 0) {
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td colspan="8" class="empty-table-text">${translations[currentLang]['empty-predictions-table']}</td>`;
+        tr.innerHTML = `<td colspan="3" class="empty-table-text">${translations[currentLang]['empty-predictions-table']}</td>`;
         tbody.appendChild(tr);
         return;
     }
@@ -7930,16 +7932,12 @@ function renderPredictionsTable() {
             formattedCalcDate = p.calc_date;
         }
 
+        const routeText = `${ruToIata(p.from)} ➔ ${ruToIata(p.to)}`;
         tr.innerHTML = `
-            <td><strong>${ruToIata(p.from)} ➔ ${ruToIata(p.to)}</strong></td>
-            <td><strong>${p.flight_no}</strong><span class="flight-day-tag">${flightDayMonthStr}</span></td>
-            <td>${p.pax}</td>
-            <td>${p.bag_pcs}</td>
-            <td>${p.bag_weight} кг</td>
-            <td>${p.hb_weight} кг</td>
-            <td>${formattedCalcDate}</td>
-            <td>
-                <button class="btn-delete-row" title="Удалить" onclick="deletePrediction('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+            <td class="history-cell-route" title="${routeText}"><strong>${routeText}</strong></td>
+            <td class="history-cell-flight"><strong>${p.flight_no}</strong><span class="flight-day-tag">${flightDayMonthStr}</span></td>
+            <td class="history-cell-action">
+                <button class="btn-delete-row" title="${currentLang === 'ru' ? 'Удалить' : 'Delete'}" onclick="deletePrediction('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
             </td>
         `;
         tbody.appendChild(tr);

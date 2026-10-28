@@ -45,7 +45,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=v12.0.195">
+    <link rel="stylesheet" href="style.css?v=v12.0.196">
 </head>
 <body>
     <script>
@@ -125,6 +125,43 @@
             <!-- ВКЛАДКА 1: ПРОГНОЗИРОВАНИЕ -->
             <div id="tab-content-predict" class="tab-content active">
                 <div class="workspace-grid">
+                    <!-- Колонка 1 (Слева): История расчетов прогнозов -->
+                    <div class="history-column">
+                        <section class="panel glass table-section history-predictions-section aviation-panel">
+                            <div class="hud-corner top-left"></div>
+                            <div class="hud-corner top-right"></div>
+                            <div class="hud-corner bottom-left"></div>
+                            <div class="hud-corner bottom-right"></div>
+                            
+                            <div class="table-header-container history-header-container">
+                                <h2 class="panel-title" data-translate="predictions-table-title">[ FORECAST HISTORY ]</h2>
+                                <div class="table-actions">
+                                    <button type="button" id="btn-clear-predictions" class="btn btn-danger aviation-btn btn-clear-history-compact" data-translate="btn-clear-predictions" onclick="handleClearPredictions(event)" title="Очистить историю расчетов">Очистить</button>
+                                </div>
+                            </div>
+                            <div class="table-responsive predictions-table-responsive-compact">
+                                <table id="predictions-table" class="flights-table aviation-table predictions-compact-table">
+                                    <colgroup>
+                                        <col style="width: 48%;">
+                                        <col style="width: 40%;">
+                                        <col style="width: 12%;">
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th data-translate="th-route">Маршрут</th>
+                                            <th data-translate="th-flight-date">Рейс / Дата</th>
+                                            <th style="text-align: center;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="predictions-table-body">
+                                        <tr>
+                                            <td colspan="3" class="empty-table-text" data-translate="empty-predictions-table">История пуста.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
                     <!-- Левая панель: Форма прогноза -->
                     <div class="left-column">
                         <section class="panel glass aviation-panel">
@@ -533,52 +570,6 @@
                         </section>
                     </div>
                 </div>
-
-                <!-- Таблица: История спрогнозированных рейсов (во всю ширину) -->
-                <section class="panel glass table-section history-predictions-section aviation-panel margin-top-20" style="margin-top: 20px;">
-                    <div class="hud-corner top-left"></div>
-                    <div class="hud-corner top-right"></div>
-                    <div class="hud-corner bottom-left"></div>
-                    <div class="hud-corner bottom-right"></div>
-                    
-                    <div class="table-header-container">
-                        <h2 class="panel-title" data-translate="predictions-table-title">[ FORECAST CALCULATION HISTORY ]</h2>
-                        <div class="table-actions">
-                            <button type="button" id="btn-clear-predictions" class="btn btn-danger aviation-btn" data-translate="btn-clear-predictions" onclick="handleClearPredictions(event)">Очистить историю</button>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table id="predictions-table" class="flights-table aviation-table">
-                            <colgroup>
-                                <col style="width: 19%;">
-                                <col style="width: 15%;">
-                                <col style="width: 12%;">
-                                <col style="width: 10%;">
-                                <col style="width: 13%;">
-                                <col style="width: 11%;">
-                                <col style="width: 14%;">
-                                <col style="width: 6%;">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th data-translate="th-route">Маршрут</th>
-                                    <th data-translate="th-flight">Рейс</th>
-                                    <th data-translate="th-pax-count">Пассажиры (PAX)</th>
-                                    <th data-translate="th-bag-pcs">Багаж мест</th>
-                                    <th data-translate="th-bag-weight">Вес багажа</th>
-                                    <th data-translate="th-hb-weight">Вес р/к</th>
-                                    <th data-translate="th-calc-date">Дата расчета</th>
-                                    <th data-translate="th-action">Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody id="predictions-table-body">
-                                <tr>
-                                    <td colspan="8" class="empty-table-text" data-translate="empty-predictions-table">История прогнозов пуста. Сделайте расчет выше.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </section>
             </div>
 
             <!-- ВКЛАДКА 2: ДАШБОРД АНАЛИТИКИ И МАСШТАБИРОВАНИЯ -->
@@ -1798,15 +1789,15 @@
     </div>
 
     <footer class="app-footer" style="text-align: center; padding: 20px; font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono); opacity: 0.7; border-top: 1px solid rgba(255, 255, 255, 0.05); margin-top: 40px; display: flex; justify-content: center; align-items: center; gap: 12px; flex-wrap: wrap;">
-        <span>AeroBag Predictor <span id="app-version-tag">v12.0.195</span> (<span id="app-build-date">28.10.2026</span>)</span>
+        <span>AeroBag Predictor <span id="app-version-tag">v12.0.196</span> (<span id="app-build-date">28.10.2026</span>)</span>
         <span style="opacity: 0.4;">•</span>
         <span data-translate="footer-developer">Разработчик: Andrey Zubkov</span>
     </footer>
 
     <!-- Загрузка локальных библиотек -->
     <script src="xlsx.full.min.js"></script>
-    <script src="app.js?v=v12.0.195"></script>
-    <script src="dcs_sync.js?v=v12.0.195"></script>
+    <script src="app.js?v=v12.0.196"></script>
+    <script src="dcs_sync.js?v=v12.0.196"></script>
 </body>
 </html>
 
