@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.193';
-const APP_BUILD_DATE = '12.10.2026';
+const APP_VERSION = 'v12.0.195';
+const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -3005,18 +3005,38 @@ function getCustomAirportFilters() {
     };
 }
 
+// Проверка ответа сервера на ошибки авторизации и прав доступа при синхронизации
+function checkServerSyncResponse(data, contextName = '') {
+    if (!data) return false;
+    if (data.unauthorized || data.forbidden) {
+        const msg = currentLang === 'ru'
+            ? `⚠️ Внимание: сессия на сервере истекла. ${contextName ? contextName + ' сохранены' : 'Данные сохранены'} только локально в этом браузере! Пожалуйста, перезайдите в систему под Администратором для синхронизации с общей базой.`
+            : `⚠️ Warning: server session expired. ${contextName ? contextName + ' saved' : 'Data saved'} locally in this browser only! Please re-login as Administrator to sync with the shared database.`;
+        showAviationAlert(msg, true);
+        return false;
+    }
+    if (data.success === false && data.error) {
+        const msg = currentLang === 'ru'
+            ? `⚠️ Ошибка синхронизации с сервером (${contextName || 'настройки'}): ${data.error}. Сохранено только локально.`
+            : `⚠️ Server sync error (${contextName || 'settings'}): ${data.error}. Saved locally only.`;
+        showAviationAlert(msg, true);
+        return false;
+    }
+    return true;
+}
+
 // Сохранение фильтров аэропортов (в LocalStorage и в MySQL через API)
 async function saveCustomAirportFilters(filters) {
-    if (!filters) return;
+    if (!filters) return false;
     try {
         localStorage.setItem('averago_custom_airport_filters', JSON.stringify(filters));
     } catch (e) {
         console.error("Ошибка сохранения averago_custom_airport_filters:", e);
     }
 
-    if (!isOfflineMode) {
+    if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
-            await fetch('api.php?action=save_settings', {
+            const res = await fetch('api.php?action=save_settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -3024,10 +3044,21 @@ async function saveCustomAirportFilters(filters) {
                     setting_value: filters
                 })
             });
+            if (res) {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await res.json();
+                    return checkServerSyncResponse(data, currentLang === 'ru' ? 'Фильтры направлений' : 'Route filters');
+                } else if (!res.ok) {
+                    showAviationAlert(currentLang === 'ru' ? '⚠️ Сервер временно недоступен (HTTP ' + res.status + '). Фильтры сохранены локально.' : '⚠️ Server unavailable (HTTP ' + res.status + '). Filters saved locally.', true);
+                    return false;
+                }
+            }
         } catch (e) {
             console.warn("Ошибка синхронизации фильтров с сервером:", e);
         }
     }
+    return false;
 }
 
 // ==========================================================================
@@ -3052,16 +3083,16 @@ function getCustomAirportsList() {
 
 // Сохранение списка пользовательских аэропортов (в LocalStorage и в MySQL через API)
 async function saveCustomAirportsList(list) {
-    if (!Array.isArray(list)) return;
+    if (!Array.isArray(list)) return false;
     try {
         localStorage.setItem('averago_custom_airports', JSON.stringify(list));
     } catch (e) {
         console.error("Ошибка сохранения averago_custom_airports:", e);
     }
 
-    if (!isOfflineMode) {
+    if (!isOfflineMode && window.location.protocol !== 'file:') {
         try {
-            await fetch('api.php?action=save_settings', {
+            const res = await fetch('api.php?action=save_settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -3069,10 +3100,21 @@ async function saveCustomAirportsList(list) {
                     setting_value: list
                 })
             });
+            if (res) {
+                const contentType = res.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await res.json();
+                    return checkServerSyncResponse(data, currentLang === 'ru' ? 'Новые направления' : 'Custom airports');
+                } else if (!res.ok) {
+                    showAviationAlert(currentLang === 'ru' ? '⚠️ Сервер временно недоступен (HTTP ' + res.status + '). Порты сохранены локально.' : '⚠️ Server unavailable (HTTP ' + res.status + '). Airports saved locally.', true);
+                    return false;
+                }
+            }
         } catch (e) {
             console.warn("Ошибка синхронизации custom_airports с сервером:", e);
         }
     }
+    return false;
 }
 
 // Регистрация пользовательских аэропортов в активном справочнике baggageDb.airports
@@ -3299,7 +3341,7 @@ function renderAirportFiltersUI() {
 }
 
 // Обработка добавления аэропорта/города в фильтр
-function handleAddAirportFilter(e, type) {
+async function handleAddAirportFilter(e, type) {
     if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -3342,7 +3384,7 @@ function handleAddAirportFilter(e, type) {
     if (info.iata && !list.includes(info.iata)) list.push(info.iata);
     if (info.ru && !list.includes(info.ru)) list.push(info.ru);
 
-    saveCustomAirportFilters(filters);
+    await saveCustomAirportFilters(filters);
     renderAirportFiltersUI();
     populateAirportDropdowns();
     inputEl.value = '';
@@ -3352,7 +3394,7 @@ function handleAddAirportFilter(e, type) {
 }
 
 // Обработка удаления аэропорта/города из фильтра
-function handleRemoveAirportFilter(type, code) {
+async function handleRemoveAirportFilter(type, code) {
     const filters = getCustomAirportFilters();
     const list = type === 'departures' ? filters.departures : filters.arrivals;
 
@@ -3378,7 +3420,7 @@ function handleRemoveAirportFilter(type, code) {
         filters.arrivals = updated;
     }
 
-    saveCustomAirportFilters(filters);
+    await saveCustomAirportFilters(filters);
     renderAirportFiltersUI();
     populateAirportDropdowns();
 }
@@ -3393,10 +3435,10 @@ function handleResetAirportFilters(e) {
         ? 'Сбросить фильтры аэропортов вылета и прилета к исходным заводским настройкам?'
         : 'Reset departure and arrival airport filters to default factory settings?';
 
-    showAviationConfirm(msg, () => {
+    showAviationConfirm(msg, async () => {
         localStorage.removeItem('averago_custom_airport_filters');
         const filters = getCustomAirportFilters();
-        saveCustomAirportFilters(filters);
+        await saveCustomAirportFilters(filters);
         renderAirportFiltersUI();
         populateAirportDropdowns();
         showAviationAlert(currentLang === 'ru' ? 'Фильтры успешно сброшены по умолчанию' : 'Filters reset to default', false);
@@ -3404,10 +3446,10 @@ function handleResetAirportFilters(e) {
 }
 
 // Переключение строгого режима фильтрации прилетов (Вариант А)
-function handleToggleStrictArrivals(isChecked) {
+async function handleToggleStrictArrivals(isChecked) {
     const filters = getCustomAirportFilters();
     filters.strict_arrivals = !!isChecked;
-    saveCustomAirportFilters(filters);
+    await saveCustomAirportFilters(filters);
     renderAirportFiltersUI();
     const msg = isChecked
         ? (currentLang === 'ru' ? 'Включен строгий фильтр: будут загружаться только рейсы в разрешенные аэропорты прилета.' : 'Strict arrivals filter enabled.')
@@ -3512,7 +3554,7 @@ async function handleSaveNewAirport(e) {
         name: name
     });
 
-    saveCustomAirportsList(filteredList);
+    const savedPortsOk = await saveCustomAirportsList(filteredList);
     applyCustomAirportsToDb(filteredList);
 
     // 2. Добавляем в фильтры вылетов/прилетов
@@ -3526,7 +3568,7 @@ async function handleSaveNewAirport(e) {
         if (rawRu && rawRu !== rawIata && !filters.arrivals.includes(rawRu)) filters.arrivals.push(rawRu);
     }
 
-    saveCustomAirportFilters(filters);
+    const savedFiltersOk = await saveCustomAirportFilters(filters);
     renderAirportFiltersUI();
     populateAirportDropdowns();
     closeAddAirportModal();
@@ -3538,11 +3580,12 @@ async function handleSaveNewAirport(e) {
             : (currentLang === 'ru' ? 'в вылеты и прилеты' : 'to departures and arrivals');
 
     const codesDisplay = (rawRu && rawRu !== rawIata) ? `${rawIata} / ${rawRu}` : rawIata;
-    const successMsg = currentLang === 'ru'
-        ? `Направление ${name} (${codesDisplay}) успешно сохранено и добавлено ${targetDesc}!`
-        : `Destination ${name} (${codesDisplay}) successfully saved and added ${targetDesc}!`;
-
-    showAviationAlert(successMsg, false);
+    if (savedPortsOk !== false && savedFiltersOk !== false) {
+        const successMsg = currentLang === 'ru'
+            ? `Направление ${name} (${codesDisplay}) успешно сохранено и добавлено ${targetDesc}!`
+            : `Destination ${name} (${codesDisplay}) successfully saved and added ${targetDesc}!`;
+        showAviationAlert(successMsg, false);
+    }
 }
 
 // Экспортируем в window для инлайновых вызовов в HTML
@@ -3672,9 +3715,9 @@ async function saveUserFlights() {
         console.error("Ошибка сохранения в LocalStorage:", e);
     }
 
-    if (isOfflineMode) return;
+    if (isOfflineMode || window.location.protocol === 'file:') return false;
 
-    // 2. Если серверная часть активна, пробуем тихо синхронизировать
+    // 2. Если серверная часть активна, синхронизируем с контролем авторизации
     try {
         const response = await fetch('api.php?action=save_flights', {
             method: 'POST',
@@ -3683,14 +3726,25 @@ async function saveUserFlights() {
             },
             body: JSON.stringify(userFlights)
         });
-        if (!response || !response.ok) return;
-        const data = await response.json();
-        if (data && data.success) {
-            await loadUserFlightsSilent();
+        if (!response) return false;
+        
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            const isOk = checkServerSyncResponse(data, currentLang === 'ru' ? 'Рейсы' : 'Flights');
+            if (isOk && data.success) {
+                await loadUserFlightsSilent();
+                return true;
+            }
+            return false;
+        } else if (!response.ok) {
+            showAviationAlert(currentLang === 'ru' ? '⚠️ Сервер временно недоступен (HTTP ' + response.status + '). Рейсы сохранены локально.' : '⚠️ Server unavailable (HTTP ' + response.status + '). Flights saved locally.', true);
+            return false;
         }
     } catch (e) {
         console.warn("Серверный API недоступен, работаем в локальном режиме:", e);
     }
+    return false;
 }
 
 // Экспорт базы рейсов и методов синхронизации в window
