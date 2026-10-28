@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.4';
+const APP_VERSION = 'v12.2.5';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -2590,6 +2590,16 @@ let currentIncomingFlightData = {
     to: ''
 };
 
+// Надежное извлечение числового номера рейса без буквенно-цифровых префиксов авиакомпаний (N4, EO, NWS, KAR, U6 и т.д.)
+function extractNumericFlightNumber(flightStr) {
+    if (!flightStr) return '';
+    let s = String(flightStr).trim().toUpperCase();
+    s = s.replace(/^(N4|EO|NWS|KAR|NW|WZ|S7|SU|DP|UT|A4|U6|FV|5N|7R|KL|КЛ|Н4|ЕО)[-\s]?/i, '');
+    s = s.replace(/^[A-ZА-Я][A-ZА-Я0-9]{0,2}[-\s]?/i, '');
+    const match = s.match(/\d+/);
+    return match ? match[0] : s.replace(/\D/g, '');
+}
+
 function checkIncomingFlightParameters() {
     const urlParams = new URLSearchParams(window.location.search);
     const flightParam = urlParams.get('flight') || urlParams.get('flt') || urlParams.get('flight_no');
@@ -2603,63 +2613,58 @@ function checkIncomingFlightParameters() {
 
     if (depTimeParam) currentIncomingFlightData.dep_time = depTimeParam;
     if (acNumParam) currentIncomingFlightData.ac_num = acNumParam;
-    if (flightParam) currentIncomingFlightData.flight = flightParam;
     if (dateParam) currentIncomingFlightData.date = dateParam;
     if (fromParam) currentIncomingFlightData.from = fromParam;
     if (toParam) currentIncomingFlightData.to = toParam;
 
-    let hasData = false;
-
-    if (flightParam) {
-        // Очищаем от буквенных префиксов (N4, EO, KAR) для точного совпадения со справочником рейсов
-        const cleanFlight = String(flightParam).replace(/\D/g, '') || flightParam.trim().toUpperCase();
+    const cleanFlight = extractNumericFlightNumber(flightParam);
+    if (cleanFlight) {
         currentIncomingFlightData.flight = cleanFlight;
         const flightInput = document.getElementById('select-flight');
         if (flightInput) {
             flightInput.value = cleanFlight;
-            hasData = true;
-            setTimeout(() => {
-                const route = findRouteByFlightNo(cleanFlight);
-                if (route && (!fromParam || !toParam)) {
-                    applyRouteSelection(route);
-                }
-            }, 100);
         }
     }
+
     if (dateParam) {
         const dateInput = document.getElementById('input-date');
         if (dateInput) {
             dateInput.value = dateParam;
-            hasData = true;
         }
     }
+
     if (paxParam) {
         currentIncomingFlightData.pax = paxParam;
         const paxInput = document.getElementById('input-pax');
         if (paxInput) {
             paxInput.value = paxParam;
-            hasData = true;
         }
     }
-    if (fromParam) {
-        const fromSelect = document.getElementById('select-from');
-        if (fromSelect) {
-            fromSelect.value = fromParam.toUpperCase();
-            const event = new Event('change');
-            fromSelect.dispatchEvent(event);
-            hasData = true;
+
+    // Автоподбор маршрута: если переданы и from, и to — применяем их напрямую;
+    // иначе, если известен номер рейса — подбираем маршрут из базы
+    if (fromParam && toParam) {
+        applyRouteSelection({ from: fromParam, to: toParam });
+    } else if (cleanFlight) {
+        const route = findRouteByFlightNo(cleanFlight);
+        if (route) {
+            applyRouteSelection(route);
         }
     }
-    if (toParam) {
-        setTimeout(() => {
-            const toSelect = document.getElementById('select-to');
-            if (toSelect) {
-                toSelect.value = toParam.toUpperCase();
-                const event = new Event('change');
-                toSelect.dispatchEvent(event);
-            }
-        }, 150);
+
+    // Защита от сброса пассажиров: если был передан PAX, гарантированно возвращаем его в инпут
+    if (paxParam) {
+        const paxInput = document.getElementById('input-pax');
+        if (paxInput) {
+            paxInput.value = paxParam;
+        }
     }
+
+    // Закрываем выпадающие подсказки рейса
+    if (typeof hideCustomFlightSuggestions === 'function') {
+        hideCustomFlightSuggestions();
+    }
+
     if (acNumParam) {
         const activeFlightBadge = document.getElementById('active-flight-badge');
         if (activeFlightBadge) {
@@ -2674,6 +2679,7 @@ function checkIncomingFlightParameters() {
             badgeTail.textContent = ` [${acNumParam}]`;
         }
     }
+
     if (returnUrlParam) {
         const returnBtn = document.getElementById('btn-return-aeroplan');
         if (returnBtn) {
@@ -2682,6 +2688,7 @@ function checkIncomingFlightParameters() {
         }
     }
 }
+
 
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
@@ -3013,7 +3020,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadPredictionsHistory();
     initDefaultCompartmentsState();
     renderCompartmentsTable();
-    checkIncomingFlightParameters();
     
     // Автоматическая аутентификация пользователя и разграничение прав
     await checkAuthStatus();
@@ -3029,6 +3035,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupDatePickerTrigger();
     initAviationModal();
     initLoadPlanningData();
+
+    // Обработка параметров рейса из внешней системы (AeroPlan W&B)
+    checkIncomingFlightParameters();
 });
 
 // Загрузка настроек темы и языка
@@ -4255,10 +4264,7 @@ function populateAirportDropdowns() {
 
 // Получение числовой части номера рейса без префиксов авиакомпаний (N4, EO, KL и т.д.)
 function getNumericFlightNo(fltStr) {
-    if (!fltStr) return '';
-    const clean = String(fltStr).trim().toUpperCase().replace(/^(N4|EO|KL|КЛ|Н4|ЕО)\s*[-]?\s*/i, '');
-    const m = clean.match(/\d+/);
-    return m ? m[0] : String(fltStr).replace(/\D+/g, '');
+    return extractNumericFlightNumber(fltStr);
 }
 
 // Поиск маршрута вылета/прилета по номеру рейса (возвращает ИАТА коды)
