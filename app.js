@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.196';
+const APP_VERSION = 'v12.0.197';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -1593,6 +1593,8 @@ const translations = {
         'predictions-table-title': 'История расчетов',
         'btn-clear-predictions': 'Очистить',
         'th-flight-date': 'Рейс / Дата',
+        'btn-return-plan': 'В план AeroPlan',
+        'th-load-type': 'ТИП ЗАГРУЗКИ',
         'th-pax-count': 'Пассажиры (PAX)',
         'th-calc-date': 'Дата расчета',
         'empty-predictions-table': 'История пуста.',
@@ -1862,6 +1864,8 @@ const translations = {
         'predictions-table-title': 'Forecast History',
         'btn-clear-predictions': 'Clear',
         'th-flight-date': 'Flight / Date',
+        'btn-return-plan': 'To AeroPlan',
+        'th-load-type': 'LOAD TYPE',
         'th-pax-count': 'Passengers (PAX)',
         'th-calc-date': 'Calculation Date',
         'empty-predictions-table': 'History is empty.',
@@ -2317,6 +2321,336 @@ function clearLoadPlanningUI() {
     }
 }
 
+
+// ==========================================================================
+// МУЛЬТИ-КАТЕГОРИЙНАЯ ЗАГРУЗКА ОТСЕКОВ BULK & ИНТЕГРАЦИЯ С AEROPLAN
+// ==========================================================================
+
+const BULK_LOAD_CATEGORIES = [
+    { code: 'B', nameRu: 'B — Прямой багаж', nameEn: 'B — Local Baggage', isDefault: true },
+    { code: 'BT', nameRu: 'BT — Трансферный багаж', nameEn: 'BT — Transfer Baggage' },
+    { code: 'BC', nameRu: 'BC — Приоритетный багаж', nameEn: 'BC — Priority Baggage' },
+    { code: 'BZ', nameRu: 'BZ — Багаж экипажа', nameEn: 'BZ — Crew Baggage' },
+    { code: 'BX', nameRu: 'BX — Досыльный багаж', nameEn: 'BX — Rush Baggage' },
+    { code: 'DAA', nameRu: 'DAA — Коляски у трапа', nameEn: 'DAA — Delivery at Aircraft' },
+    { code: 'C', nameRu: 'C — Груз (Cargo)', nameEn: 'C — Cargo' },
+    { code: 'M', nameRu: 'M — Почта (Mail)', nameEn: 'M — Mail' },
+    { code: 'E', nameRu: 'E — Снаряжение (EIC)', nameEn: 'E — Equipment' }
+];
+
+let currentCompartmentsState = [];
+
+function initDefaultCompartmentsState() {
+    currentCompartmentsState = [];
+    for (let i = 1; i <= 12; i++) {
+        currentCompartmentsState.push({
+            cpt: i,
+            name: String(i),
+            rows: [
+                { type: 'B', pcs: 0, weight: 0, locked: false }
+            ]
+        });
+    }
+}
+
+function renderCompartmentsTable() {
+    const tbody = document.getElementById('unified-load-tbody');
+    if (!tbody) return;
+
+    if (!currentCompartmentsState || currentCompartmentsState.length === 0) {
+        initDefaultCompartmentsState();
+    }
+
+    tbody.innerHTML = '';
+
+    currentCompartmentsState.forEach((comp, compIdx) => {
+        const rowsCount = comp.rows.length;
+
+        comp.rows.forEach((row, rowIdx) => {
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-comp', compIdx);
+            tr.setAttribute('data-row', rowIdx);
+
+            if (rowIdx === 0) {
+                tr.className = 'bulk-cpt-row';
+            } else {
+                tr.className = 'bulk-cpt-subrow';
+            }
+
+            // 1. Номер отсека или стрелка
+            const tdCpt = document.createElement('td');
+            tdCpt.style.textAlign = 'center';
+            if (rowIdx === 0) {
+                tdCpt.className = 'bulk-cpt-num';
+                tdCpt.innerHTML = `<strong>${comp.name}</strong>`;
+            } else {
+                tdCpt.className = 'bulk-cpt-num sub-cpt';
+                tdCpt.innerHTML = `<span class="sub-arrow">↳</span>`;
+            }
+            tr.appendChild(tdCpt);
+
+            // 2. Селектор типа загрузки
+            const tdType = document.createElement('td');
+            tdType.className = 'bulk-type-cell';
+            const select = document.createElement('select');
+            select.className = 'form-control bulk-type-select';
+            select.onchange = (e) => handleBulkTypeChange(compIdx, rowIdx, e.target.value);
+            BULK_LOAD_CATEGORIES.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat.code;
+                opt.textContent = (currentLang === 'ru') ? cat.nameRu : cat.nameEn;
+                if (cat.code === row.type) opt.selected = true;
+                select.appendChild(opt);
+            });
+            tdType.appendChild(select);
+            tr.appendChild(tdType);
+
+            // 3. Поле ввода мест
+            const tdPcs = document.createElement('td');
+            tdPcs.style.textAlign = 'center';
+            const inputPcs = document.createElement('input');
+            inputPcs.type = 'number';
+            inputPcs.id = `bulk-pcs-${compIdx}-${rowIdx}`;
+            inputPcs.className = 'form-control table-input bulk-pcs-input monospace-val super-input-cyan';
+            inputPcs.min = '0';
+            inputPcs.max = '1000';
+            inputPcs.value = String(row.pcs || 0);
+            inputPcs.oninput = (e) => handleBulkInput(compIdx, rowIdx, 'pcs', e.target.value);
+            inputPcs.onfocus = (e) => e.target.select();
+            tdPcs.appendChild(inputPcs);
+            tr.appendChild(tdPcs);
+
+            // 4. Поле ввода веса
+            const tdWeight = document.createElement('td');
+            tdWeight.style.textAlign = 'center';
+            const inputWeight = document.createElement('input');
+            inputWeight.type = 'number';
+            inputWeight.id = `bulk-weight-${compIdx}-${rowIdx}`;
+            inputWeight.className = 'form-control table-input bulk-weight-input monospace-val super-input-gold';
+            inputWeight.min = '0';
+            inputWeight.max = '50000';
+            inputWeight.value = String(row.weight || 0);
+            if (row.locked) {
+                inputWeight.setAttribute('data-locked', 'true');
+                inputWeight.classList.add('weight-locked');
+            }
+            inputWeight.oninput = (e) => handleBulkInput(compIdx, rowIdx, 'weight', e.target.value);
+            inputWeight.onfocus = (e) => e.target.select();
+            tdWeight.appendChild(inputWeight);
+            tr.appendChild(tdWeight);
+
+            // 5. Кнопка действия (+ или ✕)
+            const tdAction = document.createElement('td');
+            tdAction.style.textAlign = 'center';
+            if (rowIdx === 0) {
+                const btnAdd = document.createElement('button');
+                btnAdd.type = 'button';
+                btnAdd.className = 'btn btn-bulk-add';
+                btnAdd.title = currentLang === 'ru' ? 'Добавить категорию в этот отсек' : 'Add category to this compartment';
+                btnAdd.textContent = '+';
+                btnAdd.onclick = () => handleAddCompartmentSubRow(compIdx);
+                tdAction.appendChild(btnAdd);
+            } else {
+                const btnDel = document.createElement('button');
+                btnDel.type = 'button';
+                btnDel.className = 'btn btn-bulk-del';
+                btnDel.title = currentLang === 'ru' ? 'Удалить категорию' : 'Delete category';
+                btnDel.textContent = '✕';
+                btnDel.onclick = () => handleRemoveCompartmentSubRow(compIdx, rowIdx);
+                tdAction.appendChild(btnDel);
+            }
+            tr.appendChild(tdAction);
+
+            tbody.appendChild(tr);
+        });
+
+        // Промежуточный итог отсека при нескольких категориях
+        if (rowsCount > 1) {
+            const trSub = document.createElement('tr');
+            trSub.className = 'bulk-cpt-subtotal-row';
+            trSub.setAttribute('data-comp-subtotal', compIdx);
+
+            const tdLabel = document.createElement('td');
+            tdLabel.colSpan = 2;
+            tdLabel.className = 'cpt-subtotal-label';
+            tdLabel.textContent = `Всего CPT ${comp.name}:`;
+            trSub.appendChild(tdLabel);
+
+            const tdSubPcs = document.createElement('td');
+            tdSubPcs.id = `cpt-subtotal-pcs-${compIdx}`;
+            tdSubPcs.style.textAlign = 'center';
+            tdSubPcs.className = 'monospace-val text-center super-val-cyan';
+            tdSubPcs.style.fontWeight = '700';
+            tdSubPcs.style.fontSize = '0.9rem';
+            tdSubPcs.textContent = '0';
+            trSub.appendChild(tdSubPcs);
+
+            const tdSubWeight = document.createElement('td');
+            tdSubWeight.id = `cpt-subtotal-weight-${compIdx}`;
+            tdSubWeight.style.textAlign = 'center';
+            tdSubWeight.className = 'monospace-val text-center super-val-gold';
+            tdSubWeight.style.fontWeight = '700';
+            tdSubWeight.style.fontSize = '0.9rem';
+            tdSubWeight.textContent = '0 кг';
+            trSub.appendChild(tdSubWeight);
+
+            const tdEmpty = document.createElement('td');
+            trSub.appendChild(tdEmpty);
+
+            tbody.appendChild(trSub);
+        }
+    });
+}
+
+function handleBulkTypeChange(compIdx, rowIdx, newType) {
+    if (currentCompartmentsState[compIdx] && currentCompartmentsState[compIdx].rows[rowIdx]) {
+        currentCompartmentsState[compIdx].rows[rowIdx].type = newType;
+        recalculateLoadPlanning();
+        debouncedSaveCompartmentsToPrediction();
+    }
+}
+
+function handleAddCompartmentSubRow(compIdx) {
+    if (!currentCompartmentsState[compIdx]) return;
+    currentCompartmentsState[compIdx].rows.push({
+        type: 'BT',
+        pcs: 0,
+        weight: 0,
+        locked: false
+    });
+    renderCompartmentsTable();
+    recalculateLoadPlanning();
+    debouncedSaveCompartmentsToPrediction();
+}
+
+function handleRemoveCompartmentSubRow(compIdx, rowIdx) {
+    if (!currentCompartmentsState[compIdx] || rowIdx === 0) return;
+    currentCompartmentsState[compIdx].rows.splice(rowIdx, 1);
+    renderCompartmentsTable();
+    recalculateLoadPlanning();
+    debouncedSaveCompartmentsToPrediction();
+}
+
+function handleBulkInput(compIdx, rowIdx, field, rawValue) {
+    if (!currentCompartmentsState[compIdx] || !currentCompartmentsState[compIdx].rows[rowIdx]) return;
+    const row = currentCompartmentsState[compIdx].rows[rowIdx];
+
+    if (field === 'pcs') {
+        const pcsVal = parseInt(rawValue, 10);
+        row.pcs = isNaN(pcsVal) || pcsVal < 0 ? 0 : pcsVal;
+        if (row.pcs === 0) {
+            row.locked = false;
+            row.weight = 0;
+            const weightInput = document.getElementById(`bulk-weight-${compIdx}-${rowIdx}`);
+            if (weightInput) {
+                weightInput.value = '0';
+                weightInput.removeAttribute('data-locked');
+                weightInput.classList.remove('weight-locked');
+            }
+        }
+    } else if (field === 'weight') {
+        const weightVal = parseFloat(rawValue);
+        row.weight = isNaN(weightVal) || weightVal < 0 ? 0 : weightVal;
+        row.locked = true;
+        const weightInput = document.getElementById(`bulk-weight-${compIdx}-${rowIdx}`);
+        if (weightInput) {
+            weightInput.setAttribute('data-locked', 'true');
+            weightInput.classList.add('weight-locked');
+        }
+    }
+
+    recalculateLoadPlanning();
+    debouncedSaveCompartmentsToPrediction();
+}
+
+function handleReturnToAeroPlan(e) {
+    if (e) e.preventDefault();
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('return_url');
+    if (returnUrl) {
+        window.location.href = decodeURIComponent(returnUrl);
+    } else if (window.history.length > 1) {
+        window.history.back();
+    } else {
+        window.location.href = 'http://localhost:8000';
+    }
+}
+
+function checkIncomingFlightParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const flightParam = urlParams.get('flight') || urlParams.get('flt') || urlParams.get('flight_no');
+    const fromParam = urlParams.get('from');
+    const toParam = urlParams.get('to');
+    const dateParam = urlParams.get('date');
+    const paxParam = urlParams.get('pax');
+    const acNumParam = urlParams.get('ac_num') || urlParams.get('tail');
+    const returnUrlParam = urlParams.get('return_url');
+
+    let hasData = false;
+
+    if (flightParam) {
+        const flightInput = document.getElementById('select-flight');
+        if (flightInput) {
+            flightInput.value = flightParam.toUpperCase();
+            hasData = true;
+        }
+    }
+    if (dateParam) {
+        const dateInput = document.getElementById('input-date');
+        if (dateInput) {
+            dateInput.value = dateParam;
+            hasData = true;
+        }
+    }
+    if (paxParam) {
+        const paxInput = document.getElementById('input-pax');
+        if (paxInput) {
+            paxInput.value = paxParam;
+            hasData = true;
+        }
+    }
+    if (fromParam) {
+        const fromSelect = document.getElementById('select-from');
+        if (fromSelect) {
+            fromSelect.value = fromParam.toUpperCase();
+            const event = new Event('change');
+            fromSelect.dispatchEvent(event);
+            hasData = true;
+        }
+    }
+    if (toParam) {
+        setTimeout(() => {
+            const toSelect = document.getElementById('select-to');
+            if (toSelect) {
+                toSelect.value = toParam.toUpperCase();
+                const event = new Event('change');
+                toSelect.dispatchEvent(event);
+            }
+        }, 150);
+    }
+    if (acNumParam) {
+        const activeFlightBadge = document.getElementById('active-flight-badge');
+        if (activeFlightBadge) {
+            activeFlightBadge.classList.remove('hidden');
+            let badgeTail = document.getElementById('badge-tail-no');
+            if (!badgeTail) {
+                badgeTail = document.createElement('span');
+                badgeTail.id = 'badge-tail-no';
+                badgeTail.className = 'badge-tail-no';
+                activeFlightBadge.appendChild(badgeTail);
+            }
+            badgeTail.textContent = ` [${acNumParam}]`;
+        }
+    }
+    if (returnUrlParam) {
+        const returnBtn = document.getElementById('btn-return-aeroplan');
+        if (returnBtn) {
+            returnBtn.setAttribute('data-return-url', returnUrlParam);
+            returnBtn.classList.add('pulse-highlight');
+        }
+    }
+}
+
 // Сохранение текущей раскладки BULK отсеков в объект prediction из Истории расчетов
 function saveCompartmentsToPrediction() {
     if (!currentActivePredictionId) return;
@@ -2331,48 +2665,50 @@ function saveCompartmentsToPrediction() {
     if (lirPcsInput && lirPcsInput.value !== '') p.lir_pcs = parseInt(lirPcsInput.value, 10) || 0;
     if (lirWeightInput && lirWeightInput.value !== '') p.lir_weight = parseFloat(lirWeightInput.value) || 0;
 
-    const compartments = [];
-    for (let i = 1; i <= 12; i++) {
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        const weightInput = document.getElementById(`bulk-weight-${i}`);
-        const pcs = pcsInput ? parseInt(pcsInput.value, 10) || 0 : 0;
-        const weight = weightInput ? parseInt(weightInput.value, 10) || 0 : 0;
-        const locked = weightInput ? (weightInput.getAttribute('data-locked') === 'true') : false;
-        compartments.push({ pcs, weight, locked });
-    }
-
-    p.compartments = compartments;
+    p.compartments = JSON.parse(JSON.stringify(currentCompartmentsState));
     savePredictionsHistory();
 }
 
-// Восстановление раскладки BULK отсеков из объекта prediction
+// Восстановление раскладки BULK отсеков из объекта prediction (с обратной совместимостью)
 function restoreCompartmentsFromPrediction(p) {
-    // Всегда сбрасываем ячейки 1..12 перед заполнением, чтобы не оставалось хвостов от других рейсов
-    resetCompartments();
-
     if (!p || !p.compartments || !Array.isArray(p.compartments)) {
+        initDefaultCompartmentsState();
+        renderCompartmentsTable();
+        recalculateLoadPlanning();
         return;
     }
 
-    for (let i = 1; i <= 12; i++) {
-        const comp = p.compartments[i - 1];
-        if (!comp) continue;
-
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        const weightInput = document.getElementById(`bulk-weight-${i}`);
-
-        if (pcsInput) pcsInput.value = String(comp.pcs || 0);
-        if (weightInput) {
-            weightInput.value = String(comp.weight || 0);
-            if (comp.locked) {
-                weightInput.setAttribute('data-locked', 'true');
-                weightInput.classList.add('weight-locked');
-            } else {
-                weightInput.removeAttribute('data-locked');
-                weightInput.classList.remove('weight-locked');
-            }
+    // Проверяем: новый формат (с массивом rows) или старый (плоский pcs, weight)
+    if (p.compartments.length > 0 && Array.isArray(p.compartments[0].rows)) {
+        currentCompartmentsState = JSON.parse(JSON.stringify(p.compartments));
+    } else {
+        // Мягкая миграция старого формата
+        currentCompartmentsState = [];
+        for (let i = 1; i <= 12; i++) {
+            const oldC = p.compartments[i - 1];
+            currentCompartmentsState.push({
+                cpt: i,
+                name: String(i),
+                rows: [
+                    {
+                        type: 'B',
+                        pcs: oldC ? (parseInt(oldC.pcs, 10) || 0) : 0,
+                        weight: oldC ? (parseFloat(oldC.weight) || 0) : 0,
+                        locked: oldC ? !!oldC.locked : false
+                    }
+                ]
+            });
         }
     }
+
+    renderCompartmentsTable();
+    recalculateLoadPlanning();
+}
+
+function resetCompartments() {
+    initDefaultCompartmentsState();
+    renderCompartmentsTable();
+    recalculateLoadPlanning();
 }
 
 
@@ -2503,8 +2839,8 @@ function recalculateLoadPlanning() {
     const prelimAvgWeight = document.getElementById('prelim-avg-weight');
     const prelimAvgPax = document.getElementById('prelim-avg-pax');
 
+    const avgW = targetPcs > 0 ? (targetWeight / targetPcs) : 0;
     if (prelimAvgWeight) {
-        const avgW = targetPcs > 0 ? (targetWeight / targetPcs) : 0;
         prelimAvgWeight.textContent = avgW.toFixed(2).replace('.', ',');
     }
     if (prelimAvgPax) {
@@ -2512,259 +2848,101 @@ function recalculateLoadPlanning() {
         prelimAvgPax.textContent = avgP.toFixed(2).replace('.', ',');
     }
 
-    // 1-й проход: Подсчет зафиксированных весов и мест, а также сбор незафиксированных отсеков
-    let lockedWeightSum = 0;
-    let lockedPcsSum = 0;
-    const unlockedComps = [];
+    let totalPcs = 0;
+    let totalWeight = 0;
 
-    for (let i = 1; i <= 12; i++) {
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        const weightCell = document.getElementById(`bulk-weight-${i}`);
+    if (!currentCompartmentsState || currentCompartmentsState.length === 0) {
+        initDefaultCompartmentsState();
+    }
 
-        if (pcsInput && weightCell) {
-            const pcs = parseInt(pcsInput.value, 10) || 0;
-            const isEditingThisWeight = (weightCell === activeEl);
-            const isExplicitlyLocked = weightCell.getAttribute('data-locked') === 'true';
+    currentCompartmentsState.forEach((comp, compIdx) => {
+        let compPcs = 0;
+        let compWeight = 0;
 
-            // Если поле веса редактируется пользователем прямо сейчас или заблокировано
-            const isLocked = isExplicitlyLocked || (isEditingThisWeight && weightCell.value.trim() !== '');
+        comp.rows.forEach((row, rowIdx) => {
+            const pcs = parseInt(row.pcs, 10) || 0;
+            let weight = parseFloat(row.weight) || 0;
 
-            if (isLocked) {
-                const w = parseFloat(weightCell.value) || 0;
-                lockedWeightSum += w;
-                lockedPcsSum += pcs;
-            } else {
-                if (pcs > 0) {
-                    unlockedComps.push({ index: i, pcs: pcs, weightCell: weightCell });
-                } else {
-                    // Если мест 0 и отсек не зафиксирован и не редактируется прямо сейчас - сбрасываем вес в 0
-                    if (!isEditingThisWeight && weightCell.value !== '0') {
-                        if (weightCell.tagName === 'INPUT') weightCell.value = '0';
-                        else weightCell.textContent = '0';
+            const pcsInput = document.getElementById(`bulk-pcs-${compIdx}-${rowIdx}`);
+            const weightInput = document.getElementById(`bulk-weight-${compIdx}-${rowIdx}`);
+
+            const isEditingWeight = (weightInput === activeEl);
+            const isLocked = row.locked || (isEditingWeight && weightInput?.value.trim() !== '');
+
+            if (!isLocked) {
+                if (pcs > 0 && avgW > 0) {
+                    weight = Math.round(pcs * avgW);
+                    row.weight = weight;
+                    if (weightInput && !isEditingWeight) {
+                        weightInput.value = String(weight);
                     }
+                } else if (pcs === 0 && !isEditingWeight) {
+                    weight = 0;
+                    row.weight = 0;
+                    if (weightInput) weightInput.value = '0';
                 }
             }
-        }
-    }
 
-    // Расчет удельного веса 1 места на оставшийся свободный вес от общего плана
-    const remainingWeight = Math.max(0, targetWeight - lockedWeightSum);
-    const remainingPcs = Math.max(1, targetPcs - lockedPcsSum);
-    const dynamicAvgBagWeight = targetPcs > 0 ? (remainingWeight / remainingPcs) : 0;
+            compPcs += pcs;
+            compWeight += weight;
+        });
 
-    // Суммарное количество мест, введенных в незафиксированные отсеки
-    const totalUnlockedEnteredPcs = unlockedComps.reduce((acc, c) => acc + c.pcs, 0);
-    // Проверка: распределены ли абсолютно все места (с учетом возможных зафиксированных)
-    const isAllPcsDistributed = (targetPcs > 0) && (totalUnlockedEnteredPcs === (targetPcs - lockedPcsSum));
+        totalPcs += compPcs;
+        totalWeight += compWeight;
 
-    // 2-й проход: Распределение веса по незафиксированным отсекам
-    let allocatedUnlockedWeight = 0;
-
-    unlockedComps.forEach((comp, idx) => {
-        const isLastComp = (idx === unlockedComps.length - 1);
-        let w = 0;
-
-        if (isAllPcsDistributed && isLastComp) {
-            // Последний отсек, закрывающий все оставшиеся места, забирает точный остаток веса!
-            w = Math.max(0, remainingWeight - allocatedUnlockedWeight);
-        } else {
-            w = Math.round(comp.pcs * dynamicAvgBagWeight);
-            allocatedUnlockedWeight += w;
-        }
-
-        if (comp.weightCell && comp.weightCell !== activeEl) {
-            const wStr = String(w);
-            if (comp.weightCell.tagName === 'INPUT') {
-                if (comp.weightCell.value !== wStr) comp.weightCell.value = wStr;
-            } else {
-                if (comp.weightCell.textContent !== wStr) comp.weightCell.textContent = wStr;
-            }
-        }
+        const subtotalPcsEl = document.getElementById(`cpt-subtotal-pcs-${compIdx}`);
+        const subtotalWeightEl = document.getElementById(`cpt-subtotal-weight-${compIdx}`);
+        if (subtotalPcsEl) subtotalPcsEl.textContent = String(compPcs);
+        if (subtotalWeightEl) subtotalWeightEl.textContent = `${compWeight} кг`;
     });
 
-    // 3-й проход: Подсчет итогов по всей таблице
-    let ttlBulkPcs = lockedPcsSum + totalUnlockedEnteredPcs;
-    let ttlBulkWeight = lockedWeightSum;
+    const restPcs = targetPcs - totalPcs;
+    const restWeight = targetWeight - totalWeight;
 
-    for (let i = 1; i <= 12; i++) {
-        const pcsInput = document.getElementById(`bulk-pcs-${i}`);
-        const weightCell = document.getElementById(`bulk-weight-${i}`);
-        if (pcsInput && weightCell) {
-            const isEditingThisWeight = (weightCell === activeEl);
-            const isLocked = weightCell.getAttribute('data-locked') === 'true' || (isEditingThisWeight && weightCell.value.trim() !== '');
-            if (!isLocked) {
-                const w = parseFloat(weightCell.tagName === 'INPUT' ? weightCell.value : weightCell.textContent) || 0;
-                ttlBulkWeight += w;
-            }
-        }
+    const restPcsEl = document.getElementById('bulk-rest-pcs');
+    const restWeightEl = document.getElementById('bulk-rest-weight');
+    const ttlPcsEl = document.getElementById('bulk-ttl-pcs');
+    const ttlWeightEl = document.getElementById('bulk-ttl-weight');
+
+    if (restPcsEl) {
+        restPcsEl.textContent = restPcs;
+        restPcsEl.classList.toggle('negative-rest', restPcs < 0);
     }
-
-    const bulkTtlPcsEl = document.getElementById('bulk-ttl-pcs');
-    const bulkTtlWghtEl = document.getElementById('bulk-ttl-weight');
-    if (bulkTtlPcsEl && bulkTtlPcsEl.textContent !== String(ttlBulkPcs)) bulkTtlPcsEl.textContent = String(ttlBulkPcs);
-    if (bulkTtlWghtEl && bulkTtlWghtEl.textContent !== String(ttlBulkWeight)) bulkTtlWghtEl.textContent = String(ttlBulkWeight);
-
-    const bulkRestPcs = targetPcs - ttlBulkPcs;
-    const bulkRestWeight = targetWeight - ttlBulkWeight;
-
-    const bulkRestPcsCell = document.getElementById('bulk-rest-pcs');
-    const bulkRestWghtCell = document.getElementById('bulk-rest-weight');
-
-    if (bulkRestPcsCell) {
-        if (bulkRestPcsCell.textContent !== String(bulkRestPcs)) bulkRestPcsCell.textContent = String(bulkRestPcs);
-        bulkRestPcsCell.classList.toggle('rest-balanced', bulkRestPcs === 0 && targetPcs > 0);
-        bulkRestPcsCell.classList.toggle('rest-overload', bulkRestPcs < 0);
+    if (restWeightEl) {
+        restWeightEl.textContent = (Math.round(restWeight * 100) / 100);
+        restWeightEl.classList.toggle('negative-rest', restWeight < 0);
     }
-    if (bulkRestWghtCell) {
-        if (bulkRestWghtCell.textContent !== String(bulkRestWeight)) bulkRestWghtCell.textContent = String(bulkRestWeight);
-        bulkRestWghtCell.classList.toggle('rest-balanced', bulkRestWeight === 0 && targetWeight > 0);
-        bulkRestWghtCell.classList.toggle('rest-overload', bulkRestWeight < 0);
-    }
+    if (ttlPcsEl) ttlPcsEl.textContent = totalPcs;
+    if (ttlWeightEl) ttlWeightEl.textContent = (Math.round(totalWeight * 100) / 100);
 }
 
-// Инициализация таблицы коммерческой загрузки (12 отсеков BULK)
 function initLoadPlanningData() {
-    const unifiedBody = document.getElementById('unified-load-tbody');
-    if (unifiedBody) {
-        if (unifiedBody.children.length === 0) {
-            unifiedBody.innerHTML = '';
-            for (let bulkNo = 1; bulkNo <= 12; bulkNo++) {
-                const tr = document.createElement('tr');
-                const bulkTabIndex = 10 + (bulkNo * 2) - 1;
-                const weightTabIndex = 10 + (bulkNo * 2);
-
-                tr.innerHTML = `
-                    <td colspan="2" style="text-align: center;"><strong>${bulkNo}</strong></td>
-                    <td colspan="2" style="text-align: center;"><input type="number" id="bulk-pcs-${bulkNo}" class="form-control table-input bulk-pcs-input monospace-val super-input-cyan" min="0" max="1000" value="0" tabindex="${bulkTabIndex}"></td>
-                    <td colspan="2" style="text-align: center;"><input type="number" id="bulk-weight-${bulkNo}" class="form-control table-input bulk-weight-input monospace-val super-input-gold" min="0" max="50000" value="0" tabindex="${weightTabIndex}"></td>
-                `;
-                unifiedBody.appendChild(tr);
-            }
-        }
-    }
+    renderCompartmentsTable();
 
     const btnTransfer = document.getElementById('btn-transfer-preliminary');
     if (btnTransfer && !btnTransfer.dataset.hasLoadListener) {
         btnTransfer.dataset.hasLoadListener = 'true';
         btnTransfer.addEventListener('click', transferToPreliminary);
-        btnTransfer.addEventListener('keydown', (e) => {
-            if (e.key === 'Tab' && !e.shiftKey) {
-                e.preventDefault();
-                const targetEl = document.getElementById('bulk-pcs-1');
-                if (targetEl) {
-                    targetEl.focus();
-                    if (typeof targetEl.select === 'function') targetEl.select();
-                }
-            }
-        });
     }
 
-    // Единая регистрация обработчиков для всех полей ввода таблицы загрузки (LIR и BULK)
-    document.querySelectorAll('.table-input').forEach(input => {
-        if (!input.dataset.hasKeyNavListener) {
+    ['lir-pax', 'lir-pcs', 'lir-weight'].forEach(id => {
+        const input = document.getElementById(id);
+        if (input && !input.dataset.hasKeyNavListener) {
             input.dataset.hasKeyNavListener = 'true';
-
-            // Умное выделение: при первом клике или входе по Tab выделяем число для мгновенной замены,
-            // но при повторном клике внутри поля позволяем свободно ставить курсор в любую позицию
-            let isMouseDown = false;
-            input.addEventListener('mousedown', () => {
-                isMouseDown = (document.activeElement !== input);
-            });
-
-            input.addEventListener('focus', () => {
-                if (!isMouseDown) {
-                    input.select();
-                }
-            });
-
-            input.addEventListener('mouseup', () => {
-                if (isMouseDown) {
-                    isMouseDown = false;
-                    input.select();
-                }
-            });
-
-            input.addEventListener('keydown', (e) => {
-                if (['-', '+', 'e', 'E'].includes(e.key)) {
-                    e.preventDefault();
-                    return;
-                }
-                if (e.key === 'Enter' || (e.key === 'Tab' && !e.shiftKey)) {
-                    e.preventDefault();
-                    const curTab = parseInt(input.getAttribute('tabindex'), 10);
-                    if (curTab) {
-                        const nextEl = document.querySelector(`[tabindex="${curTab + 1}"]`);
-                        if (nextEl) {
-                            nextEl.focus();
-                            if (typeof nextEl.select === 'function') nextEl.select();
-                        } else {
-                            input.blur();
-                        }
-                    }
-                } else if (e.key === 'Tab' && e.shiftKey) {
-                    e.preventDefault();
-                    const curTab = parseInt(input.getAttribute('tabindex'), 10);
-                    if (curTab && curTab > 8) {
-                        const prevEl = document.querySelector(`[tabindex="${curTab - 1}"]`);
-                        if (prevEl) {
-                            prevEl.focus();
-                            if (typeof prevEl.select === 'function') prevEl.select();
-                        }
-                    }
-                }
-            });
-
+            input.addEventListener('focus', () => input.select());
             input.addEventListener('input', () => {
-                if (input.classList.contains('bulk-pcs-input')) {
-                    const bulkId = input.id.replace('bulk-pcs-', '');
-                    const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                    // При любом изменении количества мест (ввод, стрелочки спиннера, очистка) сбрасываем фиксацию веса
-                    if (weightInput) {
-                        weightInput.removeAttribute('data-locked');
-                        weightInput.classList.remove('weight-locked');
-                    }
-                } else if (input.classList.contains('bulk-weight-input')) {
-                    if (input.value.trim() !== '' && input.value !== '0') {
-                        input.setAttribute('data-locked', 'true');
-                        input.classList.add('weight-locked');
-                    } else {
-                        input.removeAttribute('data-locked');
-                        input.classList.remove('weight-locked');
-                    }
-                }
-
                 recalculateLoadPlanning();
                 debouncedSaveCompartmentsToPrediction();
             });
-
-            ['change', 'blur'].forEach(evt => {
-                input.addEventListener(evt, () => {
-                    let v = input.value.trim();
-                    if (v === '' || isNaN(v) || parseFloat(v) < 0) {
-                        input.value = '0';
-                    } else {
-                        if (input.id === 'lir-weight') {
-                            input.value = String(parseFloat(v));
-                        } else {
-                            input.value = String(parseInt(v, 10));
-                        }
-                    }
-
-                    if (input.classList.contains('bulk-pcs-input')) {
-                        const bulkId = input.id.replace('bulk-pcs-', '');
-                        const weightInput = document.getElementById(`bulk-weight-${bulkId}`);
-                        if (weightInput) {
-                            weightInput.removeAttribute('data-locked');
-                            weightInput.classList.remove('weight-locked');
-                        }
-                    } else if (input.classList.contains('bulk-weight-input') && input.value === '0') {
-                        input.removeAttribute('data-locked');
-                        input.classList.remove('weight-locked');
-                    }
-
-                    recalculateLoadPlanning();
-                    saveCompartmentsToPrediction();
-                });
+            input.addEventListener('change', () => {
+                let v = input.value.trim();
+                if (v === '' || isNaN(v) || parseFloat(v) < 0) {
+                    input.value = '0';
+                } else {
+                    input.value = (id === 'lir-weight') ? String(parseFloat(v)) : String(parseInt(v, 10));
+                }
+                recalculateLoadPlanning();
+                saveCompartmentsToPrediction();
             });
         }
     });
@@ -2793,6 +2971,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     await loadBaggageDb();
     loadPredictionsHistory();
+    initDefaultCompartmentsState();
+    renderCompartmentsTable();
+    checkIncomingFlightParameters();
     
     // Автоматическая аутентификация пользователя и разграничение прав
     await checkAuthStatus();
