@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.5';
+const APP_VERSION = 'v12.2.6';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -4321,6 +4321,16 @@ function applyRouteSelection(route) {
         }
     }
 
+    // Если аэропорта вылета нет в текущих опциях, динамически добавляем его
+    if (!fromOptionFound && targetFromIata) {
+        const opt = document.createElement('option');
+        opt.value = targetFromIata;
+        opt.textContent = targetFromIata;
+        selectFrom.appendChild(opt);
+        selectFrom.value = targetFromIata;
+        fromOptionFound = true;
+    }
+
     // 2. Генерация списка прилетов и выбор аэропорта прилета
     if (fromOptionFound) {
         selectFrom.dispatchEvent(new Event('change'));
@@ -4335,7 +4345,20 @@ function applyRouteSelection(route) {
                 break;
             }
         }
+
+        // Если целевой аэропорт прилета отсутствует в списке направлений для данного вылета,
+        // гарантированно создаем для него опцию и выбираем ее
+        if (!toOptionFound && targetToIata) {
+            const opt = document.createElement('option');
+            opt.value = targetToIata;
+            opt.textContent = targetToIata;
+            selectTo.appendChild(opt);
+            selectTo.value = targetToIata;
+            toOptionFound = true;
+        }
+
         isAutoSelectingRoute = false;
+        selectTo.dispatchEvent(new Event('change'));
         updateDefaultPaxForSelectedFlight();
         return toOptionFound;
     }
@@ -4784,21 +4807,35 @@ function setupEventListeners() {
         }
 
         const availableTos = new Set();
-        const fromIata = ruToIata(fromVal);
+        const fromIata = ruToIata(fromVal) || fromVal;
         
         // Из правил (ИАТА)
-        baggageDb.rules.forEach(rule => {
-            if (rule.from === fromIata) {
-                availableTos.add(iataToRu(rule.to));
-            }
-        });
+        if (baggageDb && baggageDb.rules) {
+            baggageDb.rules.forEach(rule => {
+                if (rule.from === fromIata) {
+                    availableTos.add(iataToRu(rule.to) || rule.to);
+                }
+            });
+        }
 
-        // Из загруженных
-        userFlights.forEach(flight => {
-            if (ruToIata(flight.from) === ruToIata(fromVal)) {
-                availableTos.add(flight.to);
-            }
-        });
+        // Из загруженных рейсов
+        if (userFlights && userFlights.length > 0) {
+            userFlights.forEach(flight => {
+                if (ruToIata(flight.from) === fromIata || flight.from === fromIata) {
+                    availableTos.add(flight.to);
+                }
+            });
+        }
+
+        // Если для данного вылета нет связанных направлений в правилах или базе рейсов,
+        // предоставляем доступ ко всем известным направлениям из базы аэропортов
+        if (availableTos.size === 0 && baggageDb && baggageDb.airports) {
+            Object.values(baggageDb.airports).forEach(ap => {
+                if (ap && ap.iata && ap.iata !== fromIata) {
+                    availableTos.add(ap.ru || ap.iata);
+                }
+            });
+        }
 
         selectTo.innerHTML = '';
         const defaultToOpt = document.createElement('option');
@@ -4809,9 +4846,10 @@ function setupEventListeners() {
         Array.from(availableTos)
             .map(toRu => {
                 const ap = baggageDb.airports[toRu] || Object.values(baggageDb.airports).find(a => a.iata === ruToIata(toRu));
-                const iata = ap ? ap.iata : ruToIata(toRu);
+                const iata = ap ? ap.iata : (ruToIata(toRu) || toRu);
                 return { toRu, iata };
             })
+            .filter(item => item.iata && item.iata !== fromIata)
             .sort((a, b) => a.iata.localeCompare(b.iata))
             .forEach(({ toRu, iata }) => {
                 const opt = document.createElement('option');
