@@ -218,3 +218,6 @@
   * При истечении серверной сессии PHP или отсутствии прав администратора (unauthorized/forbidden) выводится предупреждающий алерт, исключая иллюзию успешной синхронизации;
   * Добавлен await для последовательного сохранения портов и фильтров в handleSaveNewAirport, handleAddAirportFilter, handleRemoveAirportFilter, handleToggleStrictArrivals, ликвидируя состояние гонки блокировки сессий в PHP;
   * Версия приложения обновлена до v12.0.193.
+- Внедрение тестового контура (Staging / Dev):
+  * Создан CI/CD workflow .github/workflows/deploy-test.yml для ветки dev с FTP-деплоем в boostandgo.ru/public_html/aerobag-test/ (https://boostandgo.ru/aerobag-test/);
+  * Подготовлена изолированная база MySQL kekc8584_bagtest для исключения влияния тестов на боевой прод.
