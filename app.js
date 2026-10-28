@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.6';
-const APP_BUILD_DATE = '28.10.2026';
+const APP_VERSION = 'v12.2.7';
+const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -2571,12 +2571,43 @@ function handleReturnToAeroPlan(e) {
     if (e) e.preventDefault();
     const urlParams = new URLSearchParams(window.location.search);
     const returnUrl = urlParams.get('return_url');
-    if (returnUrl) {
-        window.location.href = decodeURIComponent(returnUrl);
+    const targetUrl = returnUrl ? decodeURIComponent(returnUrl) : '';
+
+    // 1. Если вкладка открыта из AeroPlan (есть ссылка на opener), мгновенно активируем вкладку плана
+    if (window.opener && !window.opener.closed) {
+        try {
+            window.opener.focus();
+            return;
+        } catch (err) {
+            console.log('window.opener.focus error:', err);
+        }
+    }
+
+    // 2. Если ссылки opener нет, переключаем фокус на именованное окно AeroPlan_Workspace
+    if (targetUrl) {
+        try {
+            const planWin = window.open('', 'AeroPlan_Workspace');
+            if (planWin && !planWin.closed && planWin.location.href !== 'about:blank') {
+                planWin.focus();
+                return;
+            }
+        } catch (err) {}
+        
+        // Если окно еще не открыто в сессии, открываем его в AeroPlan_Workspace
+        const newPlanWin = window.open(targetUrl, 'AeroPlan_Workspace');
+        if (newPlanWin) {
+            try { newPlanWin.focus(); } catch (err) {}
+            return;
+        }
+    }
+
+    // 3. Фолбэк на возврат по истории или прямому адресу
+    if (targetUrl) {
+        window.location.href = targetUrl;
     } else if (window.history.length > 1) {
         window.history.back();
     } else {
-        window.location.href = 'http://localhost:8000';
+        window.location.href = 'https://boostandgo.ru/plan_test/';
     }
 }
 
@@ -2999,6 +3030,9 @@ function initLoadPlanningData() {
 
 // --- ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ ---
 document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof window !== 'undefined') {
+        window.name = 'AeroBag_Workspace';
+    }
     loadSettings();
     
     const versionTag = document.getElementById('app-version-tag');
