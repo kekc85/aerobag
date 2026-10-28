@@ -7954,48 +7954,57 @@ body.light-theme .predictions-compact-table .flight-day-tag {
     color: #b45309;
 }
 
-/* --- Кнопка возврата в AeroPlan --- */
-.btn-return-plan {
+/* --- Авиационная кнопка перехода в AeroPlan W&B --- */
+.header-plan-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: rgba(2, 132, 199, 0.18);
-    border: 1px solid rgba(0, 240, 255, 0.45);
-    color: var(--accent-cyan);
-    padding: 4px 11px;
-    border-radius: 6px;
-    font-size: 0.8rem;
+    background: rgba(0, 240, 255, 0.06);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    padding: 3px 10px;
+    border-radius: 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-decoration: none !important;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
     font-weight: 700;
-    text-decoration: none;
+    color: var(--accent-cyan) !important;
+    letter-spacing: 0.5px;
     transition: all 0.2s ease;
     cursor: pointer;
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.15);
-    white-space: nowrap;
-    margin-right: 8px;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.12);
 }
 
-.btn-return-plan:hover {
-    background: rgba(0, 240, 255, 0.25);
+.header-plan-pill:hover {
+    background: rgba(0, 240, 255, 0.18);
     border-color: var(--accent-cyan);
-    color: #fff;
-    box-shadow: 0 0 16px rgba(0, 240, 255, 0.35);
+    color: #ffffff !important;
+    box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
     transform: translateY(-1px);
 }
 
-.btn-return-plan .return-icon {
-    font-size: 0.95rem;
+.header-plan-pill .pill-icon {
+    font-size: 0.8rem;
 }
 
-body.light-theme .btn-return-plan {
-    background: #e0f2fe;
-    border-color: #0284c7;
-    color: #0369a1;
+.header-plan-pill .pill-arrow {
+    font-size: 0.72rem;
+    opacity: 0.85;
+}
+
+/* Светлая тема */
+body.light-theme .header-plan-pill {
+    background: rgba(2, 132, 199, 0.08);
+    border-color: rgba(2, 132, 199, 0.35);
+    color: #0284c7 !important;
     box-shadow: none;
 }
 
-body.light-theme .btn-return-plan:hover {
+body.light-theme .header-plan-pill:hover {
     background: #0284c7;
-    color: #fff;
+    color: #ffffff !important;
+    border-color: #0284c7;
 }
 
 /* --- Мульти-загрузка отсеков BULK --- */
