@@ -207,3 +207,14 @@
 
 
 
+- Аудит синхронизации аэропорта Астана (NQZ) между ПК:
+  * Запрос к серверу boostandgo.ru: в app_settings (custom_airports/airport_filters) Астаны нет (сохранен только TJU).
+  * На рабочем ПК данные сохранились локально в LocalStorage браузера.
+  * На сервер MySQL данные не попали (запуск localhost через dcs_server.py без PHP/MySQL либо отсутствие сессии admin при save_settings/save_flights).
+  * Никаких изменений в логику и код проекта не вносилось (режим проверки).
+  * Подтверждено: Астана (NQZ / АСТ) успешно сохранена в MySQL (app_settings: custom_airports и airport_filters) на сервере boostandgo.ru.
+- Релиз v12.0.193:
+  * app.js: Внедрена строгая верификация ответов сервера (checkServerSyncResponse) при сохранении кастомных портов (saveCustomAirportsList), фильтров (saveCustomAirportFilters) и рейсов (saveUserFlights);
+  * При истечении серверной сессии PHP или отсутствии прав администратора (unauthorized/forbidden) выводится предупреждающий алерт, исключая иллюзию успешной синхронизации;
+  * Добавлен await для последовательного сохранения портов и фильтров в handleSaveNewAirport, handleAddAirportFilter, handleRemoveAirportFilter, handleToggleStrictArrivals, ликвидируя состояние гонки блокировки сессий в PHP;
+  * Версия приложения обновлена до v12.0.193.
