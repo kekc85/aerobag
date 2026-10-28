@@ -411,7 +411,7 @@ body.light-theme .tab-btn.active {
 
 #tab-content-predict .workspace-grid {
     display: grid;
-    grid-template-columns: 275px minmax(460px, 520px) minmax(0, 1fr);
+    grid-template-columns: 440px minmax(380px, 430px) minmax(0, 1fr);
     gap: 16px;
     align-items: start;
     width: 100%;
@@ -555,7 +555,7 @@ body.light-theme .predictions-compact-table .history-cell-tail {
 
 @media (max-width: 1440px) and (min-width: 1101px) {
     #tab-content-predict .workspace-grid {
-        grid-template-columns: 320px minmax(350px, 420px) minmax(0, 1fr);
+        grid-template-columns: 380px minmax(340px, 400px) minmax(0, 1fr);
         gap: 12px;
     }
     .predictions-compact-table {

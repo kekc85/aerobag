@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.0.202';
+const APP_VERSION = 'v12.2.1';
 const APP_BUILD_DATE = '28.10.2026';
 
 // Глобальное состояние
@@ -2331,15 +2331,15 @@ function clearLoadPlanningUI() {
 // ==========================================================================
 
 const BULK_LOAD_CATEGORIES = [
-    { code: 'B', nameRu: 'B — Прямой багаж', nameEn: 'B — Local Baggage', isDefault: true },
-    { code: 'BT', nameRu: 'BT — Трансферный багаж', nameEn: 'BT — Transfer Baggage' },
-    { code: 'BC', nameRu: 'BC — Приоритетный багаж', nameEn: 'BC — Priority Baggage' },
-    { code: 'BZ', nameRu: 'BZ — Багаж экипажа', nameEn: 'BZ — Crew Baggage' },
-    { code: 'BX', nameRu: 'BX — Досыльный багаж', nameEn: 'BX — Rush Baggage' },
-    { code: 'DAA', nameRu: 'DAA — Коляски у трапа', nameEn: 'DAA — Delivery at Aircraft' },
-    { code: 'C', nameRu: 'C — Груз (Cargo)', nameEn: 'C — Cargo' },
-    { code: 'M', nameRu: 'M — Почта (Mail)', nameEn: 'M — Mail' },
-    { code: 'E', nameRu: 'E — Снаряжение (EIC)', nameEn: 'E — Equipment' }
+    { code: 'B', nameRu: 'B — Прямой', nameEn: 'B — Local', isDefault: true },
+    { code: 'BT', nameRu: 'BT — Трансфер', nameEn: 'BT — Transfer' },
+    { code: 'BC', nameRu: 'BC — Приоритет', nameEn: 'BC — Priority' },
+    { code: 'BZ', nameRu: 'BZ — Экипаж', nameEn: 'BZ — Crew' },
+    { code: 'BX', nameRu: 'BX — Досыл', nameEn: 'BX — Rush' },
+    { code: 'DAA', nameRu: 'DAA — Коляски', nameEn: 'DAA — Strollers' },
+    { code: 'C', nameRu: 'C — Cargo', nameEn: 'C — Cargo' },
+    { code: 'M', nameRu: 'M — Mail', nameEn: 'M — Mail' },
+    { code: 'E', nameRu: 'E — Снаряжение', nameEn: 'E — Equip' }
 ];
 
 let currentCompartmentsState = [];
