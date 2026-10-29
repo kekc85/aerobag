@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.9';
+const APP_VERSION = 'v12.2.11';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2344,17 +2344,376 @@ const BULK_LOAD_CATEGORIES = [
 
 let currentCompartmentsState = [];
 
-function initDefaultCompartmentsState() {
-    currentCompartmentsState = [];
-    for (let i = 1; i <= 12; i++) {
-        currentCompartmentsState.push({
-            cpt: i,
-            name: String(i),
-            rows: [
-                { type: 'B', pcs: 0, weight: 0, locked: false }
-            ]
+
+// ==========================================================================
+// КОНФИГУРАЦИЯ БАГАЖНЫХ ОТСЕКОВ ПО БОРТОВЫМ НОМЕРАМ ФЛОТА (FLEET MAPPING)
+// ==========================================================================
+
+const FLEET_COMPARTMENT_CONFIGS = {
+    // --- AIRBUS A321 ---
+    '73271': {
+        model: 'A321',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['31', '32', '33', '41', '42', '51', '52', '53']
+    },
+    '73273': {
+        model: 'A321',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['32', '33', '41', '42', '51', '52', '53']
+    },
+    '73324': {
+        model: 'A321',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['32', '33', '41', '42', '51', '52', '53']
+    },
+    '73325': {
+        model: 'A321',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['32', '33', '41', '42', '51', '52', '53']
+    },
+    '73326': {
+        model: 'A321',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['31', '32', '33', '41', '42', '51', '52', '53']
+    },
+
+    // --- AIRBUS A321-NEO ---
+    '73322': {
+        model: 'A321-NEO',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['31', '32', '33', '41', '42', '51', '52', '53']
+    },
+    '73323': {
+        model: 'A321-NEO',
+        isWidebody: false,
+        fwd: ['11', '12', '21', '22', '23'],
+        aft: ['31', '32', '33', '41', '42', '51', '52', '53']
+    },
+
+    // --- BOEING 737-800 ---
+    '73269': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73311': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73312': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73313': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73314': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73315': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73316': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73317': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73318': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73319': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73321': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+
+    // --- BOEING 737-900 ---
+    '73343': { model: 'B737-900', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '73344': { model: 'B737-900', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+
+    // --- EMBRAER E190 ---
+    '02740': { model: 'E190', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '02741': { model: 'E190', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '02743': { model: 'E190', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+
+    // --- AIRBUS A330-200 (Широкофюзеляжный) ---
+    '73270': {
+        model: 'A330-200',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '51', '52', '53']
+    },
+    '73328': {
+        model: 'A330-200',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '51', '52', '53']
+    },
+
+    // --- AIRBUS A330-300 (Широкофюзеляжный) ---
+    '73848': {
+        model: 'A330-300',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '41L', '41R', '42L', '42R', '43L', '43R', '5']
+    },
+    '73849': {
+        model: 'A330-300',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '41L', '41R', '42L', '42R', '43L', '43R', '5']
+    },
+    '73850': {
+        model: 'A330-300',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '41L', '41R', '42L', '42R', '43L', '43R', '5']
+    },
+
+    // --- BOEING 777-200ER (Широкофюзеляжный) ---
+    '73340': {
+        model: 'B777-200ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'],
+        aft: ['33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    },
+    '73341': {
+        model: 'B777-200ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'],
+        aft: ['33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    },
+    '73272': {
+        model: 'B777-200ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    },
+    '73347': {
+        model: 'B777-200ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    },
+
+    // --- BOEING 777-300ER (Широкофюзеляжный) ---
+    '73342': {
+        model: 'B777-300ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R', '27L', '27R', '28L', '28R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '35L', '35R', '36L', '36R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    },
+    '73847': {
+        model: 'B777-300ER',
+        isWidebody: true,
+        defaultShowFwd: false,
+        fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R', '27L', '27R', '28L', '28R'],
+        aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '35L', '35R', '36L', '36R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5']
+    }
+};
+
+const DEFAULT_TYPE_CONFIGS = {
+    'A321': { model: 'A321', isWidebody: false, fwd: ['11', '12', '21', '22', '23'], aft: ['31', '32', '33', '41', '42', '51', '52', '53'] },
+    '321': { model: 'A321', isWidebody: false, fwd: ['11', '12', '21', '22', '23'], aft: ['31', '32', '33', '41', '42', '51', '52', '53'] },
+    'A321-NEO': { model: 'A321-NEO', isWidebody: false, fwd: ['11', '12', '21', '22', '23'], aft: ['31', '32', '33', '41', '42', '51', '52', '53'] },
+    'B737-800': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '738': { model: 'B737-800', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    'B737-900': { model: 'B737-900', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '739': { model: 'B737-900', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    'E190': { model: 'E190', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    '190': { model: 'E190', isWidebody: false, fwd: ['1', '2'], aft: ['3', '4'] },
+    'A330-200': { model: 'A330-200', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '51', '52', '53'] },
+    '332': { model: 'A330-200', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '41L', '41R', '42L', '42R', '51', '52', '53'] },
+    'A330-300': { model: 'A330-300', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '41L', '41R', '42L', '42R', '43L', '43R', '5'] },
+    '333': { model: 'A330-300', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '41L', '41R', '42L', '42R', '43L', '43R', '5'] },
+    'B777-200ER': { model: 'B777-200ER', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'], aft: ['33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5'] },
+    '772': { model: 'B777-200ER', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R'], aft: ['33L', '33R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5'] },
+    'B777-300ER': { model: 'B777-300ER', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R', '27L', '27R', '28L', '28R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '35L', '35R', '36L', '36R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5'] },
+    '773': { model: 'B777-300ER', isWidebody: true, defaultShowFwd: false, fwd: ['11L', '11R', '12L', '12R', '13L', '13R', '14L', '14R', '21L', '21R', '22L', '22R', '23L', '23R', '24L', '24R', '25L', '25R', '26L', '26R', '27L', '27R', '28L', '28R'], aft: ['31L', '31R', '32L', '32R', '33L', '33R', '34L', '34R', '35L', '35R', '36L', '36R', '41L', '41R', '42L', '42R', '43L', '43R', '44L', '44R', '5'] }
+};
+
+let currentActiveAircraftTail = '';
+let currentActiveAircraftModel = 'A321';
+let isFwdCompartmentsVisible = false;
+
+// Очистка и извлечение чистого номера борта (напр. "RA-73340" -> "73340")
+function normalizeTailNumber(rawTail) {
+    if (!rawTail) return '';
+    let s = String(rawTail).trim().toUpperCase();
+    s = s.replace(/^(RA-|RA_|RAs?)/i, '');
+    const m = s.match(/\d{4,5}/);
+    return m ? m[0] : s;
+}
+
+// Получение конфигурации отсеков по номеру борта или типу ВС
+function getAircraftCompartmentConfig(tailOrType) {
+    if (!tailOrType) return DEFAULT_TYPE_CONFIGS['A321'];
+    const cleanTail = normalizeTailNumber(tailOrType);
+    if (FLEET_COMPARTMENT_CONFIGS[cleanTail]) {
+        return FLEET_COMPARTMENT_CONFIGS[cleanTail];
+    }
+    const cleanType = String(tailOrType).trim().toUpperCase().replace(/\s+/g, '-');
+    if (DEFAULT_TYPE_CONFIGS[cleanType]) {
+        return DEFAULT_TYPE_CONFIGS[cleanType];
+    }
+    // Поиск по подстроке типа ВС
+    for (let key of Object.keys(DEFAULT_TYPE_CONFIGS)) {
+        if (cleanType.includes(key) || key.includes(cleanType)) {
+            return DEFAULT_TYPE_CONFIGS[key];
+        }
+    }
+    return DEFAULT_TYPE_CONFIGS['A321'];
+}
+
+// Применение конфигурации отсеков под конкретный борт
+function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
+    const config = getAircraftCompartmentConfig(tailOrType);
+    const cleanTail = normalizeTailNumber(tailOrType);
+
+    currentActiveAircraftTail = cleanTail || '';
+    currentActiveAircraftModel = config.model || 'A321';
+
+    if (forceShowFwd !== null) {
+        isFwdCompartmentsVisible = !!forceShowFwd;
+    } else if (config.isWidebody) {
+        isFwdCompartmentsVisible = false;
+    } else {
+        isFwdCompartmentsVisible = true;
+    }
+
+    // Обновляем бейдж модели ВС в шапке BULK
+    const modelBadge = document.getElementById('aircraft-model-badge');
+    if (modelBadge) {
+        modelBadge.textContent = currentActiveAircraftModel;
+        modelBadge.classList.remove('hidden');
+    }
+
+    // Обновляем селектор борта в шапке BULK
+    const tailSelect = document.getElementById('select-aircraft-tail');
+    if (tailSelect) {
+        if (cleanTail) {
+            let found = false;
+            for (let opt of tailSelect.options) {
+                if (normalizeTailNumber(opt.value) === cleanTail) {
+                    tailSelect.value = opt.value;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                const opt = document.createElement('option');
+                opt.value = cleanTail;
+                opt.textContent = `RA-${cleanTail} (${currentActiveAircraftModel})`;
+                tailSelect.appendChild(opt);
+                tailSelect.value = cleanTail;
+            }
+        }
+    }
+
+    // Управление кнопкой переключения FWD для широкофюзеляжных
+    const btnFwd = document.getElementById('btn-toggle-fwd');
+    if (btnFwd) {
+        if (config.isWidebody) {
+            btnFwd.classList.remove('hidden');
+            if (isFwdCompartmentsVisible) {
+                btnFwd.classList.add('active');
+                btnFwd.innerHTML = '<span>➖ Скрыть FWD</span>';
+            } else {
+                btnFwd.classList.remove('active');
+                btnFwd.innerHTML = '<span>➕ FWD (Передний)</span>';
+            }
+        } else {
+            btnFwd.classList.add('hidden');
+        }
+    }
+
+    // Сохраняем введенные данные по именам отсеков, чтобы не потерять при переключении
+    const oldStateMap = new Map();
+    if (currentCompartmentsState && Array.isArray(currentCompartmentsState)) {
+        currentCompartmentsState.forEach(c => {
+            if (c && c.name && Array.isArray(c.rows)) {
+                oldStateMap.set(c.name, JSON.parse(JSON.stringify(c.rows)));
+            }
         });
     }
+
+    // Формируем список отсеков согласно правилам
+    let targetPositions = [];
+    if (config.isWidebody) {
+        if (isFwdCompartmentsVisible) {
+            targetPositions = [...config.fwd.map(n => ({ name: n, sec: 'FWD' })), ...config.aft.map(n => ({ name: n, sec: 'AFT' }))];
+        } else {
+            targetPositions = config.aft.map(n => ({ name: n, sec: 'AFT' }));
+        }
+    } else {
+        targetPositions = [...config.fwd.map(n => ({ name: n, sec: 'FWD' })), ...config.aft.map(n => ({ name: n, sec: 'AFT' }))];
+    }
+
+    currentCompartmentsState = targetPositions.map((pos, idx) => {
+        const preservedRows = oldStateMap.get(pos.name);
+        return {
+            cpt: idx + 1,
+            name: pos.name,
+            section: pos.sec,
+            rows: preservedRows && preservedRows.length > 0 ? preservedRows : [
+                { type: 'B', pcs: 0, weight: 0, locked: false }
+            ]
+        };
+    });
+
+    renderCompartmentsTable();
+    recalculateLoadPlanning();
+}
+
+// Переключение отображения переднего багажника (FWD) для широкофюзеляжных
+function toggleFwdCompartments() {
+    isFwdCompartmentsVisible = !isFwdCompartmentsVisible;
+    applyAircraftCompartmentConfig(currentActiveAircraftTail || currentActiveAircraftModel, isFwdCompartmentsVisible);
+}
+
+// Заполнение выпадающего списка выбора борта в шапке BULK
+function populateAircraftTailDropdown() {
+    const tailSelect = document.getElementById('select-aircraft-tail');
+    if (!tailSelect) return;
+
+    tailSelect.innerHTML = '<option value="">-- Выбрать борт --</option>';
+
+    // Группировка бортов по моделям ВС
+    const groups = {
+        'Airbus A321': ['73271', '73273', '73324', '73325', '73326'],
+        'Airbus A321-NEO': ['73322', '73323'],
+        'Boeing 737-800': ['73269', '73311', '73312', '73313', '73314', '73315', '73316', '73317', '73318', '73319', '73321'],
+        'Boeing 737-900': ['73343', '73344'],
+        'Embraer E190': ['02740', '02741', '02743'],
+        'Airbus A330-200 (Widebody)': ['73270', '73328'],
+        'Airbus A330-300 (Widebody)': ['73848', '73849', '73850'],
+        'Boeing 777-200ER (Widebody)': ['73340', '73341', '73272', '73347'],
+        'Boeing 777-300ER (Widebody)': ['73342', '73847']
+    };
+
+    Object.entries(groups).forEach(([groupName, tails]) => {
+        const grp = document.createElement('optgroup');
+        grp.label = groupName;
+        tails.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = `RA-${t}`;
+            grp.appendChild(opt);
+        });
+        tailSelect.appendChild(grp);
+    });
+
+    tailSelect.addEventListener('change', (e) => {
+        const val = e.target.value;
+        if (val) {
+            applyAircraftCompartmentConfig(val);
+        }
+    });
+}
+
+function initDefaultCompartmentsState() {
+    const defCfg = DEFAULT_TYPE_CONFIGS['A321'];
+    const positions = [...defCfg.fwd.map(n => ({ name: n, sec: 'FWD' })), ...defCfg.aft.map(n => ({ name: n, sec: 'AFT' }))];
+    currentCompartmentsState = positions.map((pos, idx) => ({
+        cpt: idx + 1,
+        name: pos.name,
+        section: pos.sec,
+        rows: [
+            { type: 'B', pcs: 0, weight: 0, locked: false }
+        ]
+    }));
 }
 
 function renderCompartmentsTable() {
@@ -2384,11 +2743,12 @@ function renderCompartmentsTable() {
             // 1. Номер отсека или стрелка
             const tdCpt = document.createElement('td');
             tdCpt.style.textAlign = 'center';
+            const secClass = comp.section === 'FWD' ? 'cpt-fwd' : (comp.section === 'AFT' ? 'cpt-aft' : '');
             if (rowIdx === 0) {
-                tdCpt.className = 'bulk-cpt-num';
+                tdCpt.className = `bulk-cpt-num ${secClass}`;
                 tdCpt.innerHTML = `<strong>${comp.name}</strong>`;
             } else {
-                tdCpt.className = 'bulk-cpt-num sub-cpt';
+                tdCpt.className = `bulk-cpt-num sub-cpt ${secClass}`;
                 tdCpt.innerHTML = `<span class="sub-arrow">↳</span>`;
             }
             tr.appendChild(tdCpt);
@@ -2669,6 +3029,7 @@ function checkIncomingFlightParameters() {
     }
 
     if (acNumParam) {
+        applyAircraftCompartmentConfig(acNumParam, false);
         const activeFlightBadge = document.getElementById('active-flight-badge');
         if (activeFlightBadge) {
             activeFlightBadge.classList.remove('hidden');
@@ -2708,6 +3069,8 @@ function saveCompartmentsToPrediction() {
     if (lirWeightInput && lirWeightInput.value !== '') p.lir_weight = parseFloat(lirWeightInput.value) || 0;
 
     p.compartments = JSON.parse(JSON.stringify(currentCompartmentsState));
+    p.ac_num = currentActiveAircraftTail;
+    p.show_fwd = isFwdCompartmentsVisible;
     savePredictionsHistory();
 }
 
@@ -2805,6 +3168,9 @@ function transferToPreliminary() {
 function transferPredictionToPreliminary(predId) {
     const p = predictionsHistory.find(item => item.id === predId);
     if (!p) return;
+    if (p.ac_num) {
+        applyAircraftCompartmentConfig(p.ac_num, p.show_fwd || false);
+    }
 
     // Сохраняем раскладку BULK текущего активного рейса из Истории перед переключением (только если это другой рейс)
     if (currentActivePredictionId && currentActivePredictionId !== predId) {
@@ -8167,9 +8533,97 @@ function renderFlightsTable() {
 }
 
 // --- ОТРИСОВКА ТАБЛИЦЫ ПРОГНОЗОВ (История прогнозирования) ---
+
+// Нормализация и форматирование времени вылета (ЧЧ:ММ)
+function normalizeTimeString(timeStr) {
+    if (!timeStr) return '';
+    let clean = String(timeStr).trim().replace(/[^\d:]/g, '');
+    if (!clean) return '';
+    if (clean.includes(':')) {
+        const parts = clean.split(':');
+        let h = parseInt(parts[0], 10);
+        let m = parseInt(parts[1], 10);
+        if (isNaN(h)) h = 0;
+        if (isNaN(m)) m = 0;
+        h = Math.max(0, Math.min(23, h));
+        m = Math.max(0, Math.min(59, m));
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    if (clean.length === 3) {
+        clean = '0' + clean;
+    }
+    if (clean.length === 4) {
+        let h = parseInt(clean.slice(0, 2), 10);
+        let m = parseInt(clean.slice(2, 4), 10);
+        if (isNaN(h)) h = 0;
+        if (isNaN(m)) m = 0;
+        h = Math.max(0, Math.min(23, h));
+        m = Math.max(0, Math.min(59, m));
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+    return clean;
+}
+
+// Сортировка истории расчетов по времени вылета: от самого ближайшего к самому позднему
+function sortPredictionsHistoryByDepTime() {
+    if (!predictionsHistory || predictionsHistory.length <= 1) return;
+
+    predictionsHistory.sort((a, b) => {
+        const timeA = normalizeTimeString(a.dep_time);
+        const timeB = normalizeTimeString(b.dep_time);
+
+        if (!timeA && !timeB) {
+            return new Date(b.calc_date || 0) - new Date(a.calc_date || 0);
+        }
+        if (!timeA) return 1;
+        if (!timeB) return -1;
+
+        const dateA = a.flight_date ? String(a.flight_date).split('T')[0] : '';
+        const dateB = b.flight_date ? String(b.flight_date).split('T')[0] : '';
+
+        if (dateA && dateB && dateA !== dateB) {
+            const dateCmp = dateA.localeCompare(dateB);
+            if (dateCmp !== 0) return dateCmp;
+        }
+
+        const [hA, mA] = timeA.split(':').map(n => parseInt(n, 10) || 0);
+        const [hB, mB] = timeB.split(':').map(n => parseInt(n, 10) || 0);
+        const minsA = hA * 60 + mA;
+        const minsB = hB * 60 + mB;
+
+        if (minsA !== minsB) {
+            return minsA - minsB;
+        }
+
+        return String(a.flight_no).localeCompare(String(b.flight_no));
+    });
+}
+
+// Изменение времени вылета вручную прямо в строке истории
+function handleHistoryTimeChange(predId, rawTime) {
+    if (!predId) return;
+    const p = predictionsHistory.find(item => item.id === predId);
+    if (!p) return;
+
+    const formatted = normalizeTimeString(rawTime);
+    p.dep_time = formatted;
+
+    savePredictionsHistory();
+    sortPredictionsHistoryByDepTime();
+    renderPredictionsTable();
+
+    if (currentActivePredictionId === predId) {
+        currentIncomingFlightData.dep_time = formatted;
+        updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num, formatted);
+    }
+}
+
 function renderPredictionsTable() {
     const tbody = document.getElementById('predictions-table-body');
     if (!tbody) return;
+
+    // Автоматическая сортировка по времени вылета (от ближайшего к позднему)
+    sortPredictionsHistoryByDepTime();
 
     tbody.innerHTML = '';
 
@@ -8187,7 +8641,7 @@ function renderPredictionsTable() {
         tr.title = currentLang === 'ru' ? 'Нажмите для переноса в Средний вес багажа и данные загрузки' : 'Click to transfer to Load Planning';
 
         tr.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-delete-row')) return;
+            if (e.target.closest('.btn-delete-row') || e.target.closest('.dep-time-input')) return;
             transferPredictionToPreliminary(p.id);
         });
         
@@ -8205,31 +8659,40 @@ function renderPredictionsTable() {
             }
         }
 
-        // Форматирование даты и времени расчета
-        let formattedCalcDate = '';
-        try {
-            const d = new Date(p.calc_date);
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const hours = String(d.getHours()).padStart(2, '0');
-            const minutes = String(d.getMinutes()).padStart(2, '0');
-            formattedCalcDate = `${day}.${month} ${hours}:${minutes}`;
-        } catch (e) {
-            formattedCalcDate = p.calc_date;
-        }
-
         const routeText = `${ruToIata(p.from)} ➔ ${ruToIata(p.to)}`;
-        const depTimeDisplay = p.dep_time || '—';
-        const tailDisplay = p.ac_num || '—';
+        const tailDisplay = p.ac_num ? `RA-${normalizeTailNumber(p.ac_num)}` : '—';
+        const currentTimeVal = p.dep_time || '';
+
         tr.innerHTML = `
             <td class="history-cell-route" title="${routeText}"><strong>${routeText}</strong></td>
             <td class="history-cell-flight"><strong>${p.flight_no}</strong><span class="flight-day-tag">${flightDayMonthStr}</span></td>
-            <td class="history-cell-time" title="${currentLang === 'ru' ? 'Время вылета' : 'Departure Time'}">${depTimeDisplay}</td>
+            <td class="history-cell-time" title="${currentLang === 'ru' ? 'Время вылета (нажмите для изменения)' : 'Departure Time (click to edit)'}">
+                <input type="text" class="dep-time-input monospace-val" value="${currentTimeVal}" placeholder="--:--" maxlength="5" />
+            </td>
             <td class="history-cell-tail" title="${currentLang === 'ru' ? 'Бортовой номер' : 'Aircraft Tail'}">${tailDisplay}</td>
             <td class="history-cell-action">
                 <button class="btn-delete-row" title="${currentLang === 'ru' ? 'Удалить' : 'Delete'}" onclick="deletePrediction('${p.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
             </td>
         `;
+
+        // Обработчик интерактивного изменения времени в инпуте
+        const timeInp = tr.querySelector('.dep-time-input');
+        if (timeInp) {
+            timeInp.addEventListener('click', (e) => e.stopPropagation());
+            timeInp.addEventListener('mousedown', (e) => e.stopPropagation());
+            timeInp.addEventListener('pointerdown', (e) => e.stopPropagation());
+            timeInp.addEventListener('focus', (e) => e.target.select());
+            timeInp.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    e.target.blur();
+                }
+            });
+            timeInp.addEventListener('change', (e) => {
+                handleHistoryTimeChange(p.id, e.target.value);
+            });
+        }
+
         tbody.appendChild(tr);
     });
 

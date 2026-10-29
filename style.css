@@ -4166,7 +4166,8 @@ body.light-theme .history-row-clickable.selected-history-row {
 }
 
 .load-rows-scroll-container .rows-table tbody tr {
-    height: calc(100% / 12) !important;
+    height: auto !important;
+    min-height: 38px !important;
 }
 
 /* Бесшовное объединение верхнего блока, отсеков и подвала в единую таблицу */
@@ -7958,4 +7959,149 @@ body.light-theme .bulk-cpt-subtotal-row {
     color: var(--text-secondary);
     font-weight: 600;
     font-size: 0.78rem;
+}
+
+
+/* ==========================================================================
+   РУЧНОЙ ВВОД ВРЕМЕНИ ВЫЛЕТА (ИСТОРИЯ ПРОГНОЗОВ) И ДИНАМИЧЕСКИЙ BULK ЗАГОЛОВОК
+   ========================================================================== */
+
+.predictions-compact-table .dep-time-input {
+    width: 100%;
+    max-width: 58px;
+    background: rgba(0, 240, 255, 0.08);
+    border: 1px solid rgba(0, 240, 255, 0.28);
+    border-radius: 4px;
+    color: var(--accent-cyan);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 1px 2px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.predictions-compact-table .dep-time-input:hover {
+    border-color: rgba(0, 240, 255, 0.6);
+    background: rgba(0, 240, 255, 0.16);
+}
+
+.predictions-compact-table .dep-time-input:focus {
+    border-color: #00f0ff;
+    background: rgba(0, 240, 255, 0.25);
+    box-shadow: 0 0 6px rgba(0, 240, 255, 0.4);
+    color: #ffffff;
+}
+
+body.light-theme .predictions-compact-table .dep-time-input {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+    color: #0284c7;
+}
+
+body.light-theme .predictions-compact-table .dep-time-input:focus {
+    border-color: #0284c7;
+    background: #ffffff;
+    box-shadow: 0 0 6px rgba(2, 132, 199, 0.3);
+}
+
+/* Шапка BULK с бейджем борта и кнопкой FWD */
+.bulk-header-flex {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    gap: 8px;
+    width: 100%;
+}
+
+.bulk-title-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aircraft-model-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: rgba(0, 240, 255, 0.15);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: #00f0ff;
+}
+
+.select-aircraft-tail {
+    background: rgba(10, 25, 45, 0.9);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 4px;
+    color: #ffd700;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    outline: none;
+    cursor: pointer;
+}
+
+.select-aircraft-tail:focus {
+    border-color: #ffd700;
+    box-shadow: 0 0 6px rgba(255, 215, 0, 0.4);
+}
+
+body.light-theme .select-aircraft-tail {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    color: #b45309;
+}
+
+.btn-toggle-fwd {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: rgba(255, 215, 0, 0.14);
+    border: 1px solid rgba(255, 215, 0, 0.5);
+    color: #ffd700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-toggle-fwd:hover {
+    background: rgba(255, 215, 0, 0.25);
+    border-color: #ffd700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.35);
+}
+
+.btn-toggle-fwd.active {
+    background: rgba(255, 77, 77, 0.18);
+    border-color: rgba(255, 77, 77, 0.6);
+    color: #ff6b6b;
+}
+
+.btn-toggle-fwd.active:hover {
+    background: rgba(255, 77, 77, 0.3);
+}
+
+body.light-theme .btn-toggle-fwd {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #b45309;
+}
+
+.cpt-fwd strong {
+    color: #ffd700 !important;
+}
+
+.cpt-aft strong {
+    color: #00f0ff !important;
 }
