@@ -271,3 +271,8 @@
   * initLoadPlanningData(): гарантированный вызов populateAircraftTailDropdown() при старте — в выпадающем списке BULK доступны все 34 борта флота с группировкой по типам ВС;
   * style.css: для .bulk-type-select устранены лишние повторяющиеся знаки chevron в светлой теме (background-repeat: no-repeat !important; background-position: right 6px center !important);
   * style.css: добавлены стили для optgroup и option в .select-aircraft-tail под темную и светлую тему.
+
+- Интеграция с W&B Loadsheet (v12.2.16):
+  * index.html: Под таблицей BULK добавлена кнопка [ 📄 Сформировать W&B LoadSheet ];
+  * app.js: Внедрена функция openWbLoadsheet() с агрегацией весов коммерческой загрузки багажа по отсекам CPT 1..5 на основе физической компоновки бортов (первая цифра секции: 11->CPT1, 21->CPT2, 31->CPT3, 41->CPT4, 51->CPT5);
+  * app.js: Проброс в Loadsheet всех реквизитов рейса, даты, борта, пассажиров (M, F, CH, INF) и топлива с сохранением return_url для возврата.

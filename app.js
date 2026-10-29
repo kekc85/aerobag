@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.15';
+const APP_VERSION = 'v12.2.16';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2999,9 +2999,139 @@ let currentIncomingFlightData = {
     ac_num: '',
     dep_time: '',
     pax: '',
+    pax_m: '',
+    pax_f: '',
+    pax_ch: '',
+    pax_inf: '',
+    to_fuel: '',
+    trip_fuel: '',
+    cargo: '',
+    mail: '',
     from: '',
     to: ''
 };
+
+function openWbLoadsheet() {
+    // 1. Текущий активный рейс и предсказание
+    let activePred = null;
+    if (typeof currentActivePredictionId !== 'undefined' && currentActivePredictionId) {
+        activePred = (predictionsHistory || []).find(p => p.id === currentActivePredictionId);
+    }
+    if (!activePred && typeof predictionsHistory !== 'undefined' && predictionsHistory.length > 0) {
+        activePred = predictionsHistory[0];
+    }
+
+    if (typeof saveCompartmentsToPrediction === 'function' && activePred) {
+        saveCompartmentsToPrediction(activePred);
+    }
+
+    // 2. Реквизиты рейса
+    const flightNumber = (document.getElementById('select-flight')?.value || activePred?.flight_no || currentIncomingFlightData.flight || '').trim();
+    const flightDate = (document.getElementById('input-date')?.value || activePred?.calc_date || currentIncomingFlightData.date || '').trim();
+    const fromAirport = (currentIncomingFlightData.from || activePred?.from || '').trim();
+    const toAirport = (currentIncomingFlightData.to || activePred?.to || '').trim();
+    const selectedTail = (document.getElementById('select-aircraft-tail')?.value || activePred?.aircraft_tail || currentIncomingFlightData.ac_num || '').trim();
+    const currentModel = (document.getElementById('aircraft-model-badge')?.textContent || activePred?.aircraft_model || 'B737-800').trim();
+
+    // 3. Агрегация весов багажа по отсекам CPT 1..5
+    const cptWeights = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    const rowInputs = document.querySelectorAll('#bulk-tbody tr');
+    if (rowInputs.length > 0) {
+        rowInputs.forEach(tr => {
+            const secName = tr.getAttribute('data-sec') || tr.children[0]?.textContent?.trim();
+            const wtInput = tr.querySelector('.bulk-weight-input');
+            const wt = wtInput ? parseInt(wtInput.value, 10) || 0 : 0;
+            if (secName && wt > 0) {
+                const cptIndex = parseInt(secName.charAt(0), 10);
+                if (cptIndex >= 1 && cptIndex <= 5) {
+                    cptWeights[cptIndex] += wt;
+                }
+            }
+        });
+    } else if (activePred && activePred.compartments) {
+        Object.keys(activePred.compartments).forEach(secName => {
+            const wt = parseInt(activePred.compartments[secName]?.weight, 10) || 0;
+            const cptIndex = parseInt(secName.charAt(0), 10);
+            if (cptIndex >= 1 && cptIndex <= 5) {
+                cptWeights[cptIndex] += wt;
+            }
+        });
+    }
+
+    // 4. Пассажиры и топливо
+    const paxM = currentIncomingFlightData.pax_m || activePred?.pax_m || '';
+    const paxF = currentIncomingFlightData.pax_f || activePred?.pax_f || '';
+    const paxCh = currentIncomingFlightData.pax_ch || activePred?.pax_ch || '';
+    const paxInf = currentIncomingFlightData.pax_inf || activePred?.pax_inf || '';
+    const paxTotal = document.getElementById('input-pax')?.value || currentIncomingFlightData.pax || activePred?.pax || '';
+    const toFuel = currentIncomingFlightData.to_fuel || '';
+    const tripFuel = currentIncomingFlightData.trip_fuel || '';
+    const cargoVal = currentIncomingFlightData.cargo || '';
+    const mailVal = currentIncomingFlightData.mail || '';
+
+    // 5. Определение стенда Loadsheet
+    const isTest = window.location.href.includes('aerobag-test') || 
+                   window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1';
+    const targetUrl = isTest 
+        ? 'https://boostandgo.ru/loadsheet_test/' 
+        : 'https://boostandgo.ru/loadsheet/';
+
+    const params = new URLSearchParams();
+    if (flightNumber) params.set('flight', flightNumber);
+    if (fromAirport) params.set('from', fromAirport);
+    if (toAirport) params.set('to', toAirport);
+    if (flightDate) params.set('date', flightDate);
+    if (selectedTail) params.set('acreg', selectedTail);
+    if (currentModel) params.set('version', currentModel);
+    if (paxM) params.set('pax_m', paxM);
+    if (paxF) params.set('pax_f', paxF);
+    if (paxCh) params.set('pax_ch', paxCh);
+    if (paxInf) params.set('pax_inf', paxInf);
+    if (paxTotal) params.set('pax', paxTotal);
+    if (toFuel) params.set('to_fuel', toFuel);
+    if (tripFuel) params.set('trip_fuel', tripFuel);
+    if (cargoVal) params.set('cargo', cargoVal);
+    if (mailVal) params.set('mail', mailVal);
+
+    for (let c = 1; c <= 5; c++) {
+        if (cptWeights[c] > 0) {
+            params.set(`cpt_${c}_b`, cptWeights[c]);
+        }
+    }
+
+    params.set('return_url', window.location.href);
+
+    try {
+        localStorage.setItem('wb_loadsheet_incoming', JSON.stringify({
+            flight: flightNumber,
+            from: fromAirport,
+            to: toAirport,
+            date: flightDate,
+            acreg: selectedTail,
+            version: currentModel,
+            pax_m: paxM,
+            pax_f: paxF,
+            pax_ch: paxCh,
+            pax_inf: paxInf,
+            pax: paxTotal,
+            to_fuel: toFuel,
+            trip_fuel: tripFuel,
+            cargo: cargoVal,
+            mail: mailVal,
+            cpt_1_b: cptWeights[1] || '',
+            cpt_2_b: cptWeights[2] || '',
+            cpt_3_b: cptWeights[3] || '',
+            cpt_4_b: cptWeights[4] || '',
+            cpt_5_b: cptWeights[5] || '',
+            return_url: window.location.href
+        }));
+    } catch (e) {
+        console.warn('LocalStorage error:', e);
+    }
+
+    window.location.href = `${targetUrl}?${params.toString()}`;
+}
 
 // Надежное извлечение числового номера рейса без буквенно-цифровых префиксов авиакомпаний (N4, EO, NWS, KAR, U6 и т.д.)
 function extractNumericFlightNumber(flightStr) {
@@ -3023,6 +3153,23 @@ function checkIncomingFlightParameters() {
     const acNumParam = urlParams.get('ac_num') || urlParams.get('tail');
     const depTimeParam = urlParams.get('dep_time') || urlParams.get('time') || urlParams.get('dep');
     const returnUrlParam = urlParams.get('return_url');
+    const paxMParam = urlParams.get('pax_m');
+    const paxFParam = urlParams.get('pax_f');
+    const paxChParam = urlParams.get('pax_ch');
+    const paxInfParam = urlParams.get('pax_inf');
+    const toFuelParam = urlParams.get('to_fuel');
+    const tripFuelParam = urlParams.get('trip_fuel');
+    const cargoParam = urlParams.get('cargo');
+    const mailParam = urlParams.get('mail');
+
+    if (paxMParam) currentIncomingFlightData.pax_m = paxMParam;
+    if (paxFParam) currentIncomingFlightData.pax_f = paxFParam;
+    if (paxChParam) currentIncomingFlightData.pax_ch = paxChParam;
+    if (paxInfParam) currentIncomingFlightData.pax_inf = paxInfParam;
+    if (toFuelParam) currentIncomingFlightData.to_fuel = toFuelParam;
+    if (tripFuelParam) currentIncomingFlightData.trip_fuel = tripFuelParam;
+    if (cargoParam) currentIncomingFlightData.cargo = cargoParam;
+    if (mailParam) currentIncomingFlightData.mail = mailParam;
 
     if (depTimeParam) currentIncomingFlightData.dep_time = depTimeParam;
     if (acNumParam) currentIncomingFlightData.ac_num = acNumParam;
