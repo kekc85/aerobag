@@ -281,3 +281,11 @@
   * app.js: Исправлена выборка весов отсеков из currentCompartmentsState и таблицы #unified-load-tbody с разделением по категориям (B, C, M, TR, ULD);
   * app.js: В currentIncomingFlightData и checkIncomingFlightParameters добавлено сохранение экипажа (crew) и топлива (to_fuel, trip_fuel) из URL-параметров AeroPlan;
   * app.js: В openWbLoadsheet() добавлена передача параметров crew, to_fuel, trip_fuel и отсеков cpt_1..5 в LoadSheet.
+
+- Фикс масштаба печати LoadSheet, компоновки Version, цветов светлой темы и высоты истории расчетов (v12.2.18):
+  * loadsheet.html: Изолирован @media print (210x297mm overflow hidden zoom 1), сброс зума перед печатью через beforeprint/triggerPrint (масштаб на экране не разрывает лист А4);
+  * loadsheet.html / app.js: Исправлено поле Version (компоновка салона Y215, Y189, Y220, а не модель ВС);
+  * loadsheet.html: Исправлен парсинг пассажиров (проверка M/F/CH/INF > 0, иначе расчет 50/50 из totalPax);
+  * FlightRow.jsx: В handleOpenAeroBag добавлен проброс ac_config;
+  * style.css / app.js: В светлой теме добавлено четкое цветовое разделение FWD (янтарный #d97706) и AFT (синий #0284c7) и разделительная граница cpt-section-boundary;
+  * style.css: Окно "История расчетов" (.history-column) растянуто на всю высоту сетки (#tab-content-predict .workspace-grid align-items: stretch, predictions-table-responsive-compact flex: 1, max-height: none).

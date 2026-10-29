@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.17';
+const APP_VERSION = 'v12.2.18';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2784,10 +2784,11 @@ function renderCompartmentsTable() {
             tr.setAttribute('data-comp', compIdx);
             tr.setAttribute('data-row', rowIdx);
 
+            const isLastFwdRow = (comp.section === 'FWD' && rowIdx === rowsCount - 1 && currentCompartmentsState[compIdx + 1] && currentCompartmentsState[compIdx + 1].section === 'AFT');
             if (rowIdx === 0) {
-                tr.className = 'bulk-cpt-row';
+                tr.className = 'bulk-cpt-row' + (isLastFwdRow ? ' cpt-section-boundary' : '');
             } else {
-                tr.className = 'bulk-cpt-subrow';
+                tr.className = 'bulk-cpt-subrow' + (isLastFwdRow ? ' cpt-section-boundary' : '');
             }
 
             // 1. Номер отсека или стрелка
@@ -3034,6 +3035,38 @@ function openWbLoadsheet() {
     const selectedTail = (document.getElementById('select-aircraft-tail')?.value || activePred?.aircraft_tail || currentIncomingFlightData.ac_num || '').trim();
     const currentModel = (document.getElementById('aircraft-model-badge')?.textContent || activePred?.aircraft_model || 'B737-800').trim();
 
+    // Определение компоновки салона (Version в LoadSheet): например Y215, Y189, Y220
+    const MODEL_TO_LAYOUT_MAP = {
+        'B737-900': 'Y215',
+        'B739': 'Y215',
+        '739': 'Y215',
+        'B737-800': 'Y189',
+        'B738': 'Y189',
+        '738': 'Y189',
+        'A321': 'Y220',
+        'A321-NEO': 'Y218',
+        '321': 'Y220',
+        'E190': 'Y110',
+        '190': 'Y110',
+        'A330-200': 'Y365',
+        'A332': 'Y365',
+        '332': 'Y365',
+        'A330-300': 'Y379',
+        'A333': 'Y379',
+        '333': 'Y379',
+        'B777-200': 'Y440',
+        'B772': 'Y440',
+        '772': 'Y440',
+        'B777-300': 'Y486',
+        'B773': 'Y486',
+        '773': 'Y486'
+    };
+
+    let cabinVersion = currentIncomingFlightData.ac_config || activePred?.ac_config || '';
+    if (!cabinVersion || MODEL_TO_LAYOUT_MAP[cabinVersion.toUpperCase()]) {
+        cabinVersion = MODEL_TO_LAYOUT_MAP[cabinVersion.toUpperCase()] || MODEL_TO_LAYOUT_MAP[currentModel] || 'Y189';
+    }
+
     // 3. Агрегация весов багажа по отсекам CPT 1..5
     const cptWeights = {
         b: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
@@ -3095,7 +3128,7 @@ function openWbLoadsheet() {
     const paxF = currentIncomingFlightData.pax_f || activePred?.pax_f || '';
     const paxCh = currentIncomingFlightData.pax_ch || activePred?.pax_ch || '';
     const paxInf = currentIncomingFlightData.pax_inf || activePred?.pax_inf || '';
-    const paxTotal = document.getElementById('input-pax')?.value || currentIncomingFlightData.pax || activePred?.pax || '';
+    const paxTotal = (document.getElementById('lir-pax')?.value || document.getElementById('input-pax')?.value || document.getElementById('prelim-pax')?.textContent || currentIncomingFlightData.pax || activePred?.pax || '').trim();
     const toFuel = currentIncomingFlightData.to_fuel || '';
     const tripFuel = currentIncomingFlightData.trip_fuel || '';
     const cargoVal = currentIncomingFlightData.cargo || '';
@@ -3115,7 +3148,7 @@ function openWbLoadsheet() {
     if (toAirport) params.set('to', toAirport);
     if (flightDate) params.set('date', flightDate);
     if (selectedTail) params.set('acreg', selectedTail);
-    if (currentModel) params.set('version', currentModel);
+    if (cabinVersion) params.set('version', cabinVersion);
     if (crewVal) params.set('crew', crewVal);
     if (paxM) params.set('pax_m', paxM);
     if (paxF) params.set('pax_f', paxF);
@@ -3144,7 +3177,7 @@ function openWbLoadsheet() {
             to: toAirport,
             date: flightDate,
             acreg: selectedTail,
-            version: currentModel,
+            version: cabinVersion,
             crew: crewVal,
             pax_m: paxM,
             pax_f: paxF,
@@ -3201,7 +3234,9 @@ function checkIncomingFlightParameters() {
     const tripFuelParam = urlParams.get('trip_fuel') || urlParams.get('fuel_trip');
     const cargoParam = urlParams.get('cargo');
     const mailParam = urlParams.get('mail');
+    const acConfigParam = urlParams.get('ac_config') || urlParams.get('version') || urlParams.get('layout');
 
+    if (acConfigParam) currentIncomingFlightData.ac_config = acConfigParam;
     if (crewParam) currentIncomingFlightData.crew = crewParam;
     if (paxMParam) currentIncomingFlightData.pax_m = paxMParam;
     if (paxFParam) currentIncomingFlightData.pax_f = paxFParam;

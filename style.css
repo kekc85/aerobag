@@ -413,7 +413,7 @@ body.light-theme .tab-btn.active {
     display: grid;
     grid-template-columns: 440px minmax(380px, 430px) minmax(0, 1fr);
     gap: 16px;
-    align-items: start;
+    align-items: stretch;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -424,6 +424,7 @@ body.light-theme .tab-btn.active {
     flex-direction: column;
     min-width: 0;
     width: 100%;
+    height: 100%;
     box-sizing: border-box;
 }
 
@@ -432,6 +433,9 @@ body.light-theme .tab-btn.active {
     display: flex;
     flex-direction: column;
     margin-top: 0 !important;
+    height: 100%;
+    flex: 1;
+    box-sizing: border-box;
 }
 
 .history-header-container {
@@ -460,7 +464,9 @@ body.light-theme .tab-btn.active {
 
 .predictions-table-responsive-compact {
     width: 100%;
-    max-height: 640px;
+    flex: 1;
+    min-height: 200px;
+    max-height: none;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -8127,4 +8133,29 @@ body.light-theme .btn-toggle-fwd {
 
 .cpt-aft strong {
     color: #00f0ff !important;
+}
+
+/* Разделение переднего и заднего багажников в светлой теме */
+html.light-theme .cpt-fwd strong,
+html.light-theme body .cpt-fwd strong,
+body.light-theme .cpt-fwd strong {
+    color: #d97706 !important; /* Насыщенный янтарный/оранжевый для FWD */
+    font-weight: 800 !important;
+}
+
+html.light-theme .cpt-aft strong,
+html.light-theme body .cpt-aft strong,
+body.light-theme .cpt-aft strong {
+    color: #0284c7 !important; /* Яркий синий для AFT */
+    font-weight: 800 !important;
+}
+
+/* Четкая визуальная граница между FWD и AFT багажниками */
+.cpt-section-boundary td {
+    border-bottom: 2px solid rgba(0, 240, 255, 0.45) !important;
+}
+
+body.light-theme .cpt-section-boundary td,
+html.light-theme .cpt-section-boundary td {
+    border-bottom: 2.5px solid #0284c7 !important;
 }
