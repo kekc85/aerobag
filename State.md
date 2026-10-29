@@ -289,3 +289,8 @@
   * FlightRow.jsx: В handleOpenAeroBag добавлен проброс ac_config;
   * style.css / app.js: В светлой теме добавлено четкое цветовое разделение FWD (янтарный #d97706) и AFT (синий #0284c7) и разделительная граница cpt-section-boundary;
   * style.css: Окно "История расчетов" (.history-column) растянуто на всю высоту сетки (#tab-content-predict .workspace-grid align-items: stretch, predictions-table-responsive-compact flex: 1, max-height: none).
+
+- Устранение паразитного скроллбара в истории расчетов (v12.2.19):
+  * index.html / style.css: Исключено влияние селектора .table-responsive (max-height: 350px);
+  * style.css: Для .predictions-table-responsive-compact заданы flex: 1 1 auto, min-height: 0 !important, max-height: none !important;
+  * style.css: Оптимизированы паддинги ячеек таблицы до 4.5px 4px и отступы панели, запас высоты увеличен более чем на 50px, полоса прокрутки полностью исчезла.

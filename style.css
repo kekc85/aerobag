@@ -429,12 +429,13 @@ body.light-theme .tab-btn.active {
 }
 
 .history-predictions-section {
-    padding: 12px 14px !important;
+    padding: 10px 12px !important;
     display: flex;
     flex-direction: column;
     margin-top: 0 !important;
     height: 100%;
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     box-sizing: border-box;
 }
 
@@ -442,7 +443,7 @@ body.light-theme .tab-btn.active {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     gap: 8px;
 }
 
@@ -462,11 +463,12 @@ body.light-theme .tab-btn.active {
     white-space: nowrap;
 }
 
+.table-responsive.predictions-table-responsive-compact,
 .predictions-table-responsive-compact {
     width: 100%;
-    flex: 1;
-    min-height: 200px;
-    max-height: none;
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
@@ -482,7 +484,7 @@ body.light-theme .tab-btn.active {
 }
 
 .predictions-compact-table th {
-    padding: 6px 4px !important;
+    padding: 5px 4px !important;
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -495,7 +497,7 @@ body.light-theme .tab-btn.active {
 }
 
 .predictions-compact-table td {
-    padding: 7px 4px !important;
+    padding: 4.5px 4px !important;
     vertical-align: middle;
     white-space: nowrap;
     overflow: hidden;
@@ -1548,7 +1550,7 @@ body.light-theme .sampled-flights-table tfoot tr.sample-formulas-row td {
     white-space: nowrap;
 }
 
-.table-responsive {
+.table-responsive:not(.predictions-table-responsive-compact) {
     max-height: 350px;
     overflow-y: auto;
 }
