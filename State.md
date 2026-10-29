@@ -276,3 +276,8 @@
   * index.html: Под таблицей BULK добавлена кнопка [ 📄 Сформировать W&B LoadSheet ];
   * app.js: Внедрена функция openWbLoadsheet() с агрегацией весов коммерческой загрузки багажа по отсекам CPT 1..5 на основе физической компоновки бортов (первая цифра секции: 11->CPT1, 21->CPT2, 31->CPT3, 41->CPT4, 51->CPT5);
   * app.js: Проброс в Loadsheet всех реквизитов рейса, даты, борта, пассажиров (M, F, CH, INF) и топлива с сохранением return_url для возврата.
+
+- Исправление агрегации отсеков и проброса экипажа/топлива (v12.2.17):
+  * app.js: Исправлена выборка весов отсеков из currentCompartmentsState и таблицы #unified-load-tbody с разделением по категориям (B, C, M, TR, ULD);
+  * app.js: В currentIncomingFlightData и checkIncomingFlightParameters добавлено сохранение экипажа (crew) и топлива (to_fuel, trip_fuel) из URL-параметров AeroPlan;
+  * app.js: В openWbLoadsheet() добавлена передача параметров crew, to_fuel, trip_fuel и отсеков cpt_1..5 в LoadSheet.

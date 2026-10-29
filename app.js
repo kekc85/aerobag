@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.16';
+const APP_VERSION = 'v12.2.17';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2998,6 +2998,7 @@ let currentIncomingFlightData = {
     date: '',
     ac_num: '',
     dep_time: '',
+    crew: '',
     pax: '',
     pax_m: '',
     pax_f: '',
@@ -3034,31 +3035,62 @@ function openWbLoadsheet() {
     const currentModel = (document.getElementById('aircraft-model-badge')?.textContent || activePred?.aircraft_model || 'B737-800').trim();
 
     // 3. Агрегация весов багажа по отсекам CPT 1..5
-    const cptWeights = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    const rowInputs = document.querySelectorAll('#bulk-tbody tr');
-    if (rowInputs.length > 0) {
-        rowInputs.forEach(tr => {
-            const secName = tr.getAttribute('data-sec') || tr.children[0]?.textContent?.trim();
-            const wtInput = tr.querySelector('.bulk-weight-input');
-            const wt = wtInput ? parseInt(wtInput.value, 10) || 0 : 0;
-            if (secName && wt > 0) {
-                const cptIndex = parseInt(secName.charAt(0), 10);
-                if (cptIndex >= 1 && cptIndex <= 5) {
-                    cptWeights[cptIndex] += wt;
-                }
-            }
-        });
-    } else if (activePred && activePred.compartments) {
-        Object.keys(activePred.compartments).forEach(secName => {
-            const wt = parseInt(activePred.compartments[secName]?.weight, 10) || 0;
+    const cptWeights = {
+        b: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        c: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        m: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        tr: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+        uld: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
+    };
+
+    const compList = (currentCompartmentsState && currentCompartmentsState.length > 0)
+        ? currentCompartmentsState
+        : (activePred && Array.isArray(activePred.compartments) ? activePred.compartments : []);
+
+    let totalBaggageFound = 0;
+
+    if (compList && compList.length > 0) {
+        compList.forEach((comp, compIdx) => {
+            const secName = String(comp.name || comp.cpt || '').trim();
             const cptIndex = parseInt(secName.charAt(0), 10);
-            if (cptIndex >= 1 && cptIndex <= 5) {
-                cptWeights[cptIndex] += wt;
+            if (cptIndex >= 1 && cptIndex <= 5 && Array.isArray(comp.rows)) {
+                comp.rows.forEach((row, rowIdx) => {
+                    const wtInput = document.getElementById(`bulk-weight-${compIdx}-${rowIdx}`);
+                    const wt = wtInput ? (parseFloat(wtInput.value) || 0) : (parseFloat(row.weight) || 0);
+                    if (wt > 0) {
+                        const rType = String(row.type || 'B').toUpperCase().trim();
+                        if (['B', 'BT', 'BC', 'BZ', 'BX', 'DAA'].includes(rType)) {
+                            cptWeights.b[cptIndex] += Math.round(wt);
+                            totalBaggageFound += Math.round(wt);
+                        } else if (rType === 'C') {
+                            cptWeights.c[cptIndex] += Math.round(wt);
+                        } else if (rType === 'M') {
+                            cptWeights.m[cptIndex] += Math.round(wt);
+                        } else if (rType === 'TR') {
+                            cptWeights.tr[cptIndex] += Math.round(wt);
+                        } else if (rType === 'ULD') {
+                            cptWeights.uld[cptIndex] += Math.round(wt);
+                        } else {
+                            cptWeights.b[cptIndex] += Math.round(wt);
+                            totalBaggageFound += Math.round(wt);
+                        }
+                    }
+                });
             }
         });
     }
 
-    // 4. Пассажиры и топливо
+    // Если в отсеках вес еще не вводился, проверяем общий рассчитанный прогноз
+    if (totalBaggageFound === 0) {
+        const prelimWeight = parseFloat(document.getElementById('prelim-weight')?.textContent || 0) || 
+                             parseFloat(activePred?.weight || activePred?.baggageWeight || 0) || 0;
+        if (prelimWeight > 0) {
+            cptWeights.b[3] = Math.round(prelimWeight);
+        }
+    }
+
+    // 4. Пассажиры, экипаж и топливо
+    const crewVal = currentIncomingFlightData.crew || activePred?.crew || '';
     const paxM = currentIncomingFlightData.pax_m || activePred?.pax_m || '';
     const paxF = currentIncomingFlightData.pax_f || activePred?.pax_f || '';
     const paxCh = currentIncomingFlightData.pax_ch || activePred?.pax_ch || '';
@@ -3084,6 +3116,7 @@ function openWbLoadsheet() {
     if (flightDate) params.set('date', flightDate);
     if (selectedTail) params.set('acreg', selectedTail);
     if (currentModel) params.set('version', currentModel);
+    if (crewVal) params.set('crew', crewVal);
     if (paxM) params.set('pax_m', paxM);
     if (paxF) params.set('pax_f', paxF);
     if (paxCh) params.set('pax_ch', paxCh);
@@ -3095,21 +3128,24 @@ function openWbLoadsheet() {
     if (mailVal) params.set('mail', mailVal);
 
     for (let c = 1; c <= 5; c++) {
-        if (cptWeights[c] > 0) {
-            params.set(`cpt_${c}_b`, cptWeights[c]);
-        }
+        if (cptWeights.b[c] > 0) params.set(`cpt_${c}_b`, cptWeights.b[c]);
+        if (cptWeights.c[c] > 0) params.set(`cpt_${c}_c`, cptWeights.c[c]);
+        if (cptWeights.m[c] > 0) params.set(`cpt_${c}_m`, cptWeights.m[c]);
+        if (cptWeights.tr[c] > 0) params.set(`cpt_${c}_tr`, cptWeights.tr[c]);
+        if (cptWeights.uld[c] > 0) params.set(`cpt_${c}_uld`, cptWeights.uld[c]);
     }
 
     params.set('return_url', window.location.href);
 
     try {
-        localStorage.setItem('wb_loadsheet_incoming', JSON.stringify({
+        const payload = {
             flight: flightNumber,
             from: fromAirport,
             to: toAirport,
             date: flightDate,
             acreg: selectedTail,
             version: currentModel,
+            crew: crewVal,
             pax_m: paxM,
             pax_f: paxF,
             pax_ch: paxCh,
@@ -3119,13 +3155,16 @@ function openWbLoadsheet() {
             trip_fuel: tripFuel,
             cargo: cargoVal,
             mail: mailVal,
-            cpt_1_b: cptWeights[1] || '',
-            cpt_2_b: cptWeights[2] || '',
-            cpt_3_b: cptWeights[3] || '',
-            cpt_4_b: cptWeights[4] || '',
-            cpt_5_b: cptWeights[5] || '',
             return_url: window.location.href
-        }));
+        };
+        for (let c = 1; c <= 5; c++) {
+            if (cptWeights.b[c] > 0) payload[`cpt_${c}_b`] = cptWeights.b[c];
+            if (cptWeights.c[c] > 0) payload[`cpt_${c}_c`] = cptWeights.c[c];
+            if (cptWeights.m[c] > 0) payload[`cpt_${c}_m`] = cptWeights.m[c];
+            if (cptWeights.tr[c] > 0) payload[`cpt_${c}_tr`] = cptWeights.tr[c];
+            if (cptWeights.uld[c] > 0) payload[`cpt_${c}_uld`] = cptWeights.uld[c];
+        }
+        localStorage.setItem('wb_loadsheet_incoming', JSON.stringify(payload));
     } catch (e) {
         console.warn('LocalStorage error:', e);
     }
@@ -3153,15 +3192,17 @@ function checkIncomingFlightParameters() {
     const acNumParam = urlParams.get('ac_num') || urlParams.get('tail');
     const depTimeParam = urlParams.get('dep_time') || urlParams.get('time') || urlParams.get('dep');
     const returnUrlParam = urlParams.get('return_url');
+    const crewParam = urlParams.get('crew');
     const paxMParam = urlParams.get('pax_m');
     const paxFParam = urlParams.get('pax_f');
     const paxChParam = urlParams.get('pax_ch');
     const paxInfParam = urlParams.get('pax_inf');
-    const toFuelParam = urlParams.get('to_fuel');
-    const tripFuelParam = urlParams.get('trip_fuel');
+    const toFuelParam = urlParams.get('to_fuel') || urlParams.get('fuel_block') || urlParams.get('fuel');
+    const tripFuelParam = urlParams.get('trip_fuel') || urlParams.get('fuel_trip');
     const cargoParam = urlParams.get('cargo');
     const mailParam = urlParams.get('mail');
 
+    if (crewParam) currentIncomingFlightData.crew = crewParam;
     if (paxMParam) currentIncomingFlightData.pax_m = paxMParam;
     if (paxFParam) currentIncomingFlightData.pax_f = paxFParam;
     if (paxChParam) currentIncomingFlightData.pax_ch = paxChParam;
