@@ -267,3 +267,7 @@
   * transferPredictionToPreliminary(): сохранение предыдущего активного рейса ДО переключения, восстановление отсеков строго из p.compartments (ликвидирована утечка отсеков между бортами);
   * calculateForecast(): формирование отсеков сразу под геометрию борта рейса, мгновенная установка currentActivePredictionId и обновление шапки;
   * updateActiveFlightBadge(): очищены демо-заглушки в index.html, вывод RA-${cleanTail} без ложного фолбэка на прошлый рейс.
+- Выбор любого борта из базы авиакомпании и фикс светлой темы (v12.2.14):
+  * initLoadPlanningData(): гарантированный вызов populateAircraftTailDropdown() при старте — в выпадающем списке BULK доступны все 34 борта флота с группировкой по типам ВС;
+  * style.css: для .bulk-type-select устранены лишние повторяющиеся знаки chevron в светлой теме (background-repeat: no-repeat !important; background-position: right 6px center !important);
+  * style.css: добавлены стили для optgroup и option в .select-aircraft-tail под темную и светлую тему.

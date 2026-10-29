@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.13';
+const APP_VERSION = 'v12.2.15';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2698,6 +2698,7 @@ function populateAircraftTailDropdown() {
     const tailSelect = document.getElementById('select-aircraft-tail');
     if (!tailSelect) return;
 
+    const currentVal = tailSelect.value || currentActiveAircraftTail || '';
     tailSelect.innerHTML = '<option value="">-- Выбрать борт --</option>';
 
     // Группировка бортов по моделям ВС
@@ -2724,6 +2725,13 @@ function populateAircraftTailDropdown() {
         });
         tailSelect.appendChild(grp);
     });
+
+    if (currentVal) {
+        tailSelect.value = currentVal;
+    }
+
+    if (tailSelect.dataset.hasListener) return;
+    tailSelect.dataset.hasListener = 'true';
 
     tailSelect.addEventListener('change', (e) => {
         const val = e.target.value;
@@ -3382,6 +3390,7 @@ function recalculateLoadPlanning() {
 }
 
 function initLoadPlanningData() {
+    populateAircraftTailDropdown();
     renderCompartmentsTable();
 
     const btnTransfer = document.getElementById('btn-transfer-preliminary');

@@ -7867,21 +7867,31 @@ body.light-theme .header-plan-pill:hover {
 .bulk-type-select {
     width: 100% !important;
     height: 28px !important;
-    padding: 2px 4px !important;
+    padding: 2px 22px 2px 6px !important;
     font-size: 0.78rem !important;
     font-weight: 700 !important;
-    background: rgba(15, 23, 42, 0.85) !important;
+    background-color: rgba(15, 23, 42, 0.85) !important;
     border: 1px solid rgba(0, 240, 255, 0.25) !important;
     color: #f1f5f9 !important;
     border-radius: 4px !important;
     cursor: pointer;
     text-overflow: ellipsis;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300f0ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 6px center !important;
+    background-size: 14px !important;
 }
 
 body.light-theme .bulk-type-select {
-    background: #ffffff !important;
+    background-color: #ffffff !important;
     border-color: #cbd5e1 !important;
     color: #0f172a !important;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%230284c7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 6px center !important;
+    background-size: 14px !important;
 }
 
 .btn-bulk-add {
@@ -8058,6 +8068,19 @@ body.light-theme .select-aircraft-tail {
     background: #ffffff;
     border-color: #cbd5e1;
     color: #b45309;
+}
+
+.select-aircraft-tail optgroup,
+.select-aircraft-tail option {
+    background: #0a192d;
+    color: #f1f5f9;
+    font-family: var(--font-mono);
+}
+
+body.light-theme .select-aircraft-tail optgroup,
+body.light-theme .select-aircraft-tail option {
+    background: #ffffff;
+    color: #0f172a;
 }
 
 .btn-toggle-fwd {
