@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.11';
+const APP_VERSION = 'v12.2.13';
 const APP_BUILD_DATE = '29.10.2026';
 
 // Глобальное состояние
@@ -2558,7 +2558,7 @@ function getAircraftCompartmentConfig(tailOrType) {
 }
 
 // Применение конфигурации отсеков под конкретный борт
-function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
+function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null, savedCompartmentsSource = null) {
     const config = getAircraftCompartmentConfig(tailOrType);
     const cleanTail = normalizeTailNumber(tailOrType);
 
@@ -2576,8 +2576,12 @@ function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
     // Обновляем бейдж модели ВС в шапке BULK
     const modelBadge = document.getElementById('aircraft-model-badge');
     if (modelBadge) {
-        modelBadge.textContent = currentActiveAircraftModel;
-        modelBadge.classList.remove('hidden');
+        if (cleanTail || tailOrType) {
+            modelBadge.textContent = currentActiveAircraftModel;
+            modelBadge.classList.remove('hidden');
+        } else {
+            modelBadge.classList.add('hidden');
+        }
     }
 
     // Обновляем селектор борта в шапке BULK
@@ -2599,6 +2603,8 @@ function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
                 tailSelect.appendChild(opt);
                 tailSelect.value = cleanTail;
             }
+        } else {
+            tailSelect.value = '';
         }
     }
 
@@ -2619,14 +2625,38 @@ function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
         }
     }
 
-    // Сохраняем введенные данные по именам отсеков, чтобы не потерять при переключении
-    const oldStateMap = new Map();
-    if (currentCompartmentsState && Array.isArray(currentCompartmentsState)) {
-        currentCompartmentsState.forEach(c => {
-            if (c && c.name && Array.isArray(c.rows)) {
-                oldStateMap.set(c.name, JSON.parse(JSON.stringify(c.rows)));
+    // Формируем карту строк:
+    // 1) savedCompartmentsSource === false -> чистый сброс отсеков (все строки нулевые)
+    // 2) Array.isArray(savedCompartmentsSource) -> восстанавливаем СТРОГО строки переданного рейса (без утечки данных других рейсов!)
+    // 3) savedCompartmentsSource === null -> диспетчер сменил борт/FWD для текущего активного рейса, сохраняем matching rows
+    let sourceMap = null;
+    if (savedCompartmentsSource === false) {
+        sourceMap = null;
+    } else if (Array.isArray(savedCompartmentsSource)) {
+        sourceMap = new Map();
+        savedCompartmentsSource.forEach(c => {
+            if (!c) return;
+            const name = String(c.name || c.cpt || '');
+            if (Array.isArray(c.rows) && c.rows.length > 0) {
+                sourceMap.set(name, JSON.parse(JSON.stringify(c.rows)));
+            } else if (c.pcs !== undefined || c.weight !== undefined) {
+                sourceMap.set(name, [{
+                    type: c.type || 'B',
+                    pcs: parseInt(c.pcs, 10) || 0,
+                    weight: parseFloat(c.weight) || 0,
+                    locked: !!c.locked
+                }]);
             }
         });
+    } else {
+        sourceMap = new Map();
+        if (currentCompartmentsState && Array.isArray(currentCompartmentsState)) {
+            currentCompartmentsState.forEach(c => {
+                if (c && c.name && Array.isArray(c.rows)) {
+                    sourceMap.set(c.name, JSON.parse(JSON.stringify(c.rows)));
+                }
+            });
+        }
     }
 
     // Формируем список отсеков согласно правилам
@@ -2642,7 +2672,7 @@ function applyAircraftCompartmentConfig(tailOrType, forceShowFwd = null) {
     }
 
     currentCompartmentsState = targetPositions.map((pos, idx) => {
-        const preservedRows = oldStateMap.get(pos.name);
+        const preservedRows = sourceMap ? sourceMap.get(pos.name) : null;
         return {
             cpt: idx + 1,
             name: pos.name,
@@ -2699,6 +2729,18 @@ function populateAircraftTailDropdown() {
         const val = e.target.value;
         if (val) {
             applyAircraftCompartmentConfig(val);
+            if (currentActivePredictionId) {
+                const p = predictionsHistory.find(item => item.id === currentActivePredictionId);
+                if (p) {
+                    p.ac_num = normalizeTailNumber(val);
+                    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num, p.dep_time);
+                    savePredictionsHistory();
+                    renderPredictionsTable();
+                }
+            } else {
+                currentIncomingFlightData.ac_num = val;
+                updateActiveFlightBadge(currentIncomingFlightData.from, currentIncomingFlightData.to, currentIncomingFlightData.flight, currentIncomingFlightData.date, val, currentIncomingFlightData.dep_time);
+            }
         }
     });
 }
@@ -3030,18 +3072,14 @@ function checkIncomingFlightParameters() {
 
     if (acNumParam) {
         applyAircraftCompartmentConfig(acNumParam, false);
-        const activeFlightBadge = document.getElementById('active-flight-badge');
-        if (activeFlightBadge) {
-            activeFlightBadge.classList.remove('hidden');
-            let badgeTail = document.getElementById('badge-tail-no');
-            if (!badgeTail) {
-                badgeTail = document.createElement('span');
-                badgeTail.id = 'badge-tail-no';
-                badgeTail.className = 'badge-tail-no';
-                activeFlightBadge.appendChild(badgeTail);
-            }
-            badgeTail.textContent = ` [${acNumParam}]`;
-        }
+        updateActiveFlightBadge(
+            currentIncomingFlightData.from,
+            currentIncomingFlightData.to,
+            currentIncomingFlightData.flight,
+            currentIncomingFlightData.date,
+            acNumParam,
+            currentIncomingFlightData.dep_time
+        );
     }
 
     if (returnUrlParam) {
@@ -3069,51 +3107,25 @@ function saveCompartmentsToPrediction() {
     if (lirWeightInput && lirWeightInput.value !== '') p.lir_weight = parseFloat(lirWeightInput.value) || 0;
 
     p.compartments = JSON.parse(JSON.stringify(currentCompartmentsState));
-    p.ac_num = currentActiveAircraftTail;
+    if (currentActiveAircraftTail) {
+        p.ac_num = currentActiveAircraftTail;
+    }
     p.show_fwd = isFwdCompartmentsVisible;
     savePredictionsHistory();
 }
 
-// Восстановление раскладки BULK отсеков из объекта prediction (с обратной совместимостью)
+// Восстановление раскладки BULK отсеков из объекта prediction
 function restoreCompartmentsFromPrediction(p) {
-    if (!p || !p.compartments || !Array.isArray(p.compartments)) {
-        initDefaultCompartmentsState();
-        renderCompartmentsTable();
-        recalculateLoadPlanning();
-        return;
-    }
-
-    // Проверяем: новый формат (с массивом rows) или старый (плоский pcs, weight)
-    if (p.compartments.length > 0 && Array.isArray(p.compartments[0].rows)) {
-        currentCompartmentsState = JSON.parse(JSON.stringify(p.compartments));
-    } else {
-        // Мягкая миграция старого формата
-        currentCompartmentsState = [];
-        for (let i = 1; i <= 12; i++) {
-            const oldC = p.compartments[i - 1];
-            currentCompartmentsState.push({
-                cpt: i,
-                name: String(i),
-                rows: [
-                    {
-                        type: 'B',
-                        pcs: oldC ? (parseInt(oldC.pcs, 10) || 0) : 0,
-                        weight: oldC ? (parseFloat(oldC.weight) || 0) : 0,
-                        locked: oldC ? !!oldC.locked : false
-                    }
-                ]
-            });
-        }
-    }
-
-    renderCompartmentsTable();
-    recalculateLoadPlanning();
+    if (!p) return;
+    const tail = p.ac_num || '';
+    const showFwd = p.show_fwd !== undefined ? p.show_fwd : null;
+    applyAircraftCompartmentConfig(tail, showFwd, p.compartments);
 }
 
+// Очистка значений отсеков (с сохранением текущей модели ВС и позиций борта)
 function resetCompartments() {
-    initDefaultCompartmentsState();
-    renderCompartmentsTable();
-    recalculateLoadPlanning();
+    const tailOrType = currentActiveAircraftTail || currentActiveAircraftModel || 'A321';
+    applyAircraftCompartmentConfig(tailOrType, isFwdCompartmentsVisible, false);
 }
 
 
@@ -3152,12 +3164,30 @@ function transferToPreliminary() {
     if (lirPcs) lirPcs.value = pcsVal;
     if (lirWeight) lirWeight.value = weightVal;
 
-    // Связываем с самым свежим расчетом из истории
-    if (predictionsHistory && predictionsHistory.length > 0) {
-        currentActivePredictionId = predictionsHistory[0].id;
-        const activePred = predictionsHistory[0];
-        updateActiveFlightBadge(activePred.from, activePred.to, activePred.flight_no, activePred.flight_date || activePred.calc_date);
+    // Находим расчет: строго текущий активный расчет, либо самый свежий по времени расчета (calc_date)
+    let activePred = null;
+    if (currentActivePredictionId) {
+        activePred = predictionsHistory.find(item => item.id === currentActivePredictionId);
+    }
+    if (!activePred && predictionsHistory && predictionsHistory.length > 0) {
+        activePred = predictionsHistory.slice().sort((a, b) => new Date(b.calc_date || 0) - new Date(a.calc_date || 0))[0];
+    }
+
+    if (activePred) {
+        currentActivePredictionId = activePred.id;
+        activePred.lir_pax = paxVal;
+        activePred.lir_pcs = pcsVal;
+        activePred.lir_weight = weightVal;
+        activePred.pax = paxVal;
+        activePred.bag_pcs = pcsVal;
+        activePred.bag_weight = weightVal;
+
+        updateActiveFlightBadge(activePred.from, activePred.to, activePred.flight_no, activePred.flight_date || activePred.calc_date, activePred.ac_num, activePred.dep_time);
         highlightPredictionRow(currentActivePredictionId);
+
+        if (activePred.ac_num) {
+            applyAircraftCompartmentConfig(activePred.ac_num, activePred.show_fwd !== undefined ? activePred.show_fwd : null, activePred.compartments);
+        }
     }
 
     resetCompartments();
@@ -3166,18 +3196,18 @@ function transferToPreliminary() {
 }
 
 function transferPredictionToPreliminary(predId) {
-    const p = predictionsHistory.find(item => item.id === predId);
-    if (!p) return;
-    if (p.ac_num) {
-        applyAircraftCompartmentConfig(p.ac_num, p.show_fwd || false);
-    }
+    if (!predId) return;
 
-    // Сохраняем раскладку BULK текущего активного рейса из Истории перед переключением (только если это другой рейс)
+    // 1. СТРОГО ПЕРВЫМ ДЕЛОМ: сохраняем раскладку отсеков и LIR предыдущего активного рейса,
+    // чтобы его данные не потерялись и не перетерлись новым рейсом!
     if (currentActivePredictionId && currentActivePredictionId !== predId) {
         saveCompartmentsToPrediction();
     }
 
-    // Устанавливаем новый активный рейс из Истории
+    const p = predictionsHistory.find(item => item.id === predId);
+    if (!p) return;
+
+    // 2. Устанавливаем новый активный рейс
     currentActivePredictionId = predId;
 
     const paxVal = parseInt(p.pax, 10) || 0;
@@ -3187,11 +3217,6 @@ function transferPredictionToPreliminary(predId) {
     const prelimPax = document.getElementById('prelim-pax');
     const prelimPcs = document.getElementById('prelim-pcs');
     const prelimWeight = document.getElementById('prelim-weight');
-
-    const lirPax = document.getElementById('lir-pax');
-    const lirPcs = document.getElementById('lir-pcs');
-    const lirWeight = document.getElementById('lir-weight');
-
     if (prelimPax) prelimPax.textContent = paxVal;
     if (prelimPcs) prelimPcs.textContent = pcsVal;
     if (prelimWeight) prelimWeight.textContent = weightVal;
@@ -3200,37 +3225,61 @@ function transferPredictionToPreliminary(predId) {
     const curLirPcs = (p.lir_pcs !== undefined && p.lir_pcs !== null) ? p.lir_pcs : pcsVal;
     const curLirWeight = (p.lir_weight !== undefined && p.lir_weight !== null) ? p.lir_weight : weightVal;
 
+    const lirPax = document.getElementById('lir-pax');
+    const lirPcs = document.getElementById('lir-pcs');
+    const lirWeight = document.getElementById('lir-weight');
     if (lirPax) lirPax.value = curLirPax;
     if (lirPcs) lirPcs.value = curLirPcs;
     if (lirWeight) lirWeight.value = curLirWeight;
 
+    // Карточки результатов (средняя колонка)
     const resPcs = document.getElementById('res-pcs');
     const resWeight = document.getElementById('res-weight');
     const resHb = document.getElementById('res-hb');
-
     if (resPcs) resPcs.textContent = p.bag_pcs || 0;
     if (resWeight) resWeight.textContent = p.bag_weight || 0;
     if (resHb) resHb.textContent = p.hb_weight || 0;
 
-    // Восстанавливаем раскладку BULK из сохранённых данных рейса (или обнуляем если пустые)
-    restoreCompartmentsFromPrediction(p);
-    recalculateLoadPlanning();
+    // 3. Восстанавливаем отсеки СТРОГО этого рейса через applyAircraftCompartmentConfig
+    // Передаем p.compartments в качестве источника — исключаем любую утечку данных из других рейсов!
+    const targetTail = p.ac_num || '';
+    const showFwd = p.show_fwd !== undefined ? p.show_fwd : null;
+    applyAircraftCompartmentConfig(targetTail, showFwd, p.compartments);
 
-    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num);
-    if (p.ac_num) currentIncomingFlightData.ac_num = p.ac_num;
-    if (p.dep_time) currentIncomingFlightData.dep_time = p.dep_time;
+    // 4. Обновляем инфо-плашку активного рейса в правой колонке
+    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num, p.dep_time);
+
+    // 5. Синхронизируем форму прогноза с выбранным рейсом
+    if (p.from && p.to) {
+        applyRouteSelection({ from: p.from, to: p.to });
+    }
+    const flightInput = document.getElementById('select-flight');
+    if (flightInput && p.flight_no) {
+        flightInput.value = p.flight_no;
+    }
+    const dateInput = document.getElementById('input-date');
+    if (dateInput && (p.flight_date || p.calc_date)) {
+        const dStr = (p.flight_date || p.calc_date).split('T')[0];
+        if (dStr) dateInput.value = dStr;
+    }
     const historyPax = p.raw_pax || p.pax;
     if (historyPax) {
         currentIncomingFlightData.pax = historyPax;
         const mainInputPax = document.getElementById('input-pax');
         if (mainInputPax) mainInputPax.value = historyPax;
     }
-    highlightPredictionRow(predId);
-
-    const targetEl = document.querySelector('.load-planning-panel') || document.getElementById('prelim-pax');
-    if (targetEl) {
-        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (typeof hideCustomFlightSuggestions === 'function') {
+        hideCustomFlightSuggestions();
     }
+
+    if (p.ac_num) currentIncomingFlightData.ac_num = p.ac_num;
+    if (p.dep_time) currentIncomingFlightData.dep_time = p.dep_time;
+    if (p.flight_no) currentIncomingFlightData.flight = p.flight_no;
+    if (p.from) currentIncomingFlightData.from = p.from;
+    if (p.to) currentIncomingFlightData.to = p.to;
+
+    // 6. Подсвечиваем строку рейса в левой таблице
+    highlightPredictionRow(predId);
 }
 
 function recalculateLoadPlanning() {
@@ -7379,6 +7428,24 @@ function calculateBaggageForecast(logToHistory = false) {
         const dateInputEl = document.getElementById('input-date');
         const targetDateVal = dateInputEl ? dateInputEl.value : '';
 
+        // Формируем отсеки сразу под физическую конфигурацию борта
+        const targetTail = currentIncomingFlightData.ac_num || '';
+        const tailCfg = getAircraftCompartmentConfig(targetTail);
+        let initPositions = [];
+        if (tailCfg.isWidebody) {
+            initPositions = tailCfg.aft.map(n => ({ name: n, sec: 'AFT' }));
+        } else {
+            initPositions = [...tailCfg.fwd.map(n => ({ name: n, sec: 'FWD' })), ...tailCfg.aft.map(n => ({ name: n, sec: 'AFT' }))];
+        }
+        const initialCompartments = initPositions.map((pos, idx) => ({
+            cpt: idx + 1,
+            name: pos.name,
+            section: pos.sec,
+            rows: [
+                { type: 'B', pcs: 0, weight: 0, locked: false }
+            ]
+        }));
+
         const prediction = {
             id: 'pred_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
             from: fromVal,
@@ -7392,25 +7459,26 @@ function calculateBaggageForecast(logToHistory = false) {
             flight_date: targetDateVal || new Date().toISOString().split('T')[0],
             calc_date: new Date().toISOString(),
             dep_time: currentIncomingFlightData.dep_time || '',
-            ac_num: currentIncomingFlightData.ac_num || '',
+            ac_num: targetTail,
+            show_fwd: false,
             pax_mode: isBookingMode ? 'booking_97' : 'fact_100',
             waterfall_level: coefs.level || 1,
             lir_pax: effectivePaxVal,
             lir_pcs: expectedPcs,
             lir_weight: expectedWeight,
-            compartments: Array.from({ length: 12 }, () => ({ pcs: 0, weight: 0, locked: false }))
+            compartments: initialCompartments
         };
         predictionsHistory.unshift(prediction);
         savePredictionsHistory();
         renderPredictionsTable();
 
-        // Если в плане загрузки уже открыт конкретный рейс, сохраняем его выделение;
-        // если план чист, подсвечиваем новый расчет
-        if (currentActivePredictionId) {
-            highlightPredictionRow(currentActivePredictionId);
-        } else {
-            highlightPredictionRow(prediction.id);
-        }
+        // СТРОГО устанавливаем только что рассчитанный рейс текущим активным!
+        currentActivePredictionId = prediction.id;
+        highlightPredictionRow(prediction.id);
+
+        // Обновляем бейдж и отсеки под этот расчет в правой колонке
+        updateActiveFlightBadge(prediction.from, prediction.to, prediction.flight_no, prediction.flight_date, prediction.ac_num, prediction.dep_time);
+        applyAircraftCompartmentConfig(prediction.ac_num, false, prediction.compartments);
     }
 }
 
@@ -8702,16 +8770,16 @@ function renderPredictionsTable() {
 }
 
 // Вспомогательная функция обновления верхней инфо-плашки активного рейса в таблице загрузки
-function updateActiveFlightBadge(from, to, flightNo, flightDate, acNum) {
+function updateActiveFlightBadge(from, to, flightNo, flightDate, acNum, depTime) {
     const badgeEl = document.getElementById('active-flight-badge');
     const badgeRoute = document.getElementById('badge-route');
     const badgeFlightNo = document.getElementById('badge-flight-no');
     const badgeFlightDate = document.getElementById('badge-flight-date');
 
-    if (!badgeEl || !from || !to) return;
+    if (!badgeEl) return;
 
-    const fromIata = ruToIata(from) || from;
-    const toIata = ruToIata(to) || to;
+    const fromIata = (from ? ruToIata(from) : '') || from || '';
+    const toIata = (to ? ruToIata(to) : '') || to || '';
 
     let dateTag = '';
     if (flightDate) {
@@ -8723,20 +8791,20 @@ function updateActiveFlightBadge(from, to, flightNo, flightDate, acNum) {
         } catch (e) {}
     }
 
-    if (badgeRoute) badgeRoute.textContent = `${fromIata} ➔ ${toIata}`;
-    if (badgeFlightNo) badgeFlightNo.textContent = flightNo || '';
+    if (badgeRoute) badgeRoute.textContent = (fromIata && toIata) ? `${fromIata} ➔ ${toIata}` : (fromIata || toIata || '—');
+    if (badgeFlightNo) badgeFlightNo.textContent = flightNo || '—';
     if (badgeFlightDate) badgeFlightDate.textContent = dateTag;
 
     let badgeTail = document.getElementById('badge-tail-no');
-    const tailToShow = acNum || (currentIncomingFlightData && currentIncomingFlightData.ac_num);
-    if (tailToShow) {
+    const cleanTail = normalizeTailNumber(acNum);
+    if (cleanTail) {
         if (!badgeTail) {
             badgeTail = document.createElement('span');
             badgeTail.id = 'badge-tail-no';
             badgeTail.className = 'badge-tail-no';
             badgeEl.appendChild(badgeTail);
         }
-        badgeTail.textContent = ` [${tailToShow}]`;
+        badgeTail.textContent = ` [RA-${cleanTail}]`;
     } else if (badgeTail) {
         badgeTail.textContent = '';
     }
