@@ -6289,6 +6289,210 @@ body.light-theme .backtest-table tbody tr:hover {
     color: #fff;
 }
 
+/* Полоса учетной записи Lydia DCS */
+.dcs-auth-strip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(0, 240, 255, 0.25);
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dcs-auth-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: #cbd5e1;
+}
+
+.dcs-auth-label {
+    font-weight: 600;
+}
+
+.dcs-account-display {
+    color: #00f2ff;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.88rem;
+    letter-spacing: 0.5px;
+}
+
+.dcs-auth-status-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.dcs-auth-status-badge.ready {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.dcs-auth-status-badge.warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.dcs-auth-status-badge.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.dcs-btn-auth-toggle {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #cbd5e1;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.dcs-btn-auth-toggle:hover, .dcs-btn-auth-toggle.active {
+    background: rgba(0, 240, 255, 0.2);
+    border-color: #00f2ff;
+    color: #ffffff;
+}
+
+/* Форма учетной записи */
+.dcs-account-form-row {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    animation: dcsFadeIn 0.2s ease-out;
+}
+
+.dcs-account-form-grid {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.dcs-airline-col {
+    flex: 0 0 70px !important;
+    min-width: 60px !important;
+}
+
+.dcs-pwd-field-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.dcs-pwd-field-wrap .dcs-input {
+    padding-right: 34px;
+    width: 100%;
+}
+
+.dcs-btn-pwd-eye {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    padding: 2px 4px;
+    color: var(--text-muted);
+    transition: opacity 0.15s;
+    line-height: 1;
+}
+
+.dcs-btn-pwd-eye:hover {
+    opacity: 0.8;
+}
+
+.dcs-account-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.dcs-btn-test-auth {
+    background: rgba(0, 240, 255, 0.12);
+    color: #00f2ff;
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.dcs-btn-test-auth:hover {
+    background: rgba(0, 240, 255, 0.25);
+    border-color: #00f2ff;
+    color: #ffffff;
+}
+
+.dcs-btn-save-auth {
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.dcs-btn-save-auth:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+
+.dcs-account-feedback {
+    margin-top: 8px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.dcs-account-feedback.success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.dcs-account-feedback.error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.dcs-account-feedback.info {
+    background: rgba(14, 165, 233, 0.15);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.3);
+}
+
 /* Станции вылета чипсы */
 .dcs-stations-section {
     display: flex;
@@ -6303,6 +6507,167 @@ body.light-theme .backtest-table tbody tr:hover {
     font-size: 0.82rem;
     font-weight: 600;
     color: #cbd5e1;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dcs-stations-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dcs-btn-add-station {
+    background: rgba(0, 240, 255, 0.12);
+    border: 1px solid rgba(0, 240, 255, 0.4);
+    color: #00f2ff;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.dcs-btn-add-station:hover, .dcs-btn-add-station.active {
+    background: rgba(0, 240, 255, 0.25);
+    border-color: #00f2ff;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+}
+
+.dcs-stations-divider {
+    color: rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
+}
+
+.dcs-link-reset {
+    color: #94a3b8 !important;
+    font-size: 0.78rem;
+}
+
+.dcs-link-reset:hover {
+    color: #f87171 !important;
+}
+
+/* Форма добавления станции */
+.dcs-add-station-row {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(0, 240, 255, 0.35);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-top: 4px;
+    margin-bottom: 6px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    animation: dcsFadeIn 0.2s ease-out;
+}
+
+@keyframes dcsFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dcs-add-station-inputs {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.dcs-add-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 140px;
+}
+
+.dcs-add-field-group label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+}
+
+.dcs-input-code {
+    text-transform: uppercase;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.dcs-input-city {
+    font-size: 0.82rem;
+}
+
+.dcs-add-buttons {
+    display: flex;
+    gap: 6px;
+}
+
+.dcs-btn-confirm-add {
+    background: linear-gradient(135deg, #0284c7 0%, #0ea5e9 100%);
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    border-radius: 6px;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.dcs-btn-confirm-add:hover {
+    background: linear-gradient(135deg, #0369a1 0%, #0284c7 100%);
+    box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+
+.dcs-btn-cancel-add {
+    background: rgba(255, 255, 255, 0.06);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dcs-btn-cancel-add:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+}
+
+.dcs-add-station-hint {
+    margin-top: 6px;
+    font-size: 0.75rem;
+    color: #f87171;
+    font-weight: 500;
+}
+
+.dcs-chip-delete {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0 0 0 4px;
+    margin-left: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, transform 0.15s;
+}
+
+.dcs-chip-delete:hover {
+    color: #ef4444 !important;
+    transform: scale(1.25);
 }
 
 .dcs-stations-toggle a {
@@ -7139,6 +7504,31 @@ body.light-theme .btn-dcs-sync-trigger .btn-dcs-text small {
         margin: 14px 12px 0 12px !important;
         box-sizing: border-box !important;
     }
+    .dcs-stations-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+    .dcs-stations-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .dcs-add-station-inputs {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .dcs-add-field-group {
+        width: 100%;
+    }
+    .dcs-add-buttons {
+        width: 100%;
+        margin-top: 6px;
+    }
+    .dcs-btn-confirm-add, .dcs-btn-cancel-add {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
 }
 
 /* ==========================================================================
@@ -7255,6 +7645,71 @@ body.light-theme .dcs-input:focus,
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15) !important;
 }
 
+html.light-theme .dcs-auth-strip,
+#dcsSyncModal.light-theme .dcs-auth-strip,
+#dcsSyncModal.dcs-light-mode .dcs-auth-strip {
+    background: #f1f5f9 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+html.light-theme .dcs-auth-info,
+#dcsSyncModal.light-theme .dcs-auth-info,
+#dcsSyncModal.dcs-light-mode .dcs-auth-info {
+    color: #1e293b !important;
+}
+
+html.light-theme .dcs-account-display,
+#dcsSyncModal.light-theme .dcs-account-display,
+#dcsSyncModal.dcs-light-mode .dcs-account-display {
+    color: #0284c7 !important;
+}
+
+html.light-theme .dcs-btn-auth-toggle,
+#dcsSyncModal.light-theme .dcs-btn-auth-toggle,
+#dcsSyncModal.dcs-light-mode .dcs-btn-auth-toggle {
+    background: #e2e8f0 !important;
+    border-color: #cbd5e1 !important;
+    color: #334155 !important;
+}
+
+html.light-theme .dcs-btn-auth-toggle:hover,
+#dcsSyncModal.light-theme .dcs-btn-auth-toggle:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-auth-toggle:hover {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+}
+
+html.light-theme .dcs-account-form-row,
+#dcsSyncModal.light-theme .dcs-account-form-row,
+#dcsSyncModal.dcs-light-mode .dcs-account-form-row {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light-theme .dcs-btn-test-auth,
+#dcsSyncModal.light-theme .dcs-btn-test-auth,
+#dcsSyncModal.dcs-light-mode .dcs-btn-test-auth {
+    background: #e0f2fe !important;
+    border: 1px solid #7dd3fc !important;
+    color: #0369a1 !important;
+}
+
+html.light-theme .dcs-btn-test-auth:hover,
+#dcsSyncModal.light-theme .dcs-btn-test-auth:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-test-auth:hover {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+}
+
+html.light-theme .dcs-btn-pwd-eye,
+#dcsSyncModal.light-theme .dcs-btn-pwd-eye,
+#dcsSyncModal.dcs-light-mode .dcs-btn-pwd-eye {
+    color: #64748b !important;
+}
+
 html.light-theme .dcs-pill,
 html.light-theme body .dcs-pill,
 body.light-theme .dcs-pill,
@@ -7288,6 +7743,70 @@ body.light-theme .dcs-stations-header,
 #dcsSyncModal.dcs-light-mode .dcs-stations-header {
     color: #0f172a !important;
     font-weight: 700 !important;
+}
+
+html.light-theme .dcs-btn-add-station,
+#dcsSyncModal.light-theme .dcs-btn-add-station,
+#dcsSyncModal.dcs-light-mode .dcs-btn-add-station {
+    background: #e0f2fe !important;
+    border: 1px solid #7dd3fc !important;
+    color: #0369a1 !important;
+}
+
+html.light-theme .dcs-btn-add-station:hover,
+#dcsSyncModal.light-theme .dcs-btn-add-station:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-add-station:hover {
+    background: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25) !important;
+}
+
+html.light-theme .dcs-stations-divider,
+#dcsSyncModal.light-theme .dcs-stations-divider,
+#dcsSyncModal.dcs-light-mode .dcs-stations-divider {
+    color: #cbd5e1 !important;
+}
+
+html.light-theme .dcs-add-station-row,
+#dcsSyncModal.light-theme .dcs-add-station-row,
+#dcsSyncModal.dcs-light-mode .dcs-add-station-row {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08) !important;
+}
+
+html.light-theme .dcs-add-field-group label,
+#dcsSyncModal.light-theme .dcs-add-field-group label,
+#dcsSyncModal.dcs-light-mode .dcs-add-field-group label {
+    color: #475569 !important;
+}
+
+html.light-theme .dcs-btn-cancel-add,
+#dcsSyncModal.light-theme .dcs-btn-cancel-add,
+#dcsSyncModal.dcs-light-mode .dcs-btn-cancel-add {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border-color: #cbd5e1 !important;
+}
+
+html.light-theme .dcs-btn-cancel-add:hover,
+#dcsSyncModal.light-theme .dcs-btn-cancel-add:hover,
+#dcsSyncModal.dcs-light-mode .dcs-btn-cancel-add:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+html.light-theme .dcs-chip-delete,
+#dcsSyncModal.light-theme .dcs-chip-delete,
+#dcsSyncModal.dcs-light-mode .dcs-chip-delete {
+    color: #94a3b8 !important;
+}
+
+html.light-theme .dcs-chip-delete:hover,
+#dcsSyncModal.light-theme .dcs-chip-delete:hover,
+#dcsSyncModal.dcs-light-mode .dcs-chip-delete:hover {
+    color: #dc2626 !important;
 }
 
 html.light-theme .dcs-stations-toggle a,
