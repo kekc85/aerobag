@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.20';
+const APP_VERSION = 'v12.2.23';
 const APP_BUILD_DATE = '31.10.2026';
 
 // Глобальное состояние

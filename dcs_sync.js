@@ -6,19 +6,144 @@
 (function() {
     'use strict';
 
-    // Конфигурация доступных станций DCS
-    const DCS_STATIONS = [
-        { code: 'DYU', name: 'Душанбе (DYU)' },
-        { code: 'NMA', name: 'Наманган (NMA)' },
-        { code: 'TJU', name: 'Куляб (TJU)' },
-        { code: 'SKD', name: 'Самарканд (SKD)' },
-        { code: 'TAS', name: 'Ташкент (TAS)' },
-        { code: 'CXR', name: 'Камрань (CXR)' },
-        { code: 'IST', name: 'Стамбул (IST)' }
+    // Конфигурация доступных станций DCS по умолчанию
+    const DEFAULT_DCS_STATIONS = [
+        { code: 'DYU', name: 'Душанбе (DYU)', checked: true },
+        { code: 'NMA', name: 'Наманган (NMA)', checked: true },
+        { code: 'TJU', name: 'Куляб (TJU)', checked: true },
+        { code: 'SKD', name: 'Самарканд (SKD)', checked: true },
+        { code: 'TAS', name: 'Ташкент (TAS)', checked: true },
+        { code: 'CXR', name: 'Камрань (CXR)', checked: true },
+        { code: 'IST', name: 'Стамбул (IST)', checked: true }
     ];
 
+    let dcsStations = loadCachedDcsStations();
+    let dcsCredentials = loadCachedDcsCredentials();
     let scannedFlights = [];
     let isScanning = false;
+
+    function loadCachedDcsCredentials() {
+        try {
+            const saved = localStorage.getItem('averago_dcs_credentials');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && typeof parsed === 'object' && parsed.username) {
+                    return parsed;
+                }
+            }
+        } catch (e) {}
+        return { username: 'WBZUBKOV', password: 'WBZUBKOV', airline: 'N4' };
+    }
+
+    async function fetchServerDcsCredentials() {
+        try {
+            const endpoint = (window.location.port === '8080' || window.location.protocol === 'file:')
+                ? 'http://localhost:8080/api/dcs_sync?action=get_dcs_credentials'
+                : 'lydia_dcs_sync.php?action=get_dcs_credentials';
+
+            const resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.success) {
+                    const creds = data.credentials || data;
+                    if (creds && creds.username) {
+                        dcsCredentials.username = creds.username;
+                        if (creds.password) dcsCredentials.password = creds.password;
+                        if (creds.airline) dcsCredentials.airline = creds.airline;
+                        try {
+                            localStorage.setItem('averago_dcs_credentials', JSON.stringify(dcsCredentials));
+                        } catch (e) {}
+                        updateDcsAccountUI();
+                    }
+                }
+            }
+        } catch (e) {
+            console.warn('Не удалось загрузить учетные данные DCS с сервера:', e);
+        }
+    }
+
+    function loadCachedDcsStations() {
+        try {
+            const saved = localStorage.getItem('averago_dcs_stations');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
+            }
+        } catch (e) {
+            console.warn('Ошибка чтения averago_dcs_stations из LocalStorage:', e);
+        }
+        return JSON.parse(JSON.stringify(DEFAULT_DCS_STATIONS));
+    }
+
+    async function fetchServerDcsStations() {
+        try {
+            const endpoint = (window.location.port === '8080' || window.location.protocol === 'file:')
+                ? 'http://localhost:8080/api/dcs_sync?action=get_dcs_stations'
+                : 'lydia_dcs_sync.php?action=get_dcs_stations';
+
+            const resp = await fetch(endpoint, {
+                method: 'GET',
+                credentials: 'same-origin'
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.success && Array.isArray(data.stations) && data.stations.length > 0) {
+                    const currentCheckMap = new Map();
+                    dcsStations.forEach(s => currentCheckMap.set(s.code, s.checked !== false));
+
+                    dcsStations = data.stations.map(s => {
+                        const isChecked = currentCheckMap.has(s.code) ? currentCheckMap.get(s.code) : (s.checked !== false);
+                        return Object.assign({}, s, { checked: isChecked });
+                    });
+
+                    try {
+                        localStorage.setItem('averago_dcs_stations', JSON.stringify(dcsStations));
+                    } catch (e) {}
+                    renderDcsStationChips();
+                }
+            }
+        } catch (e) {
+            console.warn('Не удалось загрузить станции DCS с сервера:', e);
+        }
+    }
+
+    async function saveDcsStations(list) {
+        if (!Array.isArray(list)) return;
+        try {
+            localStorage.setItem('averago_dcs_stations', JSON.stringify(list));
+        } catch (e) {
+            console.warn('Ошибка сохранения в LocalStorage:', e);
+        }
+
+        try {
+            const endpoint = (window.location.port === '8080' || window.location.protocol === 'file:')
+                ? 'http://localhost:8080/api/dcs_sync?action=save_dcs_stations'
+                : 'lydia_dcs_sync.php?action=save_dcs_stations';
+
+            await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stations: list })
+            });
+
+            if (window.location.port !== '8080' && window.location.protocol !== 'file:') {
+                fetch('api.php?action=save_settings', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        setting_key: 'dcs_stations',
+                        setting_value: list
+                    })
+                }).catch(() => {});
+            }
+        } catch (e) {
+            console.warn('Ошибка отправки станций DCS на сервер:', e);
+        }
+    }
 
     // Инициализация при загрузке DOM
     if (document.readyState === 'loading') {
@@ -29,6 +154,10 @@
 
     function initDcsSyncUI() {
         injectDcsModal();
+        renderDcsStationChips();
+        fetchServerDcsStations();
+        fetchServerDcsCredentials();
+        updateDcsAccountUI();
     }
 
     // Создание HTML-разметки модального окна
@@ -54,6 +183,54 @@
                 <div class="dcs-modal-body">
                     <!-- Панель параметров сканирования -->
                     <div class="dcs-filter-card">
+                        <!-- Полоса учетной записи Lydia DCS -->
+                        <div class="dcs-auth-strip">
+                            <div class="dcs-auth-info">
+                                <span class="dcs-auth-key-icon">🔐</span>
+                                <span class="dcs-auth-label">Учетная запись DCS:</span>
+                                <strong id="dcsAccountDisplay" class="dcs-account-display">WBZUBKOV</strong>
+                                <span id="dcsAuthStatusBadge" class="dcs-auth-status-badge ready">🟢 Настроена</span>
+                            </div>
+                            <div class="dcs-auth-tools">
+                                <button type="button" id="btnToggleDcsAccount" class="dcs-btn-auth-toggle" onclick="window.toggleDcsAccountForm()">
+                                    <span id="dcsAccountToggleIcon">⚙️</span> <span id="dcsAccountToggleLabel">Изменить логин / пароль</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Выдвижная форма смены логина и пароля -->
+                        <div id="dcsAccountFormRow" class="dcs-account-form-row" style="display:none;">
+                            <div class="dcs-account-form-grid">
+                                <div class="dcs-add-field-group">
+                                    <label for="dcsInputUsername">Логин DCS:</label>
+                                    <input type="text" id="dcsInputUsername" class="dcs-input" placeholder="WBZUBKOV" autocomplete="off">
+                                </div>
+                                <div class="dcs-add-field-group">
+                                    <label for="dcsInputPassword">Пароль DCS:</label>
+                                    <div class="dcs-pwd-field-wrap">
+                                        <input type="password" id="dcsInputPassword" class="dcs-input" placeholder="••••••••" autocomplete="off">
+                                        <button type="button" id="btnToggleDcsPwd" class="dcs-btn-pwd-eye" onclick="window.toggleDcsPwdVisibility()" title="Показать/скрыть пароль">👁️</button>
+                                    </div>
+                                </div>
+                                <div class="dcs-add-field-group dcs-airline-col">
+                                    <label for="dcsInputAirline">АК:</label>
+                                    <input type="text" id="dcsInputAirline" class="dcs-input dcs-input-code" placeholder="N4" maxlength="3" value="N4">
+                                </div>
+                                <div class="dcs-account-actions">
+                                    <button type="button" id="btnDcsTestConn" class="dcs-btn-test-auth" onclick="window.testDcsCredentials()">
+                                        ⚡ Проверить связь
+                                    </button>
+                                    <button type="button" id="btnDcsSaveCreds" class="dcs-btn-save-auth" onclick="window.saveDcsCredentials()">
+                                        💾 Сохранить
+                                    </button>
+                                    <button type="button" class="dcs-btn-cancel-add" onclick="window.toggleDcsAccountForm(false)">
+                                        Закрыть
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="dcsAccountFeedback" class="dcs-account-feedback" style="display:none;"></div>
+                        </div>
+
                         <div class="dcs-filter-row">
                             <div class="dcs-filter-group">
                                 <label>Дата начала</label>
@@ -77,19 +254,47 @@
                         <div class="dcs-stations-section">
                             <div class="dcs-stations-header">
                                 <label>Города вылета (Станции):</label>
-                                <div class="dcs-stations-toggle">
-                                    <a href="javascript:void(0)" onclick="window.toggleAllDcsStations(true)">Выбрать все</a> | 
-                                    <a href="javascript:void(0)" onclick="window.toggleAllDcsStations(false)">Снять все</a>
+                                <div class="dcs-stations-actions">
+                                    <button type="button" id="btnToggleAddStation" class="dcs-btn-add-station" onclick="window.toggleDcsAddStationForm()">
+                                        <span class="dcs-btn-add-icon">➕</span> Добавить станцию
+                                    </button>
+                                    <span class="dcs-stations-divider">|</span>
+                                    <div class="dcs-stations-toggle">
+                                        <a href="javascript:void(0)" onclick="window.toggleAllDcsStations(true)">Выбрать все</a> | 
+                                        <a href="javascript:void(0)" onclick="window.toggleAllDcsStations(false)">Снять все</a> | 
+                                        <a href="javascript:void(0)" class="dcs-link-reset" title="Восстановить станции по умолчанию" onclick="window.resetDcsStationsToDefault()">Сбросить</a>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="dcs-stations-chips" id="dcsStationsContainer">
-                                ${DCS_STATIONS.map(s => `
-                                    <label class="dcs-chip">
-                                        <input type="checkbox" name="dcs_station" value="${s.code}" checked>
-                                        <span>${s.name}</span>
-                                    </label>
-                                `).join('')}
+
+                            <!-- Форма быстрого добавления новой станции -->
+                            <div id="dcsAddStationRow" class="dcs-add-station-row" style="display:none;">
+                                <div class="dcs-add-station-inputs">
+                                    <div class="dcs-add-field-group">
+                                        <label for="dcsNewStationInput">Код аэропорта (IATA):</label>
+                                        <div class="dcs-input-with-list">
+                                            <input type="text" id="dcsNewStationInput" list="dcsKnownAirportsList" class="dcs-input dcs-input-code" placeholder="NQZ или Астана" autocomplete="off" maxlength="30" oninput="window.handleDcsStationInput(event)" onkeydown="if(event.key==='Enter'){event.preventDefault();window.saveNewDcsStation();}">
+                                            <datalist id="dcsKnownAirportsList"></datalist>
+                                        </div>
+                                    </div>
+                                    <div class="dcs-add-field-group">
+                                        <label for="dcsNewStationCity">Название города / станции:</label>
+                                        <input type="text" id="dcsNewStationCity" class="dcs-input dcs-input-city" placeholder="Астана" autocomplete="off" maxlength="40" onkeydown="if(event.key==='Enter'){event.preventDefault();window.saveNewDcsStation();}">
+                                    </div>
+                                    <div class="dcs-add-buttons">
+                                        <button type="button" class="dcs-btn-confirm-add" onclick="window.saveNewDcsStation()">
+                                            ➕ Добавить
+                                        </button>
+                                        <button type="button" class="dcs-btn-cancel-add" onclick="window.toggleDcsAddStationForm(false)">
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="dcsAddStationHint" class="dcs-add-station-hint" style="display:none;"></div>
                             </div>
+
+                            <!-- Список чипсов станций (динамический рендер) -->
+                            <div class="dcs-stations-chips" id="dcsStationsContainer"></div>
                         </div>
 
                         <!-- Чекбокс только Finalize и кнопка запуска -->
@@ -203,6 +408,9 @@
         const modal = document.getElementById('dcsSyncModal');
         if (modal) {
             refreshDcsDatesByActivePill();
+            populateDcsKnownAirportsList();
+            renderDcsStationChips();
+            updateDcsAccountUI();
             const isLight = document.documentElement.classList.contains('light-theme') || 
                             document.body.classList.contains('light-theme') || 
                             localStorage.getItem('averago_theme') === 'light';
@@ -218,6 +426,448 @@
         if (modal) {
             modal.style.display = 'none';
             document.body.style.overflow = '';
+        }
+    };
+
+    function updateDcsAccountUI() {
+        const display = document.getElementById('dcsAccountDisplay');
+        const badge = document.getElementById('dcsAuthStatusBadge');
+        const userInput = document.getElementById('dcsInputUsername');
+        const passInput = document.getElementById('dcsInputPassword');
+        const airInput = document.getElementById('dcsInputAirline');
+
+        const user = dcsCredentials.username || 'Не настроена';
+        if (display) display.innerText = user;
+
+        if (userInput && !userInput.value) userInput.value = dcsCredentials.username || '';
+        if (passInput && !passInput.value) passInput.value = dcsCredentials.password || '';
+        if (airInput && !airInput.value) airInput.value = dcsCredentials.airline || 'N4';
+
+        if (badge) {
+            if (dcsCredentials.username && dcsCredentials.password) {
+                badge.className = 'dcs-auth-status-badge ready';
+                badge.innerText = '🟢 Настроена';
+            } else {
+                badge.className = 'dcs-auth-status-badge warning';
+                badge.innerText = '🟡 Не заполнена';
+            }
+        }
+    }
+
+    window.toggleDcsAccountForm = function(force) {
+        const row = document.getElementById('dcsAccountFormRow');
+        const btn = document.getElementById('btnToggleDcsAccount');
+        const label = document.getElementById('dcsAccountToggleLabel');
+        if (!row) return;
+
+        const isCurrentlyVisible = (row.style.display !== 'none');
+        const show = (typeof force === 'boolean') ? force : !isCurrentlyVisible;
+
+        row.style.display = show ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', show);
+
+        if (show) {
+            const userInput = document.getElementById('dcsInputUsername');
+            const passInput = document.getElementById('dcsInputPassword');
+            const airInput = document.getElementById('dcsInputAirline');
+            if (userInput) {
+                userInput.value = dcsCredentials.username || '';
+                userInput.focus();
+            }
+            if (passInput) passInput.value = dcsCredentials.password || '';
+            if (airInput) airInput.value = dcsCredentials.airline || 'N4';
+
+            const feedback = document.getElementById('dcsAccountFeedback');
+            if (feedback) feedback.style.display = 'none';
+
+            if (label) label.innerText = 'Скрыть форму';
+        } else {
+            if (label) label.innerText = 'Изменить логин / пароль';
+        }
+    };
+
+    window.toggleDcsPwdVisibility = function() {
+        const pwdInput = document.getElementById('dcsInputPassword');
+        const eyeBtn = document.getElementById('btnToggleDcsPwd');
+        if (!pwdInput) return;
+
+        if (pwdInput.type === 'password') {
+            pwdInput.type = 'text';
+            if (eyeBtn) eyeBtn.innerText = '🙈';
+        } else {
+            pwdInput.type = 'password';
+            if (eyeBtn) eyeBtn.innerText = '👁️';
+        }
+    };
+
+    window.saveDcsCredentials = async function() {
+        const userInput = document.getElementById('dcsInputUsername');
+        const passInput = document.getElementById('dcsInputPassword');
+        const airInput = document.getElementById('dcsInputAirline');
+        const feedback = document.getElementById('dcsAccountFeedback');
+        const saveBtn = document.getElementById('btnDcsSaveCreds');
+
+        const username = (userInput ? userInput.value : '').trim();
+        const password = (passInput ? passInput.value : '').trim();
+        const airline = (airInput ? airInput.value : 'N4').trim().toUpperCase() || 'N4';
+
+        if (!username || !password) {
+            if (feedback) {
+                feedback.className = 'dcs-account-feedback error';
+                feedback.innerText = '⚠️ Логин и пароль не могут быть пустыми.';
+                feedback.style.display = 'block';
+            }
+            if (!username && userInput) userInput.focus();
+            else if (!password && passInput) passInput.focus();
+            return;
+        }
+
+        if (saveBtn) {
+            saveBtn.disabled = true;
+            saveBtn.innerText = '💾 Сохранение...';
+        }
+
+        try {
+            const endpoint = (window.location.port === '8080' || window.location.protocol === 'file:')
+                ? 'http://localhost:8080/api/dcs_sync?action=save_dcs_credentials'
+                : 'lydia_dcs_sync.php?action=save_dcs_credentials';
+
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, airline })
+            });
+
+            const data = await resp.json();
+            if (data && data.success) {
+                dcsCredentials.username = username;
+                dcsCredentials.password = password;
+                dcsCredentials.airline = airline;
+                try {
+                    localStorage.setItem('averago_dcs_credentials', JSON.stringify(dcsCredentials));
+                } catch (e) {}
+
+                updateDcsAccountUI();
+
+                if (feedback) {
+                    feedback.className = 'dcs-account-feedback success';
+                    feedback.innerText = '✅ Учетные данные Lydia DCS успешно сохранены!';
+                    feedback.style.display = 'block';
+                }
+
+                setTimeout(() => {
+                    window.toggleDcsAccountForm(false);
+                }, 1200);
+            } else {
+                if (feedback) {
+                    feedback.className = 'dcs-account-feedback error';
+                    feedback.innerText = `❌ ${data.error || 'Ошибка при сохранении'}`;
+                    feedback.style.display = 'block';
+                }
+            }
+        } catch (e) {
+            console.error('Save DCS credentials error:', e);
+            if (feedback) {
+                feedback.className = 'dcs-account-feedback error';
+                feedback.innerText = `❌ Ошибка запроса к серверу: ${e.message}`;
+                feedback.style.display = 'block';
+            }
+        } finally {
+            if (saveBtn) {
+                saveBtn.disabled = false;
+                saveBtn.innerText = '💾 Сохранить';
+            }
+        }
+    };
+
+    window.testDcsCredentials = async function() {
+        const userInput = document.getElementById('dcsInputUsername');
+        const passInput = document.getElementById('dcsInputPassword');
+        const airInput = document.getElementById('dcsInputAirline');
+        const feedback = document.getElementById('dcsAccountFeedback');
+        const testBtn = document.getElementById('btnDcsTestConn');
+        const badge = document.getElementById('dcsAuthStatusBadge');
+
+        const username = (userInput ? userInput.value : '').trim();
+        const password = (passInput ? passInput.value : '').trim();
+        const airline = (airInput ? airInput.value : 'N4').trim().toUpperCase() || 'N4';
+
+        if (!username || !password) {
+            if (feedback) {
+                feedback.className = 'dcs-account-feedback error';
+                feedback.innerText = '⚠️ Введите логин и пароль для проверки.';
+                feedback.style.display = 'block';
+            }
+            return;
+        }
+
+        if (testBtn) {
+            testBtn.disabled = true;
+            testBtn.innerText = '⏳ Проверка...';
+        }
+        if (feedback) {
+            feedback.className = 'dcs-account-feedback info';
+            feedback.innerText = 'Подключение к Lydia DCS...';
+            feedback.style.display = 'block';
+        }
+
+        try {
+            const endpoint = (window.location.port === '8080' || window.location.protocol === 'file:')
+                ? 'http://localhost:8080/api/dcs_sync?action=test_connection'
+                : 'lydia_dcs_sync.php?action=test_connection';
+
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, airline })
+            });
+
+            const data = await resp.json();
+            if (data && data.success) {
+                if (feedback) {
+                    feedback.className = 'dcs-account-feedback success';
+                    feedback.innerText = '✅ ' + (data.message || 'Связь с Lydia DCS установлена! Авторизация подтверждена.');
+                    feedback.style.display = 'block';
+                }
+                if (badge) {
+                    badge.className = 'dcs-auth-status-badge ready';
+                    badge.innerText = '🟢 Подключено';
+                }
+            } else {
+                if (feedback) {
+                    feedback.className = 'dcs-account-feedback error';
+                    feedback.innerText = '❌ ' + (data.error || 'Ошибка авторизации в Lydia DCS');
+                    feedback.style.display = 'block';
+                }
+                if (badge) {
+                    badge.className = 'dcs-auth-status-badge error';
+                    badge.innerText = '🔴 Ошибка доступа';
+                }
+            }
+        } catch (e) {
+            if (feedback) {
+                feedback.className = 'dcs-account-feedback error';
+                feedback.innerText = `❌ Ошибка сети: ${e.message}`;
+                feedback.style.display = 'block';
+            }
+        } finally {
+            if (testBtn) {
+                testBtn.disabled = false;
+                testBtn.innerText = '⚡ Проверить связь';
+            }
+        }
+    };
+
+    function renderDcsStationChips() {
+        const container = document.getElementById('dcsStationsContainer');
+        if (!container) return;
+
+        container.innerHTML = dcsStations.map((s) => `
+            <label class="dcs-chip" title="${s.name}">
+                <input type="checkbox" name="dcs_station" value="${s.code}" ${s.checked !== false ? 'checked' : ''} onchange="window.handleDcsStationCheckChange(this)">
+                <span class="dcs-chip-label">${s.name}</span>
+                <button type="button" class="dcs-chip-delete" title="Удалить станцию ${s.code}" onclick="window.removeDcsStation('${s.code}', event)">&times;</button>
+            </label>
+        `).join('');
+    }
+
+    window.handleDcsStationCheckChange = function(cb) {
+        const code = cb.value;
+        const target = dcsStations.find(s => s.code === code);
+        if (target) {
+            target.checked = cb.checked;
+            try {
+                localStorage.setItem('averago_dcs_stations', JSON.stringify(dcsStations));
+            } catch (e) {}
+        }
+    };
+
+    window.toggleAllDcsStations = function(checked) {
+        dcsStations.forEach(s => s.checked = checked);
+        try {
+            localStorage.setItem('averago_dcs_stations', JSON.stringify(dcsStations));
+        } catch (e) {}
+        document.querySelectorAll('#dcsStationsContainer input[type="checkbox"]').forEach(cb => {
+            cb.checked = checked;
+        });
+    };
+
+    window.resetDcsStationsToDefault = function() {
+        if (!confirm('Восстановить исходный список станций вылета Lydia DCS по умолчанию?')) return;
+        dcsStations = JSON.parse(JSON.stringify(DEFAULT_DCS_STATIONS));
+        saveDcsStations(dcsStations);
+        renderDcsStationChips();
+    };
+
+    window.toggleDcsAddStationForm = function(forceState) {
+        const row = document.getElementById('dcsAddStationRow');
+        const btn = document.getElementById('btnToggleAddStation');
+        if (!row) return;
+
+        const isCurrentlyVisible = (row.style.display !== 'none');
+        const show = (typeof forceState === 'boolean') ? forceState : !isCurrentlyVisible;
+
+        row.style.display = show ? 'block' : 'none';
+        if (btn) btn.classList.toggle('active', show);
+
+        if (show) {
+            populateDcsKnownAirportsList();
+            const inputCode = document.getElementById('dcsNewStationInput');
+            if (inputCode) {
+                inputCode.value = '';
+                inputCode.focus();
+            }
+            const inputCity = document.getElementById('dcsNewStationCity');
+            if (inputCity) inputCity.value = '';
+            const hint = document.getElementById('dcsAddStationHint');
+            if (hint) {
+                hint.style.display = 'none';
+                hint.innerText = '';
+            }
+        }
+    };
+
+    function populateDcsKnownAirportsList() {
+        const datalist = document.getElementById('dcsKnownAirportsList');
+        if (!datalist) return;
+        datalist.innerHTML = '';
+
+        const dbAirports = (window.baggageDb && window.baggageDb.airports) ? window.baggageDb.airports : {};
+        const addedCodes = new Set();
+
+        Object.values(dbAirports).forEach(ap => {
+            if (!ap) return;
+            const iata = (ap.iata || '').toUpperCase().trim();
+            if (iata && iata.length === 3 && !addedCodes.has(iata)) {
+                addedCodes.add(iata);
+                const cityName = ap.name || ap.city || iata;
+                const opt = document.createElement('option');
+                opt.value = `${iata} - ${cityName}`;
+                datalist.appendChild(opt);
+            }
+        });
+    }
+
+    window.handleDcsStationInput = function(e) {
+        const val = (e.target.value || '').trim();
+        const cityInput = document.getElementById('dcsNewStationCity');
+        const hint = document.getElementById('dcsAddStationHint');
+        if (hint) hint.style.display = 'none';
+        if (!cityInput) return;
+
+        // Формат автокомплита: "NQZ - Астана"
+        const match = val.match(/^([A-Za-z]{3})\s*[-–—]\s*(.+)$/);
+        if (match) {
+            e.target.value = match[1].toUpperCase();
+            cityInput.value = match[2].trim();
+            return;
+        }
+
+        // Поиск по коду или названию в baggageDb
+        const upper = val.toUpperCase();
+        if (window.baggageDb && window.baggageDb.airports) {
+            if (window.baggageDb.airports[upper]) {
+                const ap = window.baggageDb.airports[upper];
+                cityInput.value = ap.name || ap.city || upper;
+                return;
+            }
+            // Поиск по кириллическому имени
+            for (const a of Object.values(window.baggageDb.airports)) {
+                if (a && a.name && a.name.toLowerCase() === val.toLowerCase()) {
+                    e.target.value = (a.iata || '').toUpperCase();
+                    cityInput.value = a.name;
+                    return;
+                }
+            }
+        }
+    };
+
+    window.saveNewDcsStation = function() {
+        const inputCode = document.getElementById('dcsNewStationInput');
+        const inputCity = document.getElementById('dcsNewStationCity');
+        const hint = document.getElementById('dcsAddStationHint');
+        if (!inputCode || !inputCity) return;
+
+        let code = (inputCode.value || '').trim().toUpperCase();
+        let city = (inputCity.value || '').trim();
+
+        // Проверка формата "NQZ - Астана"
+        const match = code.match(/^([A-Z]{3})\s*[-–—]\s*(.+)$/i);
+        if (match) {
+            code = match[1].toUpperCase();
+            if (!city) city = match[2].trim();
+        }
+
+        // Если ввели кириллический 3-буквенный код, пробуем конвертировать
+        if (code.length === 3 && typeof window.ruToIata === 'function') {
+            const converted = window.ruToIata(code);
+            if (converted && converted.length === 3 && /^[A-Z]{3}$/.test(converted)) {
+                code = converted;
+            }
+        }
+
+        if (!/^[A-Z]{3}$/.test(code)) {
+            if (hint) {
+                hint.innerText = '⚠️ Введите корректный 3-буквенный код IATA (например: NQZ, AER, KZN).';
+                hint.style.display = 'block';
+            }
+            inputCode.focus();
+            return;
+        }
+
+        // Проверка на дублирование
+        const existing = dcsStations.find(s => s.code === code);
+        if (existing) {
+            if (hint) {
+                hint.innerText = `⚠️ Станция ${code} уже присутствует в списке (${existing.name}).`;
+                hint.style.display = 'block';
+            }
+            return;
+        }
+
+        // Если город не указан, пробуем найти в базе или ставим код
+        if (!city && window.baggageDb && window.baggageDb.airports) {
+            const ap = window.baggageDb.airports[code];
+            if (ap && (ap.name || ap.city)) {
+                city = ap.name || ap.city;
+            }
+        }
+        if (!city) {
+            city = code;
+        }
+
+        const fullName = `${city} (${code})`;
+        const newStation = {
+            code: code,
+            name: fullName,
+            checked: true,
+            isCustom: true
+        };
+
+        dcsStations.push(newStation);
+
+        // Также регистрируем аэропорт в глобальной базе baggageDb, если его там еще нет
+        if (window.baggageDb && window.baggageDb.airports && !window.baggageDb.airports[code]) {
+            window.baggageDb.airports[code] = { iata: code, ru: code, name: city };
+        }
+
+        saveDcsStations(dcsStations);
+        renderDcsStationChips();
+        window.toggleDcsAddStationForm(false);
+    };
+
+    window.removeDcsStation = function(code, evt) {
+        if (evt) {
+            evt.stopPropagation();
+            evt.preventDefault();
+        }
+        const idx = dcsStations.findIndex(s => s.code === code);
+        if (idx !== -1) {
+            dcsStations.splice(idx, 1);
+            saveDcsStations(dcsStations);
+            renderDcsStationChips();
         }
     };
 
@@ -257,12 +907,6 @@
             const defaultBtn = document.querySelector(`.dcs-pill[onclick*="'${type}'"]`);
             if (defaultBtn) defaultBtn.classList.add('active');
         }
-    };
-
-    window.toggleAllDcsStations = function(checked) {
-        document.querySelectorAll('#dcsStationsContainer input[type="checkbox"]').forEach(cb => {
-            cb.checked = checked;
-        });
     };
 
     function getActiveDbFlights() {
@@ -349,14 +993,9 @@
             if (elBar) elBar.style.width = `${safePct}%`;
         };
 
-        const stationNames = {
-            'DYU': 'Душанбе (DYU)',
-            'NMA': 'Наманган (NMA)',
-            'TJU': 'Куляб (TJU)',
-            'SKD': 'Самарканд (SKD)',
-            'TAS': 'Ташкент (TAS)',
-            'CXR': 'Камрань (CXR)',
-            'IST': 'Стамбул (IST)'
+        const getStationName = (code) => {
+            const found = dcsStations.find(s => s.code === code);
+            return found ? found.name : code;
         };
 
         updateProgress('Авторизация в Lydia DCS...', 5);
@@ -383,7 +1022,7 @@
 
             for (let i = 0; i < totalStations; i++) {
                 const locCode = checkedStations[i];
-                const locName = stationNames[locCode] || locCode;
+                const locName = getStationName(locCode);
                 const startPct = Math.round(5 + (i / totalStations) * 90);
 
                 updateProgress(`[${i + 1}/${totalStations}] ${locName}... (Найдено: ${scannedFlights.length})`, startPct);
@@ -398,7 +1037,10 @@
                             end_date: endDateDcs,
                             locations: [locCode],
                             only_finalized: onlyFinalize,
-                            client_flight_keys: clientFlightKeys
+                            client_flight_keys: clientFlightKeys,
+                            username: dcsCredentials.username || undefined,
+                            password: dcsCredentials.password || undefined,
+                            airline: dcsCredentials.airline || 'N4'
                         })
                     });
 

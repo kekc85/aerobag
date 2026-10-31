@@ -16,8 +16,14 @@ Thumbs.db
 # Agent skills (локальные)
 .agents/
 
+# Python cache
+__pycache__/
+*.pyc
+
 # DCS credentials and session cookies (local only, never commit)
 dcs_config.php
+dcs_config.json
+dcs_saved_flights.json
 dcs_session*.json
 dcs_cookies*.txt
 
