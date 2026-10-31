@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.23';
+const APP_VERSION = 'v12.2.24';
 const APP_BUILD_DATE = '31.10.2026';
 
 // Глобальное состояние
@@ -3000,6 +3000,9 @@ let currentIncomingFlightData = {
     ac_num: '',
     dep_time: '',
     crew: '',
+    galley: 'D',
+    dow: '',
+    doi: '',
     pax: '',
     pax_m: '',
     pax_f: '',
@@ -3012,6 +3015,96 @@ let currentIncomingFlightData = {
     from: '',
     to: ''
 };
+
+// --- W&B FLEET REGISTRY (DOW / DOI) ---
+let fleetWbData = null;
+
+async function loadFleetWb() {
+    try {
+        const response = await fetch('fleet_wb.json');
+        if (response && response.ok) {
+            fleetWbData = await response.json();
+            console.log('[AeroBag W&B] Загружен реестр флота fleet_wb.json, бортов:', Object.keys(fleetWbData).length);
+        }
+    } catch (e) {
+        console.warn('[AeroBag W&B] Не удалось загрузить fleet_wb.json:', e);
+    }
+}
+
+function normalizeTailNumber(val) {
+    if (!val) return '';
+    return String(val).toUpperCase().replace(/^(RA|РА)[-\s]?/i, '').replace(/\D/g, '').trim();
+}
+
+function detectFlightOperator(flight) {
+    const flightStr = String(flight.flight || flight.flight_no || flight.flight_number || '').toUpperCase().trim();
+    if (/^(EO|KAR|ИК|ЕО)/i.test(flightStr)) return 'EO';
+    if (/^(N4|NWS|СВ|Н4)/i.test(flightStr)) return 'N4';
+    if (flight.operator) {
+        const op = String(flight.operator).toUpperCase().trim();
+        if (op === 'EO' || op === 'KAR') return 'EO';
+        if (op === 'N4' || op === 'NWS') return 'N4';
+    }
+    return '';
+}
+
+function normalizeCrewCode(val) {
+    if (!val) return '';
+    const parts = String(val).split(/[\/\-\s]+/).filter(Boolean);
+    if (parts.length >= 2) return `${parseInt(parts[0], 10)}/${parseInt(parts[1], 10)}`;
+    if (parts.length === 1 && !isNaN(parseInt(parts[0], 10))) return `${parseInt(parts[0], 10)}/0`;
+    return '';
+}
+
+function lookupFleetWb(flight = {}) {
+    if (!fleetWbData) return null;
+    const tail = normalizeTailNumber(flight.ac_num || flight.tail);
+    if (!tail) return null;
+
+    const operator = detectFlightOperator(flight);
+    let configKey = null;
+
+    if (operator && fleetWbData[`${tail}_${operator}`]) {
+        configKey = `${tail}_${operator}`;
+    } else if (operator && fleetWbData[`${tail}_${operator}_FAK_2AKE`]) {
+        configKey = `${tail}_${operator}_FAK_2AKE`;
+    } else {
+        const candidates = Object.keys(fleetWbData).filter(k => k.startsWith(`${tail}_`));
+        if (candidates.length === 1) {
+            configKey = candidates[0];
+        } else if (candidates.length > 1) {
+            if (operator) configKey = candidates.find(k => k.includes(`_${operator}`)) || candidates[0];
+            else configKey = candidates.find(k => k.includes('_N4')) || candidates[0];
+        }
+    }
+
+    if (!configKey || !fleetWbData[configKey]) return null;
+    const cfg = fleetWbData[configKey];
+
+    const crewCode = normalizeCrewCode(flight.crew);
+    if (!crewCode || !cfg.matrix || !cfg.matrix[crewCode]) return null;
+
+    let galley = String(flight.galley || 'D').toUpperCase().trim() || 'D';
+    let cell = cfg.matrix[crewCode][galley];
+    if (!cell && cfg.pantry_codes && cfg.pantry_codes.length > 0) {
+        const fallback = cfg.pantry_codes.includes('D') ? 'D' : cfg.pantry_codes[0];
+        cell = cfg.matrix[crewCode][fallback];
+        if (cell) galley = fallback;
+    }
+
+    if (!cell) return null;
+
+    return {
+        success: true,
+        dow: cell.dow,
+        doi: cell.doi,
+        model: cfg.model,
+        revision: cfg.revision,
+        crew: crewCode,
+        galley: galley,
+        tail: tail
+    };
+}
 
 function openWbLoadsheet() {
     // 1. Текущий активный рейс и предсказание
@@ -3146,8 +3239,24 @@ function openWbLoadsheet() {
     const tripFuel = currentIncomingFlightData.trip_fuel || activePred?.fuel_trip || '';
     const cargoVal = currentIncomingFlightData.cargo || '';
     const mailVal = currentIncomingFlightData.mail || '';
-    const dowVal = currentIncomingFlightData.dow || activePred?.dow || '';
-    const doiVal = currentIncomingFlightData.doi || activePred?.doi || '';
+    let dowVal = currentIncomingFlightData.dow || activePred?.dow || '';
+    let doiVal = currentIncomingFlightData.doi || activePred?.doi || '';
+    const galleyVal = currentIncomingFlightData.galley || activePred?.galley || 'D';
+
+    // Если DOW или DOI еще не были определены (напр. расчет начат прямо в AeroBag) - вычисляем на лету!
+    if (!dowVal || !doiVal) {
+        const flightForWb = {
+            flight: flightNumber,
+            ac_num: selectedTail,
+            crew: crewVal,
+            galley: galleyVal
+        };
+        const wbRes = typeof lookupFleetWb === 'function' ? lookupFleetWb(flightForWb) : null;
+        if (wbRes && wbRes.success) {
+            if (!dowVal) dowVal = String(wbRes.dow);
+            if (!doiVal) doiVal = String(wbRes.doi);
+        }
+    }
 
     // 5. Определение стенда Loadsheet
     const isTest = window.location.href.includes('aerobag-test') || 
@@ -3174,6 +3283,7 @@ function openWbLoadsheet() {
     if (tripFuel) params.set('trip_fuel', tripFuel);
     if (dowVal) params.set('dow', dowVal);
     if (doiVal) params.set('doi', doiVal);
+    if (galleyVal) params.set('galley', galleyVal);
     if (cargoVal) params.set('cargo', cargoVal);
     if (mailVal) params.set('mail', mailVal);
 
@@ -3205,6 +3315,7 @@ function openWbLoadsheet() {
             trip_fuel: tripFuel,
             dow: dowVal,
             doi: doiVal,
+            galley: galleyVal,
             cargo: cargoVal,
             mail: mailVal,
             return_url: window.location.href
@@ -3254,6 +3365,13 @@ function checkIncomingFlightParameters() {
     const cargoParam = urlParams.get('cargo');
     const mailParam = urlParams.get('mail');
     const acConfigParam = urlParams.get('ac_config') || urlParams.get('version') || urlParams.get('layout');
+    const dowParam = urlParams.get('dow');
+    const doiParam = urlParams.get('doi');
+    const galleyParam = urlParams.get('galley');
+
+    if (dowParam) currentIncomingFlightData.dow = dowParam;
+    if (doiParam) currentIncomingFlightData.doi = doiParam;
+    if (galleyParam) currentIncomingFlightData.galley = galleyParam;
 
     if (acConfigParam) currentIncomingFlightData.ac_config = acConfigParam;
     if (crewParam) currentIncomingFlightData.crew = crewParam;
@@ -3689,6 +3807,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadBaggageDb();
+    await loadFleetWb();
     loadPredictionsHistory();
     initDefaultCompartmentsState();
     renderCompartmentsTable();
@@ -7717,7 +7836,13 @@ function calculateBaggageForecast(logToHistory = false) {
             lir_pax: effectivePaxVal,
             lir_pcs: expectedPcs,
             lir_weight: expectedWeight,
-            compartments: initialCompartments
+            compartments: initialCompartments,
+            crew: currentIncomingFlightData.crew || '',
+            galley: currentIncomingFlightData.galley || 'D',
+            dow: currentIncomingFlightData.dow || '',
+            doi: currentIncomingFlightData.doi || '',
+            fuel_block: currentIncomingFlightData.to_fuel || '',
+            fuel_trip: currentIncomingFlightData.trip_fuel || ''
         };
         predictionsHistory.unshift(prediction);
         savePredictionsHistory();
