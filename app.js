@@ -1,6 +1,6 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.19';
-const APP_BUILD_DATE = '29.10.2026';
+const APP_VERSION = 'v12.2.20';
+const APP_BUILD_DATE = '31.10.2026';
 
 // Глобальное состояние
 // Встроенная справочная база аэропортов и правил для гарантированной оффлайн-работы
@@ -3123,16 +3123,31 @@ function openWbLoadsheet() {
     }
 
     // 4. Пассажиры, экипаж и топливо
+    const lirPaxNum = parseInt(document.getElementById('lir-pax')?.value || 0, 10);
+    const inputPaxNum = parseInt(document.getElementById('input-pax')?.value || 0, 10);
+    const prelimPaxNum = parseInt(document.getElementById('prelim-pax')?.textContent || 0, 10);
+    const incomingPaxNum = parseInt(currentIncomingFlightData.pax || activePred?.pax || 0, 10);
+    const effPax = (lirPaxNum > 0) ? lirPaxNum : ((inputPaxNum > 0) ? inputPaxNum : ((prelimPaxNum > 0) ? prelimPaxNum : incomingPaxNum));
+    const paxTotal = effPax > 0 ? String(effPax) : '';
+
+    let paxM = currentIncomingFlightData.pax_m || activePred?.pax_m || document.getElementById('manual-men')?.value || '';
+    let paxF = currentIncomingFlightData.pax_f || activePred?.pax_f || document.getElementById('manual-women')?.value || '';
+    let paxCh = currentIncomingFlightData.pax_ch || activePred?.pax_ch || document.getElementById('manual-rb')?.value || '';
+    let paxInf = currentIncomingFlightData.pax_inf || activePred?.pax_inf || document.getElementById('manual-rm')?.value || '';
+
+    if (!paxM && !paxF && effPax > 0) {
+        const halfM = Math.ceil(effPax / 2);
+        paxM = String(halfM);
+        paxF = String(effPax - halfM);
+    }
+
     const crewVal = currentIncomingFlightData.crew || activePred?.crew || '';
-    const paxM = currentIncomingFlightData.pax_m || activePred?.pax_m || '';
-    const paxF = currentIncomingFlightData.pax_f || activePred?.pax_f || '';
-    const paxCh = currentIncomingFlightData.pax_ch || activePred?.pax_ch || '';
-    const paxInf = currentIncomingFlightData.pax_inf || activePred?.pax_inf || '';
-    const paxTotal = (document.getElementById('lir-pax')?.value || document.getElementById('input-pax')?.value || document.getElementById('prelim-pax')?.textContent || currentIncomingFlightData.pax || activePred?.pax || '').trim();
-    const toFuel = currentIncomingFlightData.to_fuel || '';
-    const tripFuel = currentIncomingFlightData.trip_fuel || '';
+    const toFuel = currentIncomingFlightData.to_fuel || currentIncomingFlightData.fuel_block || activePred?.fuel_block || '';
+    const tripFuel = currentIncomingFlightData.trip_fuel || activePred?.fuel_trip || '';
     const cargoVal = currentIncomingFlightData.cargo || '';
     const mailVal = currentIncomingFlightData.mail || '';
+    const dowVal = currentIncomingFlightData.dow || activePred?.dow || '';
+    const doiVal = currentIncomingFlightData.doi || activePred?.doi || '';
 
     // 5. Определение стенда Loadsheet
     const isTest = window.location.href.includes('aerobag-test') || 
@@ -3157,6 +3172,8 @@ function openWbLoadsheet() {
     if (paxTotal) params.set('pax', paxTotal);
     if (toFuel) params.set('to_fuel', toFuel);
     if (tripFuel) params.set('trip_fuel', tripFuel);
+    if (dowVal) params.set('dow', dowVal);
+    if (doiVal) params.set('doi', doiVal);
     if (cargoVal) params.set('cargo', cargoVal);
     if (mailVal) params.set('mail', mailVal);
 
@@ -3186,6 +3203,8 @@ function openWbLoadsheet() {
             pax: paxTotal,
             to_fuel: toFuel,
             trip_fuel: tripFuel,
+            dow: dowVal,
+            doi: doiVal,
             cargo: cargoVal,
             mail: mailVal,
             return_url: window.location.href

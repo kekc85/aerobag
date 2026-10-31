@@ -471,8 +471,14 @@ body.light-theme .tab-btn.active {
     max-height: none !important;
     overflow-y: auto;
     overflow-x: hidden;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(0, 240, 255, 0.3) rgba(0, 0, 0, 0.2);
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+}
+
+.predictions-table-responsive-compact::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
 }
 
 .predictions-compact-table {
@@ -8129,26 +8135,37 @@ body.light-theme .btn-toggle-fwd {
     color: #b45309;
 }
 
+/* FWD и AFT багажники в темной теме */
+html body:not(.light-theme) table td.cpt-fwd,
+html body:not(.light-theme) table td.cpt-fwd strong,
 .cpt-fwd strong {
     color: #ffd700 !important;
-}
-
-.cpt-aft strong {
-    color: #00f0ff !important;
-}
-
-/* Разделение переднего и заднего багажников в светлой теме */
-html.light-theme .cpt-fwd strong,
-html.light-theme body .cpt-fwd strong,
-body.light-theme .cpt-fwd strong {
-    color: #d97706 !important; /* Насыщенный янтарный/оранжевый для FWD */
     font-weight: 800 !important;
 }
 
-html.light-theme .cpt-aft strong,
-html.light-theme body .cpt-aft strong,
-body.light-theme .cpt-aft strong {
-    color: #0284c7 !important; /* Яркий синий для AFT */
+html body:not(.light-theme) table td.cpt-aft,
+html body:not(.light-theme) table td.cpt-aft strong,
+.cpt-aft strong {
+    color: #00f0ff !important;
+    font-weight: 800 !important;
+}
+
+/* Разделение переднего и заднего багажников в светлой теме */
+html.light-theme body table td.cpt-fwd,
+html.light-theme body table td.cpt-fwd strong,
+body.light-theme table td.cpt-fwd,
+body.light-theme table td.cpt-fwd strong,
+html.light-theme .cpt-fwd strong {
+    color: #d97706 !important; /* Насыщенный янтарный для FWD */
+    font-weight: 800 !important;
+}
+
+html.light-theme body table td.cpt-aft,
+html.light-theme body table td.cpt-aft strong,
+body.light-theme table td.cpt-aft,
+body.light-theme table td.cpt-aft strong,
+html.light-theme .cpt-aft strong {
+    color: #0284c7 !important; /* Яркий лазурный для AFT */
     font-weight: 800 !important;
 }
 
