@@ -218,3 +218,21 @@
   * При истечении серверной сессии PHP или отсутствии прав администратора (unauthorized/forbidden) выводится предупреждающий алерт, исключая иллюзию успешной синхронизации;
   * Добавлен await для последовательного сохранения портов и фильтров в handleSaveNewAirport, handleAddAirportFilter, handleRemoveAirportFilter, handleToggleStrictArrivals, ликвидируя состояние гонки блокировки сессий в PHP;
   * Версия приложения обновлена до v12.0.193.
+- Разработка динамического управления направлениями Lydia DCS (локальный этап перед деплоем):
+  * dcs_sync.js: Внедрена панель добавления станций вылета в модальное окно DCS Sync (кнопка [➕ Добавить станцию], инпуты с автоподсказкой из baggageDb.airports, кнопка отмены, проверка 3-буквенного IATA и дубликатов);
+  * dcs_sync.js: Динамический рендеринг чипсов станций с сохранением состояния чекбоксов, кнопкой удаления [×] для каждой станции и ссылкой «Сбросить» к дефолтным 7 станциям;
+  * dcs_sync.js: Синхронизация списка станций с LocalStorage (averago_dcs_stations) и эндпоинтами сервера (get_dcs_stations, save_dcs_stations, app_settings);
+  * dcs_sync.js: В startDcsScan() наименование станции вылета в прогресс-баре берется динамически из dcsStations;
+  * dcs_server.py: Добавлены обработчики get_dcs_stations и save_dcs_stations с сохранением в dcs_stations.json;
+  * lydia_dcs_sync.php: Добавлены действия get_dcs_stations и save_dcs_stations с поддержкой MySQL таблицы app_settings (setting_key: dcs_stations) и fallback в dcs_stations.json;
+  * style.css: Оформлены стили панели добавления, инпутов, кнопок и крестика удаления для темной и светлой темы HUD, а также мобильная адаптивность для экранов <=768px.
+- Управление учетной записью Lydia DCS в окне подкачки:
+  * dcs_sync.js: В шапку блока фильтрации добавлена полоса статуса учетной записи (логин, статусная плашка, кнопка разворачивания формы [⚙️ Изменить логин / пароль]);
+  * dcs_sync.js: Выдвижная панель с полями логина, пароля (с кнопкой Глазок 👁️ / 🙈) и кода АК, кнопками [⚡ Проверить связь], [💾 Сохранить] и [Закрыть];
+  * dcs_sync.js: Интеграция с get_dcs_credentials / save_dcs_credentials / test_connection и локальным хранилищем averago_dcs_credentials;
+  * dcs_server.py / lydia_dcs_sync.php: Добавлены эндпоинты get_dcs_credentials и save_dcs_credentials с безопасным локальным хранением в dcs_config.json и защитой в .gitignore;
+  * style.css: Оформлены стили ленты статуса, полей ввода, кнопки глазка и обратной связи для темной и светлой тем.
+- Релиз v12.0.196:
+  * Внедрено динамическое управление направлениями вылета (станциями) и учетной записью в окне синхронизации Lydia DCS;
+  * Обновлены dcs_sync.js, style.css, dcs_server.py, lydia_dcs_sync.php, version.json;
+  * Деплой сборки в ветки main и production.

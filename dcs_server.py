@@ -22,13 +22,28 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 def load_dcs_config():
     config = {
         'base_url': 'https://newdcs.nwsesys.com/ADSDCS',
-        'username': '',
-        'password': '',
+        'username': 'WBZUBKOV',
+        'password': 'WBZUBKOV',
         'airline': 'N4',
         'default_locations': ['DYU', 'NMA', 'TJU', 'SKD', 'TAS', 'CXR', 'IST'],
         'request_delay_ms': 500
     }
     
+    # 1. Проверяем dcs_config.json
+    json_config_path = os.path.join(BASE_DIR, 'dcs_config.json')
+    if os.path.exists(json_config_path):
+        try:
+            with open(json_config_path, 'r', encoding='utf-8') as f:
+                jcfg = json.load(f)
+                if isinstance(jcfg, dict):
+                    if jcfg.get('username'): config['username'] = jcfg['username']
+                    if jcfg.get('password'): config['password'] = jcfg['password']
+                    if jcfg.get('airline'): config['airline'] = jcfg['airline']
+                    if jcfg.get('base_url'): config['base_url'] = jcfg['base_url']
+        except Exception as e:
+            print("Config json read error:", e)
+
+    # 2. Проверяем dcs_config.php (приоритет над json при наличии)
     php_config_path = os.path.join(BASE_DIR, 'dcs_config.php')
     if os.path.exists(php_config_path):
         try:
@@ -37,8 +52,8 @@ def load_dcs_config():
                 user_m = re.search(r"['\"]username['\"]\s*=>\s*['\"]([^'\"]+)['\"]", content)
                 pass_m = re.search(r"['\"]password['\"]\s*=>\s*['\"]([^'\"]+)['\"]", content)
                 air_m = re.search(r"['\"]airline['\"]\s*=>\s*['\"]([^'\"]+)['\"]", content)
-                if user_m: config['username'] = user_m.group(1)
-                if pass_m: config['password'] = pass_m.group(1)
+                if user_m and user_m.group(1) != 'YOUR_USERNAME': config['username'] = user_m.group(1)
+                if pass_m and pass_m.group(1) != 'YOUR_PASSWORD': config['password'] = pass_m.group(1)
                 if air_m: config['airline'] = air_m.group(1)
         except Exception as e:
             print("Config read error:", e)
@@ -385,6 +400,48 @@ class AeroBagRequestHandler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
+    def do_GET(self):
+        parsed_path = urllib.parse.urlparse(self.path)
+        
+        # Обработка DCS API GET-запросов
+        if parsed_path.path in ['/api/dcs_sync', '/lydia_dcs_sync.php']:
+            query_params = urllib.parse.parse_qs(parsed_path.query)
+            action = query_params.get('action', [''])[0]
+
+            if action == 'get_dcs_stations':
+                stations_file = os.path.join(BASE_DIR, 'dcs_stations.json')
+                stations = None
+                if os.path.exists(stations_file):
+                    try:
+                        with open(stations_file, 'r', encoding='utf-8') as f:
+                            stations = json.load(f)
+                    except:
+                        pass
+                if not stations or not isinstance(stations, list):
+                    stations = [
+                        {'code': 'DYU', 'name': 'Душанбе (DYU)', 'checked': True},
+                        {'code': 'NMA', 'name': 'Наманган (NMA)', 'checked': True},
+                        {'code': 'TJU', 'name': 'Куляб (TJU)', 'checked': True},
+                        {'code': 'SKD', 'name': 'Самарканд (SKD)', 'checked': True},
+                        {'code': 'TAS', 'name': 'Ташкент (TAS)', 'checked': True},
+                        {'code': 'CXR', 'name': 'Камрань (CXR)', 'checked': True},
+                        {'code': 'IST', 'name': 'Стамбул (IST)', 'checked': True}
+                    ]
+                self._send_json({'success': True, 'stations': stations})
+                return
+
+            elif action == 'get_dcs_credentials':
+                cfg = load_dcs_config()
+                self._send_json({
+                    'success': True,
+                    'username': cfg.get('username', ''),
+                    'password': cfg.get('password', ''),
+                    'airline': cfg.get('airline', 'N4')
+                })
+                return
+
+        super().do_GET()
+
     def do_POST(self):
         parsed_path = urllib.parse.urlparse(self.path)
         
@@ -408,11 +465,18 @@ class AeroBagRequestHandler(http.server.SimpleHTTPRequestHandler):
             scraper = DcsScraper(config)
 
             if action == 'test_connection':
-                res = scraper.login(payload.get('username'), payload.get('password'))
+                u = payload.get('username') or config.get('username')
+                p = payload.get('password') or config.get('password')
+                air = payload.get('airline') or config.get('airline', 'N4')
+                scraper.config['airline'] = air
+                res = scraper.login(u, p)
                 self._send_json(res)
                 return
 
             elif action == 'scan_flights':
+                if payload.get('username'): config['username'] = payload['username']
+                if payload.get('password'): config['password'] = payload['password']
+                if payload.get('airline'): config['airline'] = payload['airline']
                 s_date = payload.get('start_date', '08/09/2026')
                 e_date = payload.get('end_date', '09/09/2026')
                 locs = payload.get('locations') or config.get('default_locations')
@@ -432,8 +496,8 @@ class AeroBagRequestHandler(http.server.SimpleHTTPRequestHandler):
                     self._send_json({'success': False, 'error': 'Нет рейсов для сохранения.'})
                     return
 
-                # Сохраняем в baggage_db.json
-                db_path = os.path.join(BASE_DIR, 'baggage_db.json')
+                # Сохраняем в dcs_saved_flights.json
+                db_path = os.path.join(BASE_DIR, 'dcs_saved_flights.json')
                 current_db = []
                 if os.path.exists(db_path):
                     try:
@@ -484,6 +548,84 @@ class AeroBagRequestHandler(http.server.SimpleHTTPRequestHandler):
                     'saved_count': saved_count
                 })
                 return
+
+            elif action == 'get_dcs_stations':
+                stations_file = os.path.join(BASE_DIR, 'dcs_stations.json')
+                stations = None
+                if os.path.exists(stations_file):
+                    try:
+                        with open(stations_file, 'r', encoding='utf-8') as f:
+                            stations = json.load(f)
+                    except:
+                        pass
+                if not stations or not isinstance(stations, list):
+                    stations = [
+                        {'code': 'DYU', 'name': 'Душанбе (DYU)', 'checked': True},
+                        {'code': 'NMA', 'name': 'Наманган (NMA)', 'checked': True},
+                        {'code': 'TJU', 'name': 'Куляб (TJU)', 'checked': True},
+                        {'code': 'SKD', 'name': 'Самарканд (SKD)', 'checked': True},
+                        {'code': 'TAS', 'name': 'Ташкент (TAS)', 'checked': True},
+                        {'code': 'CXR', 'name': 'Камрань (CXR)', 'checked': True},
+                        {'code': 'IST', 'name': 'Стамбул (IST)', 'checked': True}
+                    ]
+                self._send_json({'success': True, 'stations': stations})
+                return
+
+            elif action == 'save_dcs_stations':
+                stations = payload.get('stations', [])
+                if isinstance(stations, list):
+                    stations_file = os.path.join(BASE_DIR, 'dcs_stations.json')
+                    try:
+                        with open(stations_file, 'w', encoding='utf-8') as f:
+                            json.dump(stations, f, ensure_ascii=False, indent=2)
+                        self._send_json({'success': True, 'message': 'Станции DCS сохранены', 'stations': stations})
+                        return
+                    except Exception as e:
+                        self._send_json({'success': False, 'error': str(e)})
+                        return
+                self._send_json({'success': False, 'error': 'Некорректный формат станций'})
+                return
+
+            elif action == 'get_dcs_credentials':
+                cfg = load_dcs_config()
+                self._send_json({
+                    'success': True,
+                    'username': cfg.get('username', ''),
+                    'password': cfg.get('password', ''),
+                    'airline': cfg.get('airline', 'N4')
+                })
+                return
+
+            elif action == 'save_dcs_credentials':
+                username = str(payload.get('username', '')).strip()
+                password = str(payload.get('password', '')).strip()
+                airline = str(payload.get('airline', 'N4')).strip().upper() or 'N4'
+
+                if not username or not password:
+                    self._send_json({'success': False, 'error': 'Логин и пароль не могут быть пустыми'})
+                    return
+
+                json_config_path = os.path.join(BASE_DIR, 'dcs_config.json')
+                try:
+                    cfg_data = {}
+                    if os.path.exists(json_config_path):
+                        with open(json_config_path, 'r', encoding='utf-8') as f:
+                            cfg_data = json.load(f)
+                    cfg_data['username'] = username
+                    cfg_data['password'] = password
+                    cfg_data['airline'] = airline
+                    with open(json_config_path, 'w', encoding='utf-8') as f:
+                        json.dump(cfg_data, f, ensure_ascii=False, indent=2)
+                    self._send_json({
+                        'success': True,
+                        'message': 'Учетные данные Lydia DCS успешно сохранены',
+                        'username': username,
+                        'airline': airline
+                    })
+                    return
+                except Exception as e:
+                    self._send_json({'success': False, 'error': f'Ошибка сохранения: {str(e)}'})
+                    return
 
             else:
                 self._send_json({'success': False, 'error': f'Неизвестное действие: {action}'})

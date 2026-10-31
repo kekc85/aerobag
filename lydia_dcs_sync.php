@@ -20,9 +20,10 @@ header('Content-Type: application/json; charset=utf-8');
 ini_set('display_errors', 0);
 error_reporting(E_ALL);
 
-// Загрузка конфигурации DCS (из dcs_config.php или безопасные параметры по умолчанию)
+// Загрузка конфигурации DCS (из dcs_config.php или dcs_config.json или параметры по умолчанию)
 $configFile = __DIR__ . '/dcs_config.php';
-$config = file_exists($configFile) ? require $configFile : [
+$jsonConfigFile = __DIR__ . '/dcs_config.json';
+$config = [
     'base_url' => 'https://newdcs.nwsesys.com/ADSDCS',
     'username' => 'WBZUBKOV',
     'password' => 'WBZUBKOV',
@@ -30,6 +31,25 @@ $config = file_exists($configFile) ? require $configFile : [
     'default_locations' => ['DYU', 'NMA', 'TJU', 'SKD', 'TAS', 'CXR', 'IST'],
     'request_delay_ms' => 500
 ];
+
+if (file_exists($jsonConfigFile)) {
+    $jcfg = json_decode(file_get_contents($jsonConfigFile), true);
+    if (is_array($jcfg)) {
+        if (!empty($jcfg['username'])) $config['username'] = $jcfg['username'];
+        if (!empty($jcfg['password'])) $config['password'] = $jcfg['password'];
+        if (!empty($jcfg['airline'])) $config['airline'] = $jcfg['airline'];
+        if (!empty($jcfg['base_url'])) $config['base_url'] = $jcfg['base_url'];
+    }
+}
+
+if (file_exists($configFile)) {
+    $pcfg = require $configFile;
+    if (is_array($pcfg)) {
+        if (!empty($pcfg['username']) && $pcfg['username'] !== 'YOUR_USERNAME') $config['username'] = $pcfg['username'];
+        if (!empty($pcfg['password']) && $pcfg['password'] !== 'YOUR_PASSWORD') $config['password'] = $pcfg['password'];
+        if (!empty($pcfg['airline'])) $config['airline'] = $pcfg['airline'];
+    }
+}
 
 class LydiaDcsClient {
     private $baseUrl;
@@ -493,8 +513,9 @@ switch ($action) {
         checkAdminAccess();
         $user = $_POST['username'] ?? '';
         $pass = $_POST['password'] ?? '';
+        $air  = $_POST['airline'] ?? 'N4';
         if (!empty($user) && !empty($pass)) {
-            $client->setCredentials($user, $pass);
+            $client->setCredentials($user, $pass, $air);
         }
         $res = $client->login();
         echo json_encode($res, JSON_UNESCAPED_UNICODE);
@@ -502,6 +523,12 @@ switch ($action) {
 
     case 'scan_flights':
         checkAdminAccess();
+        $customUser = $_POST['username'] ?? '';
+        $customPass = $_POST['password'] ?? '';
+        $customAir  = $_POST['airline'] ?? '';
+        if (!empty($customUser) && !empty($customPass)) {
+            $client->setCredentials($customUser, $customPass, $customAir ?: 'N4');
+        }
         $startDate = $_POST['start_date'] ?? date('d/m/Y', strtotime('-1 day'));
         $endDate = $_POST['end_date'] ?? date('d/m/Y');
         $locations = !empty($_POST['locations']) ? (is_array($_POST['locations']) ? $_POST['locations'] : explode(',', $_POST['locations'])) : $config['default_locations'];
@@ -651,6 +678,166 @@ switch ($action) {
             'message' => "Успешно сохранено рейсов: {$savedCount}",
             'saved_count' => $savedCount,
             'mysql_synced' => $mysqlSaved
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'get_dcs_stations':
+        $stations = null;
+        $configPath = __DIR__ . '/db_config.php';
+        if (file_exists($configPath)) {
+            require_once $configPath;
+            if (defined('DB_USER') && DB_USER !== 'your_db_username') {
+                try {
+                    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'dcs_stations' LIMIT 1");
+                    $stmt->execute();
+                    $val = $stmt->fetchColumn();
+                    if ($val) {
+                        $stations = json_decode($val, true);
+                    }
+                } catch (Exception $e) {}
+            }
+        }
+        if (!$stations || !is_array($stations)) {
+            $jsonFile = __DIR__ . '/dcs_stations.json';
+            if (file_exists($jsonFile)) {
+                $stations = json_decode(file_get_contents($jsonFile), true);
+            }
+        }
+        if (!$stations || !is_array($stations)) {
+            $stations = [
+                ['code' => 'DYU', 'name' => 'Душанбе (DYU)', 'checked' => true],
+                ['code' => 'NMA', 'name' => 'Наманган (NMA)', 'checked' => true],
+                ['code' => 'TJU', 'name' => 'Куляб (TJU)', 'checked' => true],
+                ['code' => 'SKD', 'name' => 'Самарканд (SKD)', 'checked' => true],
+                ['code' => 'TAS', 'name' => 'Ташкент (TAS)', 'checked' => true],
+                ['code' => 'CXR', 'name' => 'Камрань (CXR)', 'checked' => true],
+                ['code' => 'IST', 'name' => 'Стамбул (IST)', 'checked' => true]
+            ];
+        }
+        echo json_encode(['success' => true, 'stations' => $stations], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'save_dcs_stations':
+        checkAdminAccess();
+        $input = file_get_contents('php://input');
+        $payload = json_decode($input, true);
+        $stations = $payload['stations'] ?? [];
+        if (!is_array($stations)) {
+            echo json_encode(['success' => false, 'error' => 'Некорректный формат станций.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $savedDb = false;
+        $configPath = __DIR__ . '/db_config.php';
+        if (file_exists($configPath)) {
+            require_once $configPath;
+            if (defined('DB_USER') && DB_USER !== 'your_db_username') {
+                try {
+                    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $jsonVal = json_encode($stations, JSON_UNESCAPED_UNICODE);
+                    $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES ('dcs_stations', ?)
+                                           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+                    $stmt->execute([$jsonVal]);
+                    $savedDb = true;
+                } catch (Exception $e) {}
+            }
+        }
+        // Дублируем также в локальный JSON
+        $jsonFile = __DIR__ . '/dcs_stations.json';
+        file_put_contents($jsonFile, json_encode($stations, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Станции успешно сохранены.',
+            'stations' => $stations,
+            'db_synced' => $savedDb
+        ], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'get_dcs_credentials':
+        $creds = [
+            'username' => $config['username'] ?? '',
+            'password' => $config['password'] ?? '',
+            'airline'  => $config['airline'] ?? 'N4'
+        ];
+        // Проверяем app_settings в БД если есть
+        $configPath = __DIR__ . '/db_config.php';
+        if (file_exists($configPath)) {
+            require_once $configPath;
+            if (defined('DB_USER') && DB_USER !== 'your_db_username') {
+                try {
+                    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $stmt = $pdo->prepare("SELECT setting_value FROM app_settings WHERE setting_key = 'dcs_credentials' LIMIT 1");
+                    $stmt->execute();
+                    $val = $stmt->fetchColumn();
+                    if ($val) {
+                        $parsed = json_decode($val, true);
+                        if (is_array($parsed)) {
+                            if (!empty($parsed['username'])) $creds['username'] = $parsed['username'];
+                            if (!empty($parsed['password'])) $creds['password'] = $parsed['password'];
+                            if (!empty($parsed['airline'])) $creds['airline'] = $parsed['airline'];
+                        }
+                    }
+                } catch (Exception $e) {}
+            }
+        }
+        echo json_encode(['success' => true, 'credentials' => $creds], JSON_UNESCAPED_UNICODE);
+        break;
+
+    case 'save_dcs_credentials':
+        checkAdminAccess();
+        $input = file_get_contents('php://input');
+        $payload = json_decode($input, true);
+        $username = trim($payload['username'] ?? '');
+        $password = trim($payload['password'] ?? '');
+        $airline = trim($payload['airline'] ?? 'N4');
+
+        if (empty($username) || empty($password)) {
+            echo json_encode(['success' => false, 'error' => 'Логин и пароль обязательны для заполнения.'], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $creds = [
+            'username' => $username,
+            'password' => $password,
+            'airline'  => $airline ?: 'N4'
+        ];
+
+        // 1. Сохраняем в dcs_config.json
+        $jsonFile = __DIR__ . '/dcs_config.json';
+        file_put_contents($jsonFile, json_encode($creds, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+        // 2. Сохраняем в MySQL app_settings если подключена БД
+        $savedDb = false;
+        $configPath = __DIR__ . '/db_config.php';
+        if (file_exists($configPath)) {
+            require_once $configPath;
+            if (defined('DB_USER') && DB_USER !== 'your_db_username') {
+                try {
+                    $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4", DB_USER, DB_PASS, [
+                        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
+                    ]);
+                    $jsonVal = json_encode($creds, JSON_UNESCAPED_UNICODE);
+                    $stmt = $pdo->prepare("INSERT INTO app_settings (setting_key, setting_value) VALUES ('dcs_credentials', ?)
+                                           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)");
+                    $stmt->execute([$jsonVal]);
+                    $savedDb = true;
+                } catch (Exception $e) {}
+            }
+        }
+
+        echo json_encode([
+            'success' => true,
+            'message' => 'Учетная запись Lydia DCS успешно сохранена.',
+            'username' => $username,
+            'airline'  => $airline,
+            'db_synced' => $savedDb
         ], JSON_UNESCAPED_UNICODE);
         break;
 
