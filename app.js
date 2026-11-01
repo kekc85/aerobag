@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.27';
+const APP_VERSION = 'v12.2.28';
 const APP_BUILD_DATE = '01.11.2026';
 
 // Глобальное состояние
@@ -2775,6 +2775,7 @@ function renderCompartmentsTable() {
     }
 
     tbody.innerHTML = '';
+    let globalRowIdx = 0;
 
     currentCompartmentsState.forEach((comp, compIdx) => {
         const rowsCount = comp.rows.length;
@@ -2809,6 +2810,7 @@ function renderCompartmentsTable() {
             tdType.className = 'bulk-type-cell';
             const select = document.createElement('select');
             select.className = 'form-control bulk-type-select';
+            select.tabIndex = 11 + (globalRowIdx * 3);
             select.onchange = (e) => handleBulkTypeChange(compIdx, rowIdx, e.target.value);
             BULK_LOAD_CATEGORIES.forEach(cat => {
                 const opt = document.createElement('option');
@@ -2830,6 +2832,7 @@ function renderCompartmentsTable() {
             inputPcs.min = '0';
             inputPcs.max = '1000';
             inputPcs.value = String(row.pcs || 0);
+            inputPcs.tabIndex = 11 + (globalRowIdx * 3) + 1;
             inputPcs.oninput = (e) => handleBulkInput(compIdx, rowIdx, 'pcs', e.target.value);
             inputPcs.onfocus = (e) => e.target.select();
             tdPcs.appendChild(inputPcs);
@@ -2845,6 +2848,7 @@ function renderCompartmentsTable() {
             inputWeight.min = '0';
             inputWeight.max = '50000';
             inputWeight.value = String(row.weight || 0);
+            inputWeight.tabIndex = 11 + (globalRowIdx * 3) + 2;
             if (row.locked) {
                 inputWeight.setAttribute('data-locked', 'true');
                 inputWeight.classList.add('weight-locked');
@@ -2862,6 +2866,7 @@ function renderCompartmentsTable() {
                 btnAdd.type = 'button';
                 btnAdd.className = 'btn btn-bulk-add';
                 btnAdd.title = currentLang === 'ru' ? 'Добавить категорию в этот отсек' : 'Add category to this compartment';
+                btnAdd.tabIndex = -1;
                 btnAdd.textContent = '+';
                 btnAdd.onclick = () => handleAddCompartmentSubRow(compIdx);
                 tdAction.appendChild(btnAdd);
@@ -2869,6 +2874,7 @@ function renderCompartmentsTable() {
                 const btnDel = document.createElement('button');
                 btnDel.type = 'button';
                 btnDel.className = 'btn btn-bulk-del';
+                btnDel.tabIndex = -1;
                 btnDel.title = currentLang === 'ru' ? 'Удалить категорию' : 'Delete category';
                 btnDel.textContent = '✕';
                 btnDel.onclick = () => handleRemoveCompartmentSubRow(compIdx, rowIdx);
@@ -2877,6 +2883,7 @@ function renderCompartmentsTable() {
             tr.appendChild(tdAction);
 
             tbody.appendChild(tr);
+            globalRowIdx++;
         });
 
         // Промежуточный итог отсека при нескольких категориях
@@ -3561,6 +3568,13 @@ function transferToPreliminary() {
     resetCompartments();
     recalculateLoadPlanning();
     saveCompartmentsToPrediction();
+
+    setTimeout(() => {
+        const firstSelect = document.querySelector('#unified-load-tbody .bulk-type-select');
+        if (firstSelect) {
+            firstSelect.focus();
+        }
+    }, 50);
 }
 
 function transferPredictionToPreliminary(predId) {
@@ -3757,6 +3771,18 @@ function initLoadPlanningData() {
     if (btnTransfer && !btnTransfer.dataset.hasLoadListener) {
         btnTransfer.dataset.hasLoadListener = 'true';
         btnTransfer.addEventListener('click', transferToPreliminary);
+    }
+    if (btnTransfer && !btnTransfer.dataset.hasTabListener) {
+        btnTransfer.dataset.hasTabListener = 'true';
+        btnTransfer.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab' && !e.shiftKey) {
+                e.preventDefault();
+                const firstSelect = document.querySelector('#unified-load-tbody .bulk-type-select');
+                if (firstSelect) {
+                    firstSelect.focus();
+                }
+            }
+        });
     }
 
     ['lir-pax', 'lir-pcs', 'lir-weight'].forEach(id => {
