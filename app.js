@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.28';
+const APP_VERSION = 'v12.2.29';
 const APP_BUILD_DATE = '01.11.2026';
 
 // Глобальное состояние
@@ -3855,6 +3855,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Обработка параметров рейса из внешней системы (AeroPlan W&B)
     checkIncomingFlightParameters();
+
+    // Автоматическая сверка времени вылета рейсов с суточным планом AeroPlan
+    syncFlightTimesWithAeroPlan();
 });
 
 // Загрузка настроек темы и языка
@@ -5946,6 +5949,31 @@ function setupEventListeners() {
             createServerBackupNow();
         });
     }
+
+    // Межвкладочная авто-синхронизация времен вылета рейсов из AeroPlan (Storage Event & Focus)
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'aeroplan_shift_journal_active_flights' || (e.key && e.key.startsWith('averago_predictions_history_'))) {
+            if (e.key && e.key.startsWith('averago_predictions_history_') && e.key === getUserHistoryStorageKey()) {
+                loadPredictionsHistory();
+            } else {
+                try {
+                    const updatedFlights = e.newValue ? JSON.parse(e.newValue) : null;
+                    if (Array.isArray(updatedFlights)) {
+                        syncFlightTimesWithAeroPlan(updatedFlights);
+                    }
+                } catch (err) {}
+            }
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        syncFlightTimesWithAeroPlan();
+    });
+
+    // Фоновая периодическая сверка раз в 60 секунд
+    setInterval(() => {
+        syncFlightTimesWithAeroPlan();
+    }, 60000);
 }
 
 // Автоматическая/ручная загрузка системной статистики stats_july.xls
@@ -9067,6 +9095,101 @@ function sortPredictionsHistoryByDepTime() {
 
         return String(a.flight_no).localeCompare(String(b.flight_no));
     });
+}
+
+// Сквозная авто-синхронизация времен вылета рейсов из AeroPlan (Авиабит)
+async function syncFlightTimesWithAeroPlan(explicitFlights = null) {
+    let flights = explicitFlights;
+    if (!flights || !Array.isArray(flights) || flights.length === 0) {
+        // 1. Проверяем LocalStorage (общая активная смена AeroPlan на домене boostandgo.ru)
+        try {
+            const raw = localStorage.getItem('aeroplan_shift_journal_active_flights');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    flights = parsed;
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (!flights || !Array.isArray(flights) || flights.length === 0) {
+        // 2. Если в LocalStorage рейсов нет, запрашиваем активную смену с сервера AeroPlan
+        try {
+            const isTest = window.location.pathname.includes('_test') || window.location.pathname.includes('-test') || window.location.href.includes('8080');
+            const apiEndpoint = isTest ? 'https://boostandgo.ru/plan_test/api/shift/current' : 'https://boostandgo.ru/plan/api/shift/current';
+            const res = await fetch(apiEndpoint, { cache: 'no-store' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.flights)) {
+                    flights = data.flights;
+                }
+            }
+        } catch (e) {}
+    }
+
+    if (!flights || !Array.isArray(flights) || flights.length === 0) return 0;
+    if (!predictionsHistory || predictionsHistory.length === 0) return 0;
+
+    const normalizeDateStr = (d) => {
+        if (!d) return '';
+        const s = String(d).trim().split('T')[0];
+        if (s.includes('-')) {
+            const p = s.split('-');
+            if (p.length === 3 && p[0].length === 4) return `${p[2].padStart(2, '0')}.${p[1].padStart(2, '0')}`;
+        }
+        if (s.includes('.')) {
+            const p = s.split('.');
+            if (p.length >= 2) return `${p[0].padStart(2, '0')}.${p[1].padStart(2, '0')}`;
+        }
+        return s;
+    };
+
+    const extractFltNum = (flt) => {
+        if (!flt) return '';
+        const m = String(flt).replace(/\D/g, '');
+        return m ? String(parseInt(m, 10)) : '';
+    };
+
+    let updatedCount = 0;
+
+    predictionsHistory.forEach(p => {
+        const pNum = extractFltNum(p.flight_no);
+        if (!pNum) return;
+        const pDate = normalizeDateStr(p.flight_date || p.calc_date);
+
+        const match = flights.find(f => {
+            const fNum = extractFltNum(f.flight);
+            if (fNum !== pNum) return false;
+            const fDate = normalizeDateStr(f.flight_date);
+            if (pDate && fDate && pDate !== fDate) return false;
+            return true;
+        });
+
+        if (match) {
+            const newTime = normalizeTimeString(match.time || match.departure_time);
+            const oldTime = normalizeTimeString(p.dep_time);
+            if (newTime && newTime !== oldTime) {
+                p.dep_time = newTime;
+                updatedCount++;
+
+                // Если открыт этот рейс в интерфейсе, обновляем бейдж и поле
+                if (currentActivePredictionId === p.id) {
+                    currentIncomingFlightData.dep_time = newTime;
+                    updateActiveFlightBadge(p.from, p.to, p.flight_no, p.flight_date || p.calc_date, p.ac_num, newTime);
+                }
+            }
+        }
+    });
+
+    if (updatedCount > 0) {
+        savePredictionsHistory();
+        sortPredictionsHistoryByDepTime();
+        renderPredictionsTable();
+        console.log(`[AeroBag] Автоматически обновлено время вылета для ${updatedCount} рейсов из AeroPlan`);
+    }
+
+    return updatedCount;
 }
 
 // Изменение времени вылета вручную прямо в строке истории
