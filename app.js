@@ -1,5 +1,5 @@
 // Версия приложения AeroBag Predictor
-const APP_VERSION = 'v12.2.29';
+const APP_VERSION = 'v12.2.30';
 const APP_BUILD_DATE = '01.11.2026';
 
 // Глобальное состояние
@@ -2996,8 +2996,13 @@ function handleReturnToAeroPlan(e) {
     } else if (window.history.length > 1) {
         window.history.back();
     } else {
-        const isTest = window.location.href.includes('aerobag-test');
-        window.location.href = isTest ? 'https://boostandgo.ru/plan_test/' : 'https://boostandgo.ru/plan/';
+        const isPlan2 = document.referrer.includes('plan_2') || window.location.href.includes('plan_2');
+        if (isPlan2) {
+            window.location.href = 'https://boostandgo.ru/plan_2/';
+        } else {
+            const isTest = window.location.href.includes('aerobag-test');
+            window.location.href = isTest ? 'https://boostandgo.ru/plan_test/' : 'https://boostandgo.ru/plan/';
+        }
     }
 }
 
