@@ -311,3 +311,7 @@
 
 - Релиз v12.2.24: Сквозной перенос DOW/DOI и расчет W&B флота при переходе из AeroBag в LoadSheet, чтение параметров URL и локальная база fleet_wb.json.
 - Релиз v12.2.25: Автоматическая синхронизация времен вылета рейсов из AeroPlan (Авиабит) в AeroBag. Функция syncFlightTimesWithAeroPlan обновляет только dep_time у совпадающих рейсов в predictionsHistory через LocalStorage (aeroplan_shift_journal_active_flights), событие window.storage, событие фокуса вкладки и периодическую сверку. Таблица "История расчетов" мгновенно пересортировывается по времени вылета.
+- Релиз и синхронизация test-контура v12.2.31 (20.11.2026):
+  * Развертывание ветки dev на https://boostandgo.ru/aerobag-test в связке с https://boostandgo.ru/plan_2/;
+  * 3-колоночный интерфейс, мульти-категории BULK, флот 35 ВС Nordwind (W&B Loadsheet), авто-возврат в plan_2;
+  * Полная поддержка модального добавления аэропортов и смены учетной записи Lydia DCS.
