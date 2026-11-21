@@ -336,3 +336,8 @@
   * Внедрен 2-проходной расчет `recalculateLoadPlanning` с динамическим распределением остатка REST без разрывов в 0 кг и 0 мест;
   * Добавлены слушатели oninput и onchange для мгновенного отклика спиннеров;
   * Синхронизировано между веткой dev (aerobag-test) и Parser Aviabit (plan_2/aerobag).
+- Гарантированная подстановка DOW, DOI и максимальных весов в Loadsheet (21.11.2026):
+  * Расширена `lookupFleetWb`: возвращает `mzfw`/`mtow`/`mlaw` и подбирает стандартный экипаж по типу ВС даже при пустом поле экипажа;
+  * Обновлены `transferPredictionToPreliminary`, `tailSelect`, `calculatePrediction`, `syncFlightTimesWithAeroPlan` и `openWbLoadsheet` в AeroBag (передача `max_zfw`, `max_tow`, `max_law`, `dow`, `doi`, `crew`, синхронизация с `aeroplan_shift_journal_active_flights` без залипания чужих данных);
+  * В `loadsheet/index.html` добавлена функция `lookupAndApplyAircraftWb`: загрузка `fleet_wb.json` выполняется по одному борту без требования `curCrew`, добавлено реактивное обновление при смене `A/C Reg` / `Crew`;
+  * В `FlightRow.jsx` добавлено довычисление W&B при открытии AeroBag/Loadsheet; в `deploy.yml` ветки `plan_2` добавлена синхронизация `loadsheet_test`.
